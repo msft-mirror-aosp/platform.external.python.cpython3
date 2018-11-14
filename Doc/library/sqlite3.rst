@@ -421,6 +421,10 @@ Connection Objects
       If you want to clear any previously installed progress handler, call the
       method with :const:`None` for *handler*.
 
+      Returning a non-zero value from the handler function will terminate the
+      currently executing query and cause it to raise an :exc:`OperationalError`
+      exception.
+
 
    .. method:: set_trace_callback(trace_callback)
 
@@ -639,6 +643,11 @@ Cursor Objects
 
       .. versionchanged:: 3.6
          Added support for the ``REPLACE`` statement.
+
+   .. attribute:: arraysize
+
+      Read/write attribute that controls the number of rows returned by :meth:`fetchmany`.
+      The default value is 1 which means a single row would be fetched per call.
 
    .. attribute:: description
 

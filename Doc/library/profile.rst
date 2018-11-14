@@ -85,11 +85,11 @@ next line: ``Ordered by: standard name``, indicates that the text string in the
 far right column was used to sort the output. The column headings include:
 
 ncalls
-   for the number of calls,
+   for the number of calls.
 
 tottime
-    for the total time spent in the given function (and excluding time made in
-    calls to sub-functions)
+   for the total time spent in the given function (and excluding time made in
+   calls to sub-functions)
 
 percall
    is the quotient of ``tottime`` divided by ``ncalls``
@@ -215,11 +215,11 @@ functions:
 
    and gathers profiling statistics from the execution. If no file name is
    present, then this function automatically creates a :class:`~pstats.Stats`
-   instance and prints a simple profiling report. If the sort value is specified
+   instance and prints a simple profiling report. If the sort value is specified,
    it is passed to this :class:`~pstats.Stats` instance to control how the
    results are sorted.
 
-.. function:: runctx(command, globals, locals, filename=None)
+.. function:: runctx(command, globals, locals, filename=None, sort=-1)
 
    This function is similar to :func:`run`, with added arguments to supply the
    globals and locals dictionaries for the *command* string. This routine
@@ -310,11 +310,12 @@ Analysis of the profiler data is done using the :class:`~pstats.Stats` class.
    corresponding version of :mod:`profile` or :mod:`cProfile`.  To be specific,
    there is *no* file compatibility guaranteed with future versions of this
    profiler, and there is no compatibility with files produced by other
-   profilers.  If several files are provided, all the statistics for identical
-   functions will be coalesced, so that an overall view of several processes can
-   be considered in a single report.  If additional files need to be combined
-   with data in an existing :class:`~pstats.Stats` object, the
-   :meth:`~pstats.Stats.add` method can be used.
+   profilers, or the same profiler run on a different operating system.  If
+   several files are provided, all the statistics for identical functions will
+   be coalesced, so that an overall view of several processes can be considered
+   in a single report.  If additional files need to be combined with data in an
+   existing :class:`~pstats.Stats` object, the :meth:`~pstats.Stats.add` method
+   can be used.
 
    Instead of reading the profile data from a file, a :class:`cProfile.Profile`
    or :class:`profile.Profile` object can be used as the profile data source.

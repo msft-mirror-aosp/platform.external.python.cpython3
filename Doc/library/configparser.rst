@@ -34,8 +34,8 @@ can be customized by end users easily.
 .. seealso::
 
    Module :mod:`shlex`
-      Support for a creating Unix shell-like mini-languages which can be used
-      as an alternate format for application configuration files.
+      Support for creating Unix shell-like mini-languages which can be used as
+      an alternate format for application configuration files.
 
    Module :mod:`json`
       The json module implements a subset of JavaScript syntax which can also
@@ -1106,10 +1106,6 @@ ConfigParser Objects
       given *section*.  Optional arguments have the same meaning as for the
       :meth:`get` method.
 
-      .. versionchanged:: 3.2
-         Items present in *vars* no longer appear in the result.  The previous
-         behaviour mixed actual parser options with variables provided for
-         interpolation.
 
    .. method:: set(section, option, value)
 

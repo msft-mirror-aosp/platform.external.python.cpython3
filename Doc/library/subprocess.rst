@@ -38,8 +38,8 @@ compatibility with older versions, see the :ref:`call-function-trio` section.
 
 
 .. function:: run(args, *, stdin=None, input=None, stdout=None, stderr=None,\
-                  shell=False, timeout=None, check=False, \
-                  encoding=None, errors=None)
+                  shell=False, cwd=None, timeout=None, check=False, \
+                  encoding=None, errors=None, env=None)
 
    Run the command described by *args*.  Wait for command to complete, then
    return a :class:`CompletedProcess` instance.
@@ -74,6 +74,11 @@ compatibility with older versions, see the :ref:`call-function-trio` section.
    file objects for stdin, stdout and stderr are opened in text mode using the
    specified *encoding* and *errors* or the :class:`io.TextIOWrapper` default.
    Otherwise, file objects are opened in binary mode.
+
+   If *env* is not ``None``, it must be a mapping that defines the environment
+   variables for the new process; these are used instead of the default
+   behavior of inheriting the current process' environment. It is passed directly
+   to :class:`Popen`.
 
    Examples::
 
@@ -584,7 +589,7 @@ Instances of the :class:`Popen` class have the following methods:
 .. method:: Popen.poll()
 
    Check if child process has terminated.  Set and return
-   :attr:`~Popen.returncode` attribute.
+   :attr:`~Popen.returncode` attribute. Otherwise, returns ``None``.
 
 
 .. method:: Popen.wait(timeout=None)
@@ -856,7 +861,7 @@ Prior to Python 3.5, these three functions comprised the high level API to
 subprocess. You can now use :func:`run` in many cases, but lots of existing code
 calls these functions.
 
-.. function:: call(args, *, stdin=None, stdout=None, stderr=None, shell=False, timeout=None)
+.. function:: call(args, *, stdin=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None)
 
    Run the command described by *args*.  Wait for command to complete, then
    return the :attr:`~Popen.returncode` attribute.
@@ -882,7 +887,7 @@ calls these functions.
    .. versionchanged:: 3.3
       *timeout* was added.
 
-.. function:: check_call(args, *, stdin=None, stdout=None, stderr=None, shell=False, timeout=None)
+.. function:: check_call(args, *, stdin=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None)
 
    Run command with arguments.  Wait for command to complete. If the return
    code was zero then return, otherwise raise :exc:`CalledProcessError`. The
@@ -912,7 +917,7 @@ calls these functions.
 
 
 .. function:: check_output(args, *, stdin=None, stderr=None, shell=False, \
-                           encoding=None, errors=None, \
+                           cwd=None, encoding=None, errors=None, \
                            universal_newlines=False, timeout=None)
 
    Run command with arguments and return its output.
@@ -955,6 +960,9 @@ calls these functions.
 
    .. versionchanged:: 3.4
       Support for the *input* keyword argument was added.
+
+   .. versionchanged:: 3.6
+      *encoding* and *errors* were added.  See :func:`run` for details.
 
 .. _subprocess-replacements:
 
@@ -1166,27 +1174,32 @@ handling consistency are valid for these functions.
 
 .. function:: getstatusoutput(cmd)
 
-   Return ``(status, output)`` of executing *cmd* in a shell.
+   Return ``(exitcode, output)`` of executing *cmd* in a shell.
 
    Execute the string *cmd* in a shell with :meth:`Popen.check_output` and
-   return a 2-tuple ``(status, output)``. The locale encoding is used;
+   return a 2-tuple ``(exitcode, output)``. The locale encoding is used;
    see the notes on :ref:`frequently-used-arguments` for more details.
 
    A trailing newline is stripped from the output.
-   The exit status for the command can be interpreted
-   according to the rules for the C function :c:func:`wait`.  Example::
+   The exit code for the command can be interpreted as the return code
+   of subprocess.  Example::
 
       >>> subprocess.getstatusoutput('ls /bin/ls')
       (0, '/bin/ls')
       >>> subprocess.getstatusoutput('cat /bin/junk')
-      (256, 'cat: /bin/junk: No such file or directory')
+      (1, 'cat: /bin/junk: No such file or directory')
       >>> subprocess.getstatusoutput('/bin/junk')
-      (256, 'sh: /bin/junk: not found')
+      (127, 'sh: /bin/junk: not found')
+      >>> subprocess.getstatusoutput('/bin/kill $$')
+      (-15, '')
 
    Availability: POSIX & Windows
 
    .. versionchanged:: 3.3.4
-      Windows support added
+      Windows support was added.
+
+      The function now returns (exitcode, output) instead of (status, output)
+      as it did in Python 3.3.3 and earlier.  See :func:`WEXITSTATUS`.
 
 
 .. function:: getoutput(cmd)

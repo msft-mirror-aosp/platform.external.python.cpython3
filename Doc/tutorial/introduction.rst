@@ -100,10 +100,8 @@ give you an error::
 There is full support for floating point; operators with mixed type operands
 convert the integer operand to floating point::
 
-   >>> 3 * 3.75 / 1.5
-   7.5
-   >>> 7.0 / 2
-   3.5
+   >>> 4 * 3.75 - 1
+   14.0
 
 In interactive mode, the last printed expression is assigned to the variable
 ``_``.  This means that when you are using Python as a desk calculator, it is
@@ -214,6 +212,13 @@ to each other are automatically concatenated. ::
    >>> 'Py' 'thon'
    'Python'
 
+This feature is particularly useful when you want to break long strings::
+
+   >>> text = ('Put several strings within parentheses '
+   ...         'to have them joined together.')
+   >>> text
+   'Put several strings within parentheses to have them joined together.'
+
 This only works with two literals though, not with variables or expressions::
 
    >>> prefix = 'Py'
@@ -228,13 +233,6 @@ If you want to concatenate variables or a variable and a literal, use ``+``::
 
    >>> prefix + 'thon'
    'Python'
-
-This feature is particularly useful when you want to break long strings::
-
-   >>> text = ('Put several strings within parentheses '
-   ...         'to have them joined together.')
-   >>> text
-   'Put several strings within parentheses to have them joined together.'
 
 Strings can be *indexed* (subscripted), with the first character having index 0.
 There is no separate character type; a character is simply a string of size

@@ -22,8 +22,7 @@ all_name_chars(PyObject *o)
     static const unsigned char *name_chars = (unsigned char *)NAME_CHARS;
     const unsigned char *s, *e;
 
-    if (!PyUnicode_Check(o) || PyUnicode_READY(o) == -1 ||
-        !PyUnicode_IS_ASCII(o))
+    if (!PyUnicode_IS_ASCII(o))
         return 0;
 
     if (ok_name_char[*name_chars] == 0) {
@@ -64,6 +63,10 @@ intern_string_constants(PyObject *tuple)
     for (i = PyTuple_GET_SIZE(tuple); --i >= 0; ) {
         PyObject *v = PyTuple_GET_ITEM(tuple, i);
         if (PyUnicode_CheckExact(v)) {
+            if (PyUnicode_READY(v) == -1) {
+                PyErr_Clear();
+                continue;
+            }
             if (all_name_chars(v)) {
                 PyObject *w = v;
                 PyUnicode_InternInPlace(&v);
@@ -133,12 +136,20 @@ PyCode_New(int argcount, int kwonlyargcount,
     if (PyUnicode_READY(filename) < 0)
         return NULL;
 
-    n_cellvars = PyTuple_GET_SIZE(cellvars);
     intern_strings(names);
     intern_strings(varnames);
     intern_strings(freevars);
     intern_strings(cellvars);
     intern_string_constants(consts);
+
+    /* Check for any inner or outer closure references */
+    n_cellvars = PyTuple_GET_SIZE(cellvars);
+    if (!n_cellvars && !PyTuple_GET_SIZE(freevars)) {
+        flags |= CO_NOFREE;
+    } else {
+        flags &= ~CO_NOFREE;
+    }
+
     /* Create mapping between cells and arguments if needed. */
     if (n_cellvars) {
         Py_ssize_t total_args = argcount + kwonlyargcount +
@@ -411,18 +422,19 @@ static void
 code_dealloc(PyCodeObject *co)
 {
     if (co->co_extra != NULL) {
-        PyThreadState *tstate = PyThreadState_Get();
+        __PyCodeExtraState *state = __PyCodeExtraState_Get();
         _PyCodeObjectExtra *co_extra = co->co_extra;
 
         for (Py_ssize_t i = 0; i < co_extra->ce_size; i++) {
-            freefunc free_extra = tstate->co_extra_freefuncs[i];
+            freefunc free_extra = state->co_extra_freefuncs[i];
 
             if (free_extra != NULL) {
                 free_extra(co_extra->ce_extras[i]);
             }
         }
 
-        PyMem_FREE(co->co_extra);
+        PyMem_Free(co_extra->ce_extras);
+        PyMem_Free(co_extra);
     }
 
     Py_XDECREF(co->co_code);
@@ -446,11 +458,15 @@ code_dealloc(PyCodeObject *co)
 static PyObject *
 code_sizeof(PyCodeObject *co, void *unused)
 {
-    Py_ssize_t res;
+    Py_ssize_t res = _PyObject_SIZE(Py_TYPE(co));
+    _PyCodeObjectExtra *co_extra = (_PyCodeObjectExtra*) co->co_extra;
 
-    res = _PyObject_SIZE(Py_TYPE(co));
     if (co->co_cell2arg != NULL && co->co_cellvars != NULL)
-        res += PyTuple_GET_SIZE(co->co_cellvars) * sizeof(unsigned char);
+        res += PyTuple_GET_SIZE(co->co_cellvars) * sizeof(Py_ssize_t);
+
+    if (co_extra != NULL)
+        res += co_extra->ce_size * sizeof(co_extra->ce_extras[0]);
+
     return PyLong_FromSsize_t(res);
 }
 
@@ -821,8 +837,6 @@ _PyCode_CheckLineNumber(PyCodeObject* co, int lasti, PyAddrPair *bounds)
 int
 _PyCode_GetExtra(PyObject *code, Py_ssize_t index, void **extra)
 {
-    assert(*extra == NULL);
-
     if (!PyCode_Check(code)) {
         PyErr_BadInternalCall();
         return -1;
@@ -833,6 +847,7 @@ _PyCode_GetExtra(PyObject *code, Py_ssize_t index, void **extra)
 
 
     if (co_extra == NULL || co_extra->ce_size <= index) {
+        *extra = NULL;
         return 0;
     }
 
@@ -844,10 +859,10 @@ _PyCode_GetExtra(PyObject *code, Py_ssize_t index, void **extra)
 int
 _PyCode_SetExtra(PyObject *code, Py_ssize_t index, void *extra)
 {
-    PyThreadState *tstate = PyThreadState_Get();
+    __PyCodeExtraState *state = __PyCodeExtraState_Get();
 
     if (!PyCode_Check(code) || index < 0 ||
-            index >= tstate->co_extra_user_count) {
+            index >= state->co_extra_user_count) {
         PyErr_BadInternalCall();
         return -1;
     }
@@ -862,13 +877,13 @@ _PyCode_SetExtra(PyObject *code, Py_ssize_t index, void *extra)
         }
 
         co_extra->ce_extras = PyMem_Malloc(
-            tstate->co_extra_user_count * sizeof(void*));
+            state->co_extra_user_count * sizeof(void*));
         if (co_extra->ce_extras == NULL) {
             PyMem_Free(co_extra);
             return -1;
         }
 
-        co_extra->ce_size = tstate->co_extra_user_count;
+        co_extra->ce_size = state->co_extra_user_count;
 
         for (Py_ssize_t i = 0; i < co_extra->ce_size; i++) {
             co_extra->ce_extras[i] = NULL;
@@ -878,20 +893,27 @@ _PyCode_SetExtra(PyObject *code, Py_ssize_t index, void *extra)
     }
     else if (co_extra->ce_size <= index) {
         void** ce_extras = PyMem_Realloc(
-            co_extra->ce_extras, tstate->co_extra_user_count * sizeof(void*));
+            co_extra->ce_extras, state->co_extra_user_count * sizeof(void*));
 
         if (ce_extras == NULL) {
             return -1;
         }
 
         for (Py_ssize_t i = co_extra->ce_size;
-             i < tstate->co_extra_user_count;
+             i < state->co_extra_user_count;
              i++) {
             ce_extras[i] = NULL;
         }
 
         co_extra->ce_extras = ce_extras;
-        co_extra->ce_size = tstate->co_extra_user_count;
+        co_extra->ce_size = state->co_extra_user_count;
+    }
+
+    if (co_extra->ce_extras[index] != NULL) {
+        freefunc free = state->co_extra_freefuncs[index];
+        if (free != NULL) {
+            free(co_extra->ce_extras[index]);
+        }
     }
 
     co_extra->ce_extras[index] = extra;

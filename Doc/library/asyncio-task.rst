@@ -3,6 +3,10 @@
 Tasks and coroutines
 ====================
 
+**Source code:** :source:`Lib/asyncio/tasks.py`
+
+**Source code:** :source:`Lib/asyncio/coroutines.py`
+
 .. _coroutine:
 
 Coroutines
@@ -212,7 +216,7 @@ Future
      raise an exception when the future isn't done yet.
 
    - Callbacks registered with :meth:`add_done_callback` are always called
-     via the event loop's :meth:`~AbstractEventLoop.call_soon_threadsafe`.
+     via the event loop's :meth:`~AbstractEventLoop.call_soon`.
 
    - This class is not compatible with the :func:`~concurrent.futures.wait` and
      :func:`~concurrent.futures.as_completed` functions in the
@@ -540,6 +544,11 @@ Task functions
 
    .. deprecated:: 3.4.4
 
+.. function:: wrap_future(future, \*, loop=None)
+
+   Wrap a :class:`concurrent.futures.Future` object in a :class:`Future`
+   object.
+
 .. function:: gather(\*coros_or_futures, loop=None, return_exceptions=False)
 
    Return a future aggregating results from the given coroutine objects or
@@ -558,6 +567,10 @@ Task functions
    treated as if it raised :exc:`~concurrent.futures.CancelledError` -- the
    outer Future is *not* cancelled in this case.  (This is to prevent the
    cancellation of one child to cause other children to be cancelled.)
+
+   .. versionchanged:: 3.6.6
+      If the *gather* itself is cancelled, the cancellation is propagated
+      regardless of *return_exceptions*.
 
 .. function:: iscoroutine(obj)
 
@@ -621,7 +634,7 @@ Task functions
 
    This function is a :ref:`coroutine <coroutine>`.
 
-.. function:: shield(arg, \*, loop=None)
+.. coroutinefunction:: shield(arg, \*, loop=None)
 
    Wait for a future, shielding it from cancellation.
 

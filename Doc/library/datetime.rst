@@ -1027,8 +1027,7 @@ Instance methods:
 
    If provided, *tz* must be an instance of a :class:`tzinfo` subclass, and its
    :meth:`utcoffset` and :meth:`dst` methods must not return ``None``.  If *self*
-   is naive (``self.tzinfo is None``), it is presumed to represent time in the
-   system timezone.
+   is naive, it is presumed to represent time in the system timezone.
 
    If called without arguments (or with ``tz=None``) the system local
    timezone is assumed for the target timezone.  The ``.tzinfo`` attribute of the converted
@@ -1849,11 +1848,11 @@ only EST (fixed offset -5 hours), or only EDT (fixed offset -4 hours)).
 
 .. seealso::
 
-   `datetuil.tz <https://dateutil.readthedocs.io/en/stable/tz.html>`_
+   `dateutil.tz <https://dateutil.readthedocs.io/en/stable/tz.html>`_
       The standard library has :class:`timezone` class for handling arbitrary
       fixed offsets from UTC and :attr:`timezone.utc` as UTC timezone instance.
 
-      *datetuil.tz* library brings the *IANA timezone database* (also known as the
+      *dateutil.tz* library brings the *IANA timezone database* (also known as the
       Olson database) to Python and its usage is recommended.
 
    `IANA timezone database <https://www.iana.org/time-zones>`_

@@ -178,11 +178,15 @@ Generic options
 .. cmdoption:: -V
                --version
 
-   Print the Python version number and exit.  Example output could be::
+   Print the Python version number and exit.  Example output could be:
+
+   .. code-block:: none
 
        Python 3.6.0b2+
 
-   When given twice, print more information about the build, like::
+   When given twice, print more information about the build, like:
+
+   .. code-block:: none
 
        Python 3.6.0b2+ (3.6:84a3c5003510+, Oct 26 2016, 02:33:55)
        [GCC 6.2.0 20161005]
@@ -246,12 +250,23 @@ Miscellaneous options
 
 .. cmdoption:: -O
 
-   Turn on basic optimizations.  See also :envvar:`PYTHONOPTIMIZE`.
+   Remove assert statements and any code conditional on the value of
+   :const:`__debug__`.  Augment the filename for compiled
+   (:term:`bytecode`) files by adding ``.opt-1`` before the ``.pyc``
+   extension (see :pep:`488`).  See also :envvar:`PYTHONOPTIMIZE`.
+
+   .. versionchanged:: 3.5
+      Modify ``.pyc`` filenames according to :pep:`488`.
 
 
 .. cmdoption:: -OO
 
-   Discard docstrings in addition to the :option:`-O` optimizations.
+   Do :option:`-O` and also discard docstrings.  Augment the filename
+   for compiled (:term:`bytecode`) files by adding ``.opt-2`` before the
+   ``.pyc`` extension (see :pep:`488`).
+
+   .. versionchanged:: 3.5
+      Modify ``.pyc`` filenames according to :pep:`488`.
 
 
 .. cmdoption:: -q
@@ -325,7 +340,9 @@ Miscellaneous options
 
    Warning control.  Python's warning machinery by default prints warning
    messages to :data:`sys.stderr`.  A typical warning message has the following
-   form::
+   form:
+
+   .. code-block:: none
 
        file:line: category: message
 
@@ -386,8 +403,6 @@ Miscellaneous options
 
    Skip the first line of the source, allowing use of non-Unix forms of
    ``#!cmd``.  This is intended for a DOS specific hack only.
-
-   .. note:: The line numbers in error messages will be off by one.
 
 
 .. cmdoption:: -X
@@ -532,8 +547,8 @@ conflict.
 
 .. envvar:: PYTHONDONTWRITEBYTECODE
 
-   If this is set to a non-empty string, Python won't try to write ``.pyc`` or
-   ``.pyo`` files on the import of source modules.  This is equivalent to
+   If this is set to a non-empty string, Python won't try to write ``.pyc``
+   files on the import of source modules.  This is equivalent to
    specifying the :option:`-B` option.
 
 
@@ -571,7 +586,7 @@ conflict.
 
    .. versionchanged:: 3.6
       On Windows, the encoding specified by this variable is ignored for interactive
-      console buffers unless :envvar:`PYTHONLEGACYWINDOWSIOENCODING` is also specified.
+      console buffers unless :envvar:`PYTHONLEGACYWINDOWSSTDIO` is also specified.
       Files and pipes redirected through the standard streams are not affected.
 
 .. envvar:: PYTHONNOUSERSITE
@@ -700,7 +715,7 @@ conflict.
    .. versionadded:: 3.6
       See :pep:`529` for more details.
 
-.. envvar:: PYTHONLEGACYWINDOWSIOENCODING
+.. envvar:: PYTHONLEGACYWINDOWSSTDIO
 
    If set to a non-empty string, does not use the new console reader and
    writer. This means that Unicode characters will be encoded according to

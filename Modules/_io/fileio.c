@@ -280,11 +280,10 @@ _io_FileIO___init___impl(fileio *self, PyObject *nameobj, const char *mode,
 
     if (fd < 0) {
 #ifdef MS_WINDOWS
-        Py_ssize_t length;
         if (!PyUnicode_FSDecoder(nameobj, &stringobj)) {
             return -1;
         }
-        widename = PyUnicode_AsUnicodeAndSize(stringobj, &length);
+        widename = PyUnicode_AsUnicode(stringobj);
         if (widename == NULL)
             return -1;
 #else
@@ -692,10 +691,12 @@ _io_FileIO_readall_impl(fileio *self)
     Py_ssize_t bytes_read = 0;
     Py_ssize_t n;
     size_t bufsize;
+    int fstat_result;
 
     if (self->fd < 0)
         return err_closed();
 
+    Py_BEGIN_ALLOW_THREADS
     _Py_BEGIN_SUPPRESS_IPH
 #ifdef MS_WINDOWS
     pos = _lseeki64(self->fd, 0L, SEEK_CUR);
@@ -703,8 +704,10 @@ _io_FileIO_readall_impl(fileio *self)
     pos = lseek(self->fd, 0L, SEEK_CUR);
 #endif
     _Py_END_SUPPRESS_IPH
+    fstat_result = _Py_fstat_noraise(self->fd, &status);
+    Py_END_ALLOW_THREADS
 
-    if (_Py_fstat_noraise(self->fd, &status) == 0)
+    if (fstat_result == 0)
         end = status.st_size;
     else
         end = (Py_off_t)-1;
@@ -1082,9 +1085,19 @@ fileio_repr(fileio *self)
             self->fd, mode_string(self), self->closefd ? "True" : "False");
     }
     else {
-        res = PyUnicode_FromFormat(
-            "<_io.FileIO name=%R mode='%s' closefd=%s>",
-            nameobj, mode_string(self), self->closefd ? "True" : "False");
+        int status = Py_ReprEnter((PyObject *)self);
+        res = NULL;
+        if (status == 0) {
+            res = PyUnicode_FromFormat(
+                "<_io.FileIO name=%R mode='%s' closefd=%s>",
+                nameobj, mode_string(self), self->closefd ? "True" : "False");
+            Py_ReprLeave((PyObject *)self);
+        }
+        else if (status > 0) {
+            PyErr_Format(PyExc_RuntimeError,
+                         "reentrant call inside %s.__repr__",
+                         Py_TYPE(self)->tp_name);
+        }
         Py_DECREF(nameobj);
     }
     return res;

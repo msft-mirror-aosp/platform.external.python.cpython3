@@ -15,16 +15,18 @@ from os import path
 from time import asctime
 from pprint import pformat
 from docutils.io import StringOutput
+from docutils.parsers.rst import Directive
 from docutils.utils import new_document
 
 from docutils import nodes, utils
 
 from sphinx import addnodes
 from sphinx.builders import Builder
+from sphinx.locale import translators
+from sphinx.util import status_iterator
 from sphinx.util.nodes import split_explicit_title
-from sphinx.util.compat import Directive
 from sphinx.writers.html import HTMLTranslator
-from sphinx.writers.text import TextWriter
+from sphinx.writers.text import TextWriter, TextTranslator
 from sphinx.writers.latex import LaTeXTranslator
 from sphinx.domains.python import PyModulelevel, PyClassmember
 
@@ -103,16 +105,25 @@ class ImplementationDetail(Directive):
     optional_arguments = 1
     final_argument_whitespace = True
 
+    # This text is copied to templates/dummy.html
+    label_text = 'CPython implementation detail:'
+
     def run(self):
         pnode = nodes.compound(classes=['impl-detail'])
+        label = translators['sphinx'].gettext(self.label_text)
         content = self.content
-        add_text = nodes.strong('CPython implementation detail:',
-                                'CPython implementation detail:')
+        add_text = nodes.strong(label, label)
         if self.arguments:
             n, m = self.state.inline_text(self.arguments[0], self.lineno)
             pnode.append(nodes.paragraph('', '', *(n + m)))
         self.state.nested_parse(content, self.content_offset, pnode)
         if pnode.children and isinstance(pnode[0], nodes.paragraph):
+            content = nodes.inline(pnode[0].rawsource, translatable=True)
+            content.source = pnode[0].source
+            content.line = pnode[0].line
+            content += pnode[0].children
+            pnode[0].replace_self(nodes.paragraph('', '', content,
+                                                  translatable=False))
             pnode[0].insert(0, add_text)
             pnode[0].insert(1, nodes.Text(' '))
         else:
@@ -186,7 +197,7 @@ class DeprecatedRemoved(Directive):
     final_argument_whitespace = True
     option_spec = {}
 
-    _label = 'Deprecated since version %s, will be removed in version %s'
+    _label = 'Deprecated since version {deprecated}, will be removed in version {removed}'
 
     def run(self):
         node = addnodes.versionmodified()
@@ -194,11 +205,12 @@ class DeprecatedRemoved(Directive):
         node['type'] = 'deprecated-removed'
         version = (self.arguments[0], self.arguments[1])
         node['version'] = version
-        text = self._label % version
+        label = translators['sphinx'].gettext(self._label)
+        text = label.format(deprecated=self.arguments[0], removed=self.arguments[1])
         if len(self.arguments) == 3:
             inodes, messages = self.state.inline_text(self.arguments[2],
                                                       self.lineno+1)
-            para = nodes.paragraph(self.arguments[2], '', *inodes)
+            para = nodes.paragraph(self.arguments[2], '', *inodes, translatable=False)
             node.append(para)
         else:
             messages = []
@@ -210,13 +222,14 @@ class DeprecatedRemoved(Directive):
                 content.source = node[0].source
                 content.line = node[0].line
                 content += node[0].children
-                node[0].replace_self(nodes.paragraph('', '', content))
+                node[0].replace_self(nodes.paragraph('', '', content, translatable=False))
             node[0].insert(0, nodes.inline('', '%s: ' % text,
                                            classes=['versionmodified']))
         else:
             para = nodes.paragraph('', '',
                                    nodes.inline('', '%s.' % text,
-                                                classes=['versionmodified']))
+                                                classes=['versionmodified']),
+                                   translatable=False)
             node.append(para)
         env = self.state.document.settings.env
         env.note_versionchange('deprecated', version[0], node, self.lineno)
@@ -286,8 +299,11 @@ pydoc_topic_labels = [
 class PydocTopicsBuilder(Builder):
     name = 'pydoc-topics'
 
+    default_translator_class = TextTranslator
+
     def init(self):
         self.topics = {}
+        self.secnumbers = {}
 
     def get_outdated_docs(self):
         return 'all pydoc topics'
@@ -297,9 +313,9 @@ class PydocTopicsBuilder(Builder):
 
     def write(self, *ignored):
         writer = TextWriter(self)
-        for label in self.status_iterator(pydoc_topic_labels,
-                                          'building topics... ',
-                                          length=len(pydoc_topic_labels)):
+        for label in status_iterator(pydoc_topic_labels,
+                                     'building topics... ',
+                                     length=len(pydoc_topic_labels)):
             if label not in self.env.domaindata['std']['labels']:
                 self.warn('label %r not in documentation' % label)
                 continue

@@ -84,18 +84,24 @@ def _set_reuseport(sock):
                              'SO_REUSEPORT defined but not implemented.')
 
 
-def _is_stream_socket(sock):
-    # Linux's socket.type is a bitmask that can include extra info
-    # about socket, therefore we can't do simple
-    # `sock_type == socket.SOCK_STREAM`.
-    return (sock.type & socket.SOCK_STREAM) == socket.SOCK_STREAM
+def _is_stream_socket(sock_type):
+    if hasattr(socket, 'SOCK_NONBLOCK'):
+        # Linux's socket.type is a bitmask that can include extra info
+        # about socket (like SOCK_NONBLOCK bit), therefore we can't do simple
+        # `sock_type == socket.SOCK_STREAM`, see
+        # https://github.com/torvalds/linux/blob/v4.13/include/linux/net.h#L77
+        # for more details.
+        return (sock_type & 0xF) == socket.SOCK_STREAM
+    else:
+        return sock_type == socket.SOCK_STREAM
 
 
-def _is_dgram_socket(sock):
-    # Linux's socket.type is a bitmask that can include extra info
-    # about socket, therefore we can't do simple
-    # `sock_type == socket.SOCK_DGRAM`.
-    return (sock.type & socket.SOCK_DGRAM) == socket.SOCK_DGRAM
+def _is_dgram_socket(sock_type):
+    if hasattr(socket, 'SOCK_NONBLOCK'):
+        # See the comment in `_is_stream_socket`.
+        return (sock_type & 0xF) == socket.SOCK_DGRAM
+    else:
+        return sock_type == socket.SOCK_DGRAM
 
 
 def _ipaddr_info(host, port, family, type, proto):
@@ -108,14 +114,9 @@ def _ipaddr_info(host, port, family, type, proto):
             host is None:
         return None
 
-    if type == socket.SOCK_STREAM:
-        # Linux only:
-        #    getaddrinfo() can raise when socket.type is a bit mask.
-        #    So if socket.type is a bit mask of SOCK_STREAM, and say
-        #    SOCK_NONBLOCK, we simply return None, which will trigger
-        #    a call to getaddrinfo() letting it process this request.
+    if _is_stream_socket(type):
         proto = socket.IPPROTO_TCP
-    elif type == socket.SOCK_DGRAM:
+    elif _is_dgram_socket(type):
         proto = socket.IPPROTO_UDP
     else:
         return None
@@ -459,7 +460,8 @@ class BaseEventLoop(events.AbstractEventLoop):
                 # local task.
                 future.exception()
             raise
-        future.remove_done_callback(_run_until_complete_cb)
+        finally:
+            future.remove_done_callback(_run_until_complete_cb)
         if not future.done():
             raise RuntimeError('Event loop stopped before Future completed.')
 
@@ -788,7 +790,7 @@ class BaseEventLoop(events.AbstractEventLoop):
             if sock is None:
                 raise ValueError(
                     'host and port was not specified and no sock specified')
-            if not _is_stream_socket(sock):
+            if not _is_stream_socket(sock.type):
                 # We allow AF_INET, AF_INET6, AF_UNIX as long as they
                 # are SOCK_STREAM.
                 # We support passing AF_UNIX sockets even though we have
@@ -840,7 +842,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                                  allow_broadcast=None, sock=None):
         """Create datagram connection."""
         if sock is not None:
-            if not _is_dgram_socket(sock):
+            if not _is_dgram_socket(sock.type):
                 raise ValueError(
                     'A UDP Socket was expected, got {!r}'.format(sock))
             if (local_addr or remote_addr or
@@ -1053,7 +1055,7 @@ class BaseEventLoop(events.AbstractEventLoop):
         else:
             if sock is None:
                 raise ValueError('Neither host/port nor sock were specified')
-            if not _is_stream_socket(sock):
+            if not _is_stream_socket(sock.type):
                 raise ValueError(
                     'A Stream Socket was expected, got {!r}'.format(sock))
             sockets = [sock]
@@ -1077,7 +1079,7 @@ class BaseEventLoop(events.AbstractEventLoop):
         This method is a coroutine.  When completed, the coroutine
         returns a (transport, protocol) pair.
         """
-        if not _is_stream_socket(sock):
+        if not _is_stream_socket(sock.type):
             raise ValueError(
                 'A Stream Socket was expected, got {!r}'.format(sock))
 
@@ -1151,6 +1153,7 @@ class BaseEventLoop(events.AbstractEventLoop):
         if bufsize != 0:
             raise ValueError("bufsize must be 0")
         protocol = protocol_factory()
+        debug_log = None
         if self._debug:
             # don't log parameters: they may contain sensitive information
             # (password) and may be too long
@@ -1158,7 +1161,7 @@ class BaseEventLoop(events.AbstractEventLoop):
             self._log_subprocess(debug_log, stdin, stdout, stderr)
         transport = yield from self._make_subprocess_transport(
             protocol, cmd, True, stdin, stdout, stderr, bufsize, **kwargs)
-        if self._debug:
+        if self._debug and debug_log is not None:
             logger.info('%s: %r', debug_log, transport)
         return transport, protocol
 
@@ -1180,6 +1183,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                                 "a bytes or text string, not %s"
                                 % type(arg).__name__)
         protocol = protocol_factory()
+        debug_log = None
         if self._debug:
             # don't log parameters: they may contain sensitive information
             # (password) and may be too long
@@ -1188,7 +1192,7 @@ class BaseEventLoop(events.AbstractEventLoop):
         transport = yield from self._make_subprocess_transport(
             protocol, popen_args, False, stdin, stdout, stderr,
             bufsize, **kwargs)
-        if self._debug:
+        if self._debug and debug_log is not None:
             logger.info('%s: %r', debug_log, transport)
         return transport, protocol
 
@@ -1220,6 +1224,11 @@ class BaseEventLoop(events.AbstractEventLoop):
         This is called when an exception occurs and no exception
         handler is set, and can be called by a custom exception
         handler that wants to defer to the default behavior.
+
+        This default handler logs the error message and other
+        context-dependent information.  In debug mode, a truncated
+        stack trace is also appended showing where the given object
+        (e.g. a handle or future or task) was created, if any.
 
         The context parameter has the same meaning as in
         `call_exception_handler()`.

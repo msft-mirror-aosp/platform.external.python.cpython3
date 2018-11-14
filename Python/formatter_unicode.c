@@ -32,11 +32,11 @@ invalid_comma_type(Py_UCS4 presentation_type)
 {
     if (presentation_type > 32 && presentation_type < 128)
         PyErr_Format(PyExc_ValueError,
-                     "Cannot specify ',' or '_' with '%c'.",
+                     "Cannot specify ',' with '%c'.",
                      (char)presentation_type);
     else
         PyErr_Format(PyExc_ValueError,
-                     "Cannot specify ',' or '_' with '\\x%x'.",
+                     "Cannot specify ',' with '\\x%x'.",
                      (unsigned int)presentation_type);
 }
 
@@ -312,6 +312,7 @@ parse_internal_render_format_spec(PyObject *format_spec,
                 format->thousands_separators = LT_UNDER_FOUR_LOCALE;
                 break;
             }
+            /* fall through */
         default:
             invalid_comma_type(format->type);
             return 0;
@@ -706,18 +707,11 @@ get_locale_info(enum LocaleType type, LocaleInfo *locale_info)
 {
     switch (type) {
     case LT_CURRENT_LOCALE: {
-        struct lconv *locale_data = localeconv();
-        locale_info->decimal_point = PyUnicode_DecodeLocale(
-                                         locale_data->decimal_point,
-                                         NULL);
-        if (locale_info->decimal_point == NULL)
+        if (_Py_GetLocaleconvNumeric(&locale_info->decimal_point,
+                                     &locale_info->thousands_sep,
+                                     &locale_info->grouping) < 0) {
             return -1;
-        locale_info->thousands_sep = PyUnicode_DecodeLocale(
-                                         locale_data->thousands_sep,
-                                         NULL);
-        if (locale_info->thousands_sep == NULL)
-            return -1;
-        locale_info->grouping = locale_data->grouping;
+        }
         break;
     }
     case LT_DEFAULT_LOCALE:

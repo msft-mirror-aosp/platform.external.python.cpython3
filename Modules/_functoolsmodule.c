@@ -116,6 +116,7 @@ partial_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 static void
 partial_dealloc(partialobject *pto)
 {
+    /* bpo-31095: UnTrack is needed before calling any callbacks */
     PyObject_GC_UnTrack(pto);
     if (pto->weakreflist != NULL)
         PyObject_ClearWeakRefs((PyObject *) pto);
@@ -250,8 +251,11 @@ partial_repr(partialobject *pto)
     /* Pack keyword arguments */
     assert (PyDict_Check(pto->kw));
     for (i = 0; PyDict_Next(pto->kw, &i, &key, &value);) {
-        Py_SETREF(arglist, PyUnicode_FromFormat("%U, %U=%R", arglist,
+        /* Prevent key.__str__ from deleting the value. */
+        Py_INCREF(value);
+        Py_SETREF(arglist, PyUnicode_FromFormat("%U, %S=%R", arglist,
                                                 key, value));
+        Py_DECREF(value);
         if (arglist == NULL)
             goto done;
     }
@@ -1035,7 +1039,11 @@ lru_cache_clear_list(lru_list_elem *link)
 static void
 lru_cache_dealloc(lru_cache_object *obj)
 {
-    lru_list_elem *list = lru_cache_unlink_list(obj);
+    lru_list_elem *list;
+    /* bpo-31095: UnTrack is needed before calling any callbacks */
+    PyObject_GC_UnTrack(obj);
+
+    list = lru_cache_unlink_list(obj);
     Py_XDECREF(obj->maxsize_O);
     Py_XDECREF(obj->func);
     Py_XDECREF(obj->cache);

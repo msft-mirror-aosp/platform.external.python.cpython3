@@ -1,16 +1,20 @@
-This is Python version 3.6.1
+This is Python version 3.6.6
 ============================
 
 .. image:: https://travis-ci.org/python/cpython.svg?branch=3.6
    :alt: CPython build status on Travis CI
    :target: https://travis-ci.org/python/cpython
 
+.. image:: https://ci.appveyor.com/api/projects/status/4mew1a93xdkbf5ua/branch/3.6?svg=true
+   :alt: CPython build status on Appveyor
+   :target: https://ci.appveyor.com/project/python/cpython/branch/3.6
+
 .. image:: https://codecov.io/gh/python/cpython/branch/3.6/graph/badge.svg
    :alt: CPython code coverage on Codecov
    :target: https://codecov.io/gh/python/cpython
 
 Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
-2012, 2013, 2014, 2015, 2016, 2017 Python Software Foundation.  All rights
+2012, 2013, 2014, 2015, 2016, 2017, 2018 Python Software Foundation.  All rights
 reserved.
 
 See the end of this file for further copyright and license information.
@@ -22,7 +26,7 @@ General Information
 - Source code: https://github.com/python/cpython
 - Issue tracker: https://bugs.python.org
 - Documentation: https://docs.python.org
-- Developer's Guide: https://docs.python.org/devguide/
+- Developer's Guide: https://devguide.python.org/
 
 Contributing to CPython
 -----------------------
@@ -30,7 +34,7 @@ Contributing to CPython
 For more complete instructions on contributing to CPython development,
 see the `Developer Guide`_.
 
-.. _Developer Guide: https://docs.python.org/devguide/
+.. _Developer Guide: https://devguide.python.org/
 
 Using Python
 ------------
@@ -56,6 +60,11 @@ This will install Python as python3.
 You can pass many options to the configure script; run ``./configure --help``
 to find out more.  On macOS and Cygwin, the executable is called ``python.exe``;
 elsewhere it's just ``python``.
+
+If you are running on macOS with the latest updates installed, make sure to install
+openSSL or some other SSL software along with Homebrew or another package manager.
+If issues persist, see https://devguide.python.org/setup/#macos-and-os-x for more 
+information. 
 
 On macOS, if you have configured Python with ``--enable-framework``, you
 should use ``make frameworkinstall`` to do the installation.  Note that this
@@ -87,15 +96,16 @@ below.
 Profile Guided Optimization
 ---------------------------
 
-PGO takes advantage of recent versions of the GCC or Clang compilers.  If ran,
-``make profile-opt`` will do several steps.
+PGO takes advantage of recent versions of the GCC or Clang compilers.  If used,
+either via ``configure --enable-optimizations`` above or by manually running
+``make profile-opt`` regardless of configure flags it will do several steps.
 
 First, the entire Python directory is cleaned of temporary files that may have
 resulted in a previous compilation.
 
 Then, an instrumented version of the interpreter is built, using suitable
-compiler flags for each flavour. Note that this is just an intermediary step
-and the binary resulted after this step is not good for real life workloads, as
+compiler flags for each flavour. Note that this is just an intermediary step.
+The binary resulting from this step is not good for real life workloads as
 it has profiling instructions embedded inside.
 
 After this instrumented version of the interpreter is built, the Makefile will
@@ -123,7 +133,7 @@ What's New
 We have a comprehensive overview of the changes in the `What's New in Python
 3.6 <https://docs.python.org/3.6/whatsnew/3.6.html>`_ document.  For a more
 detailed change log, read `Misc/NEWS
-<https://github.com/python/cpython/blob/3.6/Misc/NEWS>`_, but a full
+<https://github.com/python/cpython/blob/3.6/Misc/NEWS.d>`_, but a full
 accounting of changes can only be gleaned from the `commit history
 <https://github.com/python/cpython/commits/3.6>`_.
 
@@ -167,9 +177,10 @@ something is wrong.
 By default, tests are prevented from overusing resources like disk space and
 memory.  To enable these tests, run ``make testall``.
 
-If any tests fail, you can re-run the failing test(s) in verbose mode::
+If any tests fail, you can re-run the failing test(s) in verbose mode.  For
+example, if ``test_os`` and ``test_gdb`` failed, you can run::
 
-    make test TESTOPTS="-v test_that_failed"
+    make test TESTOPTS="-v test_os test_gdb"
 
 If the failure persists and appears to be a problem with Python rather than
 your environment, you can `file a bug report <https://bugs.python.org>`_ and
@@ -228,7 +239,8 @@ Copyright and License Information
 ---------------------------------
 
 Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
-2012, 2013, 2014, 2015, 2016 Python Software Foundation.  All rights reserved.
+2012, 2013, 2014, 2015, 2016, 2017, 2018 Python Software Foundation.  All rights
+reserved.
 
 Copyright (c) 2000 BeOpen.com.  All rights reserved.
 
