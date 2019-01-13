@@ -27,7 +27,8 @@ your system setup; details are given in later chapters.
    avoid writing C extensions and preserve portability to other implementations.
    For example, if your use case is calling C library functions or system calls,
    you should consider using the :mod:`ctypes` module or the `cffi
-   <https://cffi.readthedocs.org>`_ library rather than writing custom C code.
+   <https://cffi.readthedocs.io/>`_ library rather than writing
+   custom C code.
    These modules let you write Python code to interface with C code and are more
    portable between implementations of Python than writing and compiling a C
    extension module.
@@ -544,8 +545,9 @@ or more format codes between parentheses.  For example::
 :c:func:`PyObject_CallObject` returns a Python object pointer: this is the return
 value of the Python function.  :c:func:`PyObject_CallObject` is
 "reference-count-neutral" with respect to its arguments.  In the example a new
-tuple was created to serve as the argument list, which is :c:func:`Py_DECREF`\
--ed immediately after the :c:func:`PyObject_CallObject` call.
+tuple was created to serve as the argument list, which is
+:c:func:`Py_DECREF`\ -ed immediately after the :c:func:`PyObject_CallObject`
+call.
 
 The return value of :c:func:`PyObject_CallObject` is "new": either it is a brand
 new object, or it is an existing object whose reference count has been
@@ -733,9 +735,9 @@ Philbrick (philbrick@hks.com)::
    keywdarg_parrot(PyObject *self, PyObject *args, PyObject *keywds)
    {
        int voltage;
-       char *state = "a stiff";
-       char *action = "voom";
-       char *type = "Norwegian Blue";
+       const char *state = "a stiff";
+       const char *action = "voom";
+       const char *type = "Norwegian Blue";
 
        static char *kwlist[] = {"voltage", "state", "action", "type", NULL};
 

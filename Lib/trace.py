@@ -48,7 +48,7 @@ Sample use, programmatically
   r.write_results(show_missing=True, coverdir="/tmp")
 """
 __all__ = ['Trace', 'CoverageResults']
-import argparse
+
 import linecache
 import os
 import re
@@ -61,21 +61,7 @@ import dis
 import pickle
 from time import monotonic as _time
 
-try:
-    import threading
-except ImportError:
-    _settrace = sys.settrace
-
-    def _unsettrace():
-        sys.settrace(None)
-else:
-    def _settrace(func):
-        threading.settrace(func)
-        sys.settrace(func)
-
-    def _unsettrace():
-        sys.settrace(None)
-        threading.settrace(None)
+import threading
 
 PRAGMA_NOCOVER = "#pragma NO COVER"
 
@@ -313,7 +299,7 @@ class CoverageResults:
         try:
             outfile = open(path, "w", encoding=encoding)
         except OSError as err:
-            print(("trace: Could not open %r for writing: %s"
+            print(("trace: Could not open %r for writing: %s "
                                   "- skipping" % (path, err)), file=sys.stderr)
             return 0, 0
 
@@ -457,12 +443,14 @@ class Trace:
         if globals is None: globals = {}
         if locals is None: locals = {}
         if not self.donothing:
-            _settrace(self.globaltrace)
+            threading.settrace(self.globaltrace)
+            sys.settrace(self.globaltrace)
         try:
             exec(cmd, globals, locals)
         finally:
             if not self.donothing:
-                _unsettrace()
+                sys.settrace(None)
+                threading.settrace(None)
 
     def runfunc(self, func, *args, **kw):
         result = None
@@ -602,6 +590,7 @@ class Trace:
                                callers=self._callers)
 
 def main():
+    import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='version', version='trace 2.0')
@@ -655,7 +644,7 @@ def main():
     grp = parser.add_argument_group('Filters',
             'Can be specified multiple times')
     grp.add_argument('--ignore-module', action='append', default=[],
-            help='Ignore the given module(s) and its submodules'
+            help='Ignore the given module(s) and its submodules '
                  '(if it is a package). Accepts comma separated list of '
                  'module names.')
     grp.add_argument('--ignore-dir', action='append', default=[],

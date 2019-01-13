@@ -41,6 +41,9 @@ Node classes
    with alternatives (aka "sums"), the left-hand side class is abstract: only
    instances of specific constructor nodes are ever created.
 
+   .. index:: single: ? (question mark); in AST grammar
+   .. index:: single: * (asterisk); in AST grammar
+
    .. attribute:: _fields
 
       Each concrete class has an attribute :attr:`_fields` which gives the names
@@ -143,9 +146,13 @@ and classes for traversing abstract syntax trees:
 .. function:: get_docstring(node, clean=True)
 
    Return the docstring of the given *node* (which must be a
-   :class:`FunctionDef`, :class:`ClassDef` or :class:`Module` node), or ``None``
-   if it has no docstring.  If *clean* is true, clean up the docstring's
-   indentation with :func:`inspect.cleandoc`.
+   :class:`FunctionDef`, :class:`AsyncFunctionDef`, :class:`ClassDef`,
+   or :class:`Module` node), or ``None`` if it has no docstring.
+   If *clean* is true, clean up the docstring's indentation with
+   :func:`inspect.cleandoc`.
+
+   .. versionchanged:: 3.5
+      :class:`AsyncFunctionDef` is now supported.
 
 
 .. function:: fix_missing_locations(node)
@@ -263,5 +270,5 @@ and classes for traversing abstract syntax trees:
 
 .. seealso::
 
-    `Green Tree Snakes <https://greentreesnakes.readthedocs.org/>`_, an external documentation resource, has good
+    `Green Tree Snakes <https://greentreesnakes.readthedocs.io/>`_, an external documentation resource, has good
     details on working with Python ASTs.

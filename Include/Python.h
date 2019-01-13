@@ -18,7 +18,7 @@
 #error "Python's source code assumes C's unsigned char is an 8-bit type."
 #endif
 
-#if defined(__sgi) && defined(WITH_THREAD) && !defined(_SGI_MP_SOURCE)
+#if defined(__sgi) && !defined(_SGI_MP_SOURCE)
 #define _SGI_MP_SOURCE
 #endif
 
@@ -52,6 +52,15 @@
 
 #include "pyport.h"
 #include "pymacro.h"
+
+/* A convenient way for code to know if clang's memory sanitizer is enabled. */
+#if defined(__has_feature)
+#  if __has_feature(memory_sanitizer)
+#    if !defined(_Py_MEMORY_SANITIZER)
+#      define _Py_MEMORY_SANITIZER
+#    endif
+#  endif
+#endif
 
 #include "pyatomic.h"
 
@@ -112,9 +121,11 @@
 #include "pyerrors.h"
 
 #include "pystate.h"
+#include "context.h"
 
 #include "pyarena.h"
 #include "modsupport.h"
+#include "compile.h"
 #include "pythonrun.h"
 #include "pylifecycle.h"
 #include "ceval.h"
@@ -126,7 +137,6 @@
 #include "abstract.h"
 #include "bltinmodule.h"
 
-#include "compile.h"
 #include "eval.h"
 
 #include "pyctype.h"

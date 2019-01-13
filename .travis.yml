@@ -7,11 +7,20 @@ group: beta
 cache:
   - pip
   - ccache
+  - directories:
+    - $HOME/multissl
 
 env:
   global:
+    - OPENSSL=1.1.0i
+    - OPENSSL_DIR="$HOME/multissl/openssl/${OPENSSL}"
+    - PATH="${OPENSSL_DIR}/bin:$PATH"
     # Use -O3 because we don't use debugger on Travis-CI
-    - CFLAGS="-O3"
+    - CFLAGS="-I${OPENSSL_DIR}/include -O3"
+    - LDFLAGS="-L${OPENSSL_DIR}/lib"
+    # Set rpath with env var instead of -Wl,-rpath linker flag
+    # OpenSSL ignores LDFLAGS when linking bin/openssl
+    - LD_RUN_PATH="${OPENSSL_DIR}/lib"
 
 branches:
   only:
@@ -31,23 +40,32 @@ matrix:
       # compiler here and the other to run the coverage build. Clang is preferred
       # in this instance for its better error messages.
       env: TESTING=cpython
+      addons:
+        apt:
+          packages:
+            - xvfb
     - os: linux
       language: python
+      # Build the docs against a stable version of Python so code bugs don't hold up doc-related PRs.
       python: 3.6
       env: TESTING=docs
       before_script:
         - cd Doc
         # Sphinx is pinned so that new versions that introduce new warnings won't suddenly cause build failures.
         # (Updating the version is fine as long as no warnings are raised by doing so.)
-        - python -m pip install sphinx~=1.6.1 blurb
+        - python -m pip install sphinx==1.8.2 blurb
       script:
         - make check suspicious html SPHINXOPTS="-q -W -j4"
     - os: linux
       language: c
       compiler: gcc
       env: OPTIONAL=true
+      addons:
+        apt:
+          packages:
+            - xvfb
       before_script:
-        - ./configure PYTHON_FOR_REGEN=python3
+        - ./configure
         - make -s -j4
         # Need a venv that can parse covered code.
         - ./python -m venv venv
@@ -55,7 +73,7 @@ matrix:
         - ./venv/bin/python -m test.pythoninfo
       script:
         # Skip tests that re-run the entire test suite.
-        - ./venv/bin/python -m coverage run --pylib -m test -uall,-cpu -x test_multiprocessing_fork -x test_multiprocessing_forkserver -x test_multiprocessing_spawn
+        - xvfb-run ./venv/bin/python -m coverage run --pylib -m test --fail-env-changed -uall,-cpu -x test_multiprocessing_fork -x test_multiprocessing_forkserver -x test_multiprocessing_spawn -x test_concurrent_futures
       after_script:  # Probably should be after_success once test suite updated to run under coverage.py.
         # Make the `coverage` command available to Codecov w/ a version of Python that can parse all source files.
         - source ./venv/bin/activate
@@ -88,9 +106,21 @@ before_install:
         fi
       fi
 
+install:
+  - |
+      # Install OpenSSL as necessary
+      if [ "${TESTING}" != "docs" ]
+      then
+        # clang complains about unused-parameter a lot, redirect stderr
+        python3 Tools/ssl/multissltests.py --steps=library \
+            --base-directory ${HOME}/multissl \
+            --openssl ${OPENSSL} >/dev/null 2>&1
+      fi
+  - openssl version
+
 # Travis provides only 2 cores, so don't overdo the parallelism and waste memory.
 before_script:
-  - ./configure --with-pydebug PYTHON_FOR_REGEN=python3
+  - ./configure --with-pydebug
   - make -j4 regen-all
   - changes=`git status --porcelain`
   - |
@@ -113,7 +143,7 @@ script:
   # Check that all symbols exported by libpython start with "Py" or "_Py"
   - make smelly
   # `-r -w` implicitly provided through `make buildbottest`.
-  - make buildbottest TESTOPTS="-j4 -uall,-cpu"
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then XVFB_RUN=xvfb-run; fi; $XVFB_RUN make buildbottest TESTOPTS="-j4 -uall,-cpu"
 
 notifications:
   email: false

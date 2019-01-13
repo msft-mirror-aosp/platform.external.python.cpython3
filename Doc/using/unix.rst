@@ -30,7 +30,7 @@ following links:
       for Debian users
    https://en.opensuse.org/Portal:Packaging
       for OpenSuse users
-   https://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch-creating-rpms.html
+   https://docs-old.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch-creating-rpms.html
       for Fedora users
    http://www.slackbook.org/html/package-management-making-packages.html
       for Slackware users
@@ -140,7 +140,7 @@ Editors and IDEs
 ================
 
 There are a number of IDEs that support Python programming language.
-Many editors and IDEs provide syntax highlighting, debugging tools, and PEP-8 checks.
+Many editors and IDEs provide syntax highlighting, debugging tools, and :pep:`8` checks.
 
 Please go to `Python Editors <https://wiki.python.org/moin/PythonEditors>`_ and
 `Integrated Development Environments <https://wiki.python.org/moin/IntegratedDevelopmentEnvironments>`_

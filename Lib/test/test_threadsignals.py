@@ -5,7 +5,7 @@ import signal
 import os
 import sys
 from test import support
-thread = support.import_module('_thread')
+import _thread as thread
 import time
 
 if (sys.platform[:3] == 'win'):
@@ -78,6 +78,10 @@ class ThreadSignals(unittest.TestCase):
 
     @unittest.skipIf(USING_PTHREAD_COND,
                      'POSIX condition variables cannot be interrupted')
+    @unittest.skipIf(sys.platform.startswith('linux') and
+                     not sys.thread_info.version,
+                     'Issue 34004: musl does not allow interruption of locks '
+                     'by signals.')
     # Issue #20564: sem_timedwait() cannot be interrupted on OpenBSD
     @unittest.skipIf(sys.platform.startswith('openbsd'),
                      'lock cannot be interrupted on OpenBSD')
@@ -105,6 +109,10 @@ class ThreadSignals(unittest.TestCase):
 
     @unittest.skipIf(USING_PTHREAD_COND,
                      'POSIX condition variables cannot be interrupted')
+    @unittest.skipIf(sys.platform.startswith('linux') and
+                     not sys.thread_info.version,
+                     'Issue 34004: musl does not allow interruption of locks '
+                     'by signals.')
     # Issue #20564: sem_timedwait() cannot be interrupted on OpenBSD
     @unittest.skipIf(sys.platform.startswith('openbsd'),
                      'lock cannot be interrupted on OpenBSD')

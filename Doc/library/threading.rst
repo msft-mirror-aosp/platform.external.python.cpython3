@@ -11,8 +11,8 @@
 This module constructs higher-level threading interfaces on top of the lower
 level :mod:`_thread` module.  See also the :mod:`queue` module.
 
-The :mod:`dummy_threading` module is provided for situations where
-:mod:`threading` cannot be used because :mod:`_thread` is missing.
+.. versionchanged:: 3.7
+   This module used to be optional, it is now always available.
 
 .. note::
 
@@ -100,7 +100,8 @@ This module defines the following functions:
    memory page size - platform documentation should be referred to for more
    information (4 KiB pages are common; using multiples of 4096 for the stack size is
    the suggested approach in the absence of more specific information).
-   Availability: Windows, systems with POSIX threads.
+
+   .. availability:: Windows, systems with POSIX threads.
 
 
 This module also defines the following constant:
@@ -400,7 +401,8 @@ All methods are executed atomically.
          The *timeout* parameter is new.
 
       .. versionchanged:: 3.2
-         Lock acquires can now be interrupted by signals on POSIX.
+         Lock acquisition can now be interrupted by signals on POSIX if the
+         underlying threading implementation supports it.
 
 
    .. method:: release()

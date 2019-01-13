@@ -85,7 +85,7 @@ the :mod:`glob` module.)
    pathnames, or if *paths* is empty.  Unlike :func:`commonprefix`, this
    returns a valid path.
 
-   Availability: Unix, Windows
+   .. availability:: Unix, Windows.
 
    .. versionadded:: 3.5
 
@@ -152,6 +152,8 @@ the :mod:`glob` module.)
       Accepts a :term:`path-like object`.
 
 
+.. index:: single: ~ (tilde); home directory expansion
+
 .. function:: expanduser(path)
 
    On Unix and Windows, return the argument with an initial component of ``~`` or
@@ -175,6 +177,9 @@ the :mod:`glob` module.)
    .. versionchanged:: 3.6
       Accepts a :term:`path-like object`.
 
+.. index::
+   single: $ (dollar); environment variables expansion
+   single: % (percent); environment variables expansion (Windows)
 
 .. function:: expandvars(path)
 
@@ -192,22 +197,16 @@ the :mod:`glob` module.)
 
 .. function:: getatime(path)
 
-   Return the time of last access of *path*.  The return value is a number giving
+   Return the time of last access of *path*.  The return value is a floating point number giving
    the number of seconds since the epoch (see the  :mod:`time` module).  Raise
    :exc:`OSError` if the file does not exist or is inaccessible.
-
-   If :func:`os.stat_float_times` returns ``True``, the result is a floating point
-   number.
 
 
 .. function:: getmtime(path)
 
-   Return the time of last modification of *path*.  The return value is a number
+   Return the time of last modification of *path*.  The return value is a floating point number
    giving the number of seconds since the epoch (see the  :mod:`time` module).
    Raise :exc:`OSError` if the file does not exist or is inaccessible.
-
-   If :func:`os.stat_float_times` returns ``True``, the result is a floating point
-   number.
 
    .. versionchanged:: 3.6
       Accepts a :term:`path-like object`.
@@ -318,7 +317,7 @@ the :mod:`glob` module.)
    Normalize the case of a pathname.  On Unix and Mac OS X, this returns the
    path unchanged; on case-insensitive filesystems, it converts the path to
    lowercase.  On Windows, it also converts forward slashes to backward slashes.
-   Raise a TypeError if the type of *path* is not ``str`` or ``bytes`` (directly
+   Raise a :exc:`TypeError` if the type of *path* is not ``str`` or ``bytes`` (directly
    or indirectly through the :class:`os.PathLike` interface).
 
    .. versionchanged:: 3.6
@@ -355,7 +354,7 @@ the :mod:`glob` module.)
 
    *start* defaults to :attr:`os.curdir`.
 
-   Availability: Unix, Windows.
+   .. availability:: Unix, Windows.
 
    .. versionchanged:: 3.6
       Accepts a :term:`path-like object`.
@@ -367,7 +366,7 @@ the :mod:`glob` module.)
    This is determined by the device number and i-node number and raises an
    exception if an :func:`os.stat` call on either pathname fails.
 
-   Availability: Unix, Windows.
+   .. availability:: Unix, Windows.
 
    .. versionchanged:: 3.2
       Added Windows support.
@@ -383,7 +382,7 @@ the :mod:`glob` module.)
 
    Return ``True`` if the file descriptors *fp1* and *fp2* refer to the same file.
 
-   Availability: Unix, Windows.
+   .. availability:: Unix, Windows.
 
    .. versionchanged:: 3.2
       Added Windows support.
@@ -399,7 +398,7 @@ the :mod:`glob` module.)
    :func:`os.lstat`, or :func:`os.stat`.  This function implements the
    underlying comparison used by :func:`samefile` and :func:`sameopenfile`.
 
-   Availability: Unix, Windows.
+   .. availability:: Unix, Windows.
 
    .. versionchanged:: 3.4
       Added Windows support.
@@ -454,19 +453,6 @@ the :mod:`glob` module.)
 
    .. versionchanged:: 3.6
       Accepts a :term:`path-like object`.
-
-
-.. function:: splitunc(path)
-
-   .. deprecated:: 3.1
-      Use *splitdrive* instead.
-
-   Split the pathname *path* into a pair ``(unc, rest)`` so that *unc* is the UNC
-   mount point (such as ``r'\\host\mount'``), if present, and *rest* the rest of
-   the path (such as  ``r'\path\file.ext'``).  For paths containing drive letters,
-   *unc* will always be the empty string.
-
-   Availability:  Windows.
 
 
 .. data:: supports_unicode_filenames
