@@ -1,7 +1,5 @@
 name: "cpython"
-description:
-    "The Python programming language"
-
+description: "The Python programming language"
 third_party {
   url {
     type: HOMEPAGE
@@ -11,7 +9,11 @@ third_party {
     type: GIT
     value: "https://github.com/python/cpython"
   }
-  version: "v3.7.2"
-  last_upgrade_date { year: 2019 month: 1 day: 7 }
+  version: "v3.7.3"
   license_type: NOTICE
+  last_upgrade_date {
+    year: 2019
+    month: 3
+    day: 25
+  }
 }
