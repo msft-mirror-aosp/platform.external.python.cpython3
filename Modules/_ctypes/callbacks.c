@@ -48,10 +48,10 @@ PyTypeObject PyCThunk_Type = {
     sizeof(CThunkObject),                       /* tp_basicsize */
     sizeof(ffi_type),                           /* tp_itemsize */
     CThunkObject_dealloc,                       /* tp_dealloc */
-    0,                                          /* tp_print */
+    0,                                          /* tp_vectorcall_offset */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
-    0,                                          /* tp_reserved */
+    0,                                          /* tp_as_async */
     0,                                          /* tp_repr */
     0,                                          /* tp_as_number */
     0,                                          /* tp_as_sequence */
@@ -107,9 +107,14 @@ static void
 TryAddRef(StgDictObject *dict, CDataObject *obj)
 {
     IUnknown *punk;
+    _Py_IDENTIFIER(_needs_com_addref_);
 
-    if (NULL == PyDict_GetItemString((PyObject *)dict, "_needs_com_addref_"))
+    if (!_PyDict_GetItemIdWithError((PyObject *)dict, &PyId__needs_com_addref_)) {
+        if (PyErr_Occurred()) {
+            PrintError("getting _needs_com_addref_");
+        }
         return;
+    }
 
     punk = *(IUnknown **)obj->b_ptr;
     if (punk)
@@ -375,7 +380,7 @@ CThunkObject *_ctypes_alloc_callback(PyObject *callable,
     }
 
     cc = FFI_DEFAULT_ABI;
-#if defined(MS_WIN32) && !defined(_WIN32_WCE) && !defined(MS_WIN64)
+#if defined(MS_WIN32) && !defined(_WIN32_WCE) && !defined(MS_WIN64) && !defined(_M_ARM)
     if ((flags & FUNCFLAG_CDECL) == 0)
         cc = FFI_STDCALL;
 #endif
@@ -417,8 +422,8 @@ CThunkObject *_ctypes_alloc_callback(PyObject *callable,
 static void LoadPython(void)
 {
     if (!Py_IsInitialized()) {
-        PyEval_InitThreads();
         Py_Initialize();
+        PyEval_InitThreads();
     }
 }
 

@@ -57,14 +57,14 @@ their corresponding code points:
    ...
    007B    '{'; LEFT CURLY BRACKET
    ...
-   2167    'Ⅶ': ROMAN NUMERAL EIGHT
-   2168    'Ⅸ': ROMAN NUMERAL NINE
+   2167    'Ⅷ'; ROMAN NUMERAL EIGHT
+   2168    'Ⅸ'; ROMAN NUMERAL NINE
    ...
-   265E    '♞': BLACK CHESS KNIGHT
-   265F    '♟': BLACK CHESS PAWN
+   265E    '♞'; BLACK CHESS KNIGHT
+   265F    '♟'; BLACK CHESS PAWN
    ...
-   1F600   '😀': GRINNING FACE
-   1F609   '😉': WINKING FACE
+   1F600   '😀'; GRINNING FACE
+   1F609   '😉'; WINKING FACE
    ...
 
 Strictly, these definitions imply that it's meaningless to say 'this is
@@ -162,7 +162,7 @@ difficult reading.  `A chronology <http://www.unicode.org/history/>`_ of the
 origin and development of Unicode is also available on the site.
 
 On the Computerphile Youtube channel, Tom Scott briefly
-`discusses the history of Unicode and UTF-8 <https://www.youtube.com/watch?v=MijmeoH9LT4>`
+`discusses the history of Unicode and UTF-8 <https://www.youtube.com/watch?v=MijmeoH9LT4>`_
 (9 minutes 36 seconds).
 
 To help understand the standard, Jukka Korpela has written `an introductory

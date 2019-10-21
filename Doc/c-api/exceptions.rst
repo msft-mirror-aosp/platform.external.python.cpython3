@@ -1,4 +1,4 @@
-.. highlightlang:: c
+.. highlight:: c
 
 
 .. _exceptionhandling:
@@ -53,8 +53,8 @@ Printing and clearing
 .. c:function:: void PyErr_PrintEx(int set_sys_last_vars)
 
    Print a standard traceback to ``sys.stderr`` and clear the error indicator.
-   **Unless** the error is a ``SystemExit``.  In that case the no traceback
-   is printed and Python process will exit with the error code specified by
+   **Unless** the error is a ``SystemExit``, in that case no traceback is
+   printed and the Python process will exit with the error code specified by
    the ``SystemExit`` instance.
 
    Call this function **only** when the error indicator is set.  Otherwise it
@@ -71,6 +71,9 @@ Printing and clearing
 
 
 .. c:function:: void PyErr_WriteUnraisable(PyObject *obj)
+
+   Call :func:`sys.unraisablehook` using the current exception and *obj*
+   argument.
 
    This utility function prints a warning message to ``sys.stderr`` when an
    exception has been set but it is impossible for the interpreter to actually
@@ -317,7 +320,7 @@ an error value).
    :mod:`warnings` module and the :option:`-W` option in the command line
    documentation.  There is no C API for warning control.
 
-.. c:function:: PyObject* PyErr_SetImportErrorSubclass(PyObject *msg, PyObject *name, PyObject *path)
+.. c:function:: PyObject* PyErr_SetImportErrorSubclass(PyObject *exception, PyObject *msg, PyObject *name, PyObject *path)
 
    Much like :c:func:`PyErr_SetImportError` but this function allows for
    specifying a subclass of :exc:`ImportError` to raise.

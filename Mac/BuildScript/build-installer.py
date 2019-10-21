@@ -215,9 +215,9 @@ def library_recipes():
 
     result.extend([
           dict(
-              name="OpenSSL 1.1.1c",
-              url="https://www.openssl.org/source/openssl-1.1.1c.tar.gz",
-              checksum='15e21da6efe8aa0e0768ffd8cd37a5f6',
+              name="OpenSSL 1.1.1d",
+              url="https://www.openssl.org/source/openssl-1.1.1d.tar.gz",
+              checksum='3be209000dbc7e1b95bcdf47980a3baa',
               buildrecipe=build_universal_openssl,
               configure=None,
               install=None,
@@ -1068,6 +1068,7 @@ def buildPythonDocs():
     runCommand('make clean')
     # Create virtual environment for docs builds with blurb and sphinx
     runCommand('make venv')
+    runCommand('venv/bin/python3 -m pip install -U Sphinx==2.0.1')
     runCommand('make html PYTHON=venv/bin/python')
     os.chdir(curDir)
     if not os.path.exists(docdir):
@@ -1217,7 +1218,8 @@ def buildPython():
             if ln.startswith('VERSION='):
                 VERSION=ln.split()[1]
             if ln.startswith('ABIFLAGS='):
-                ABIFLAGS=ln.split()[1]
+                ABIFLAGS=ln.split()
+                ABIFLAGS=ABIFLAGS[1] if len(ABIFLAGS) > 1 else ''
             if ln.startswith('LDVERSION='):
                 LDVERSION=ln.split()[1]
         fp.close()
@@ -1268,7 +1270,8 @@ def buildPython():
     import pprint
     if getVersionMajorMinor() >= (3, 6):
         # XXX this is extra-fragile
-        path = os.path.join(path_to_lib, '_sysconfigdata_m_darwin_darwin.py')
+        path = os.path.join(path_to_lib,
+            '_sysconfigdata_%s_darwin_darwin.py' % (ABIFLAGS,))
     else:
         path = os.path.join(path_to_lib, '_sysconfigdata.py')
     fp = open(path, 'r')
