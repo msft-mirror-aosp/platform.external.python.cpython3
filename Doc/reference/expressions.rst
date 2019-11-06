@@ -148,9 +148,8 @@ immutable, the same rules as for literals apply (i.e., two occurrences of the em
 tuple may or may not yield the same object).
 
 .. index::
-   single: comma; tuple display
-   pair: tuple; display
-   single: , (comma); tuple display
+   single: comma
+   single: , (comma)
 
 Note that tuples are not formed by the parentheses, but rather by use of the
 comma operator.  The exception is the empty tuple, for which parentheses *are*
@@ -196,7 +195,7 @@ the comprehension is executed in a separate implicitly nested scope. This ensure
 that names assigned to in the target list don't "leak" into the enclosing scope.
 
 The iterable expression in the leftmost :keyword:`!for` clause is evaluated
-directly in the enclosing scope and then passed as an argument to the implictly
+directly in the enclosing scope and then passed as an argument to the implicitly
 nested scope. Subsequent :keyword:`!for` clauses and any filter condition in the
 leftmost :keyword:`!for` clause cannot be evaluated in the enclosing scope as
 they may depend on the values obtained from the leftmost iterable. For example:
@@ -204,8 +203,7 @@ they may depend on the values obtained from the leftmost iterable. For example:
 
 To ensure the comprehension always results in a container of the appropriate
 type, ``yield`` and ``yield from`` expressions are prohibited in the implicitly
-nested scope (in Python 3.7, such expressions emit :exc:`DeprecationWarning`
-when compiled, in Python 3.8+ they will emit :exc:`SyntaxError`).
+nested scope.
 
 .. index::
    single: await; in comprehensions
@@ -225,8 +223,8 @@ See also :pep:`530`.
 .. versionadded:: 3.6
    Asynchronous comprehensions were introduced.
 
-.. deprecated:: 3.7
-   ``yield`` and ``yield from`` deprecated in the implicitly nested scope.
+.. versionchanged:: 3.8
+   ``yield`` and ``yield from`` prohibited in the implicitly nested scope.
 
 
 .. _lists:
@@ -338,6 +336,12 @@ all mutable objects.)  Clashes between duplicate keys are not detected; the last
 datum (textually rightmost in the display) stored for a given key value
 prevails.
 
+.. versionchanged:: 3.8
+   Prior to Python 3.8, in dict comprehensions, the evaluation order of key
+   and value was not well-defined.  In CPython, the value was evaluated before
+   the key.  Starting with 3.8, the key is evaluated before the value, as
+   proposed by :pep:`572`.
+
 
 .. _genexpr:
 
@@ -374,9 +378,7 @@ The parentheses can be omitted on calls with only one argument.  See section
 
 To avoid interfering with the expected operation of the generator expression
 itself, ``yield`` and ``yield from`` expressions are prohibited in the
-implicitly defined generator (in Python 3.7, such expressions emit
-:exc:`DeprecationWarning` when compiled, in Python 3.8+ they will emit
-:exc:`SyntaxError`).
+implicitly defined generator.
 
 If a generator expression contains either :keyword:`!async for`
 clauses or :keyword:`await` expressions it is called an
@@ -392,8 +394,8 @@ which is an asynchronous iterator (see :ref:`async-iterators`).
    only appear in :keyword:`async def` coroutines.  Starting
    with 3.7, any function can use asynchronous generator expressions.
 
-.. deprecated:: 3.7
-   ``yield`` and ``yield from`` deprecated in the implicitly nested scope.
+.. versionchanged:: 3.8
+   ``yield`` and ``yield from`` prohibited in the implicitly nested scope.
 
 
 .. _yieldexpr:
@@ -426,12 +428,10 @@ coroutine function to be an asynchronous generator. For example::
 
 Due to their side effects on the containing scope, ``yield`` expressions
 are not permitted as part of the implicitly defined scopes used to
-implement comprehensions and generator expressions (in Python 3.7, such
-expressions emit :exc:`DeprecationWarning` when compiled, in Python 3.8+
-they will emit :exc:`SyntaxError`)..
+implement comprehensions and generator expressions.
 
-.. deprecated:: 3.7
-   Yield expressions deprecated in the implicitly nested scopes used to
+.. versionchanged:: 3.8
+   Yield expressions prohibited in the implicitly nested scopes used to
    implement comprehensions and generator expressions.
 
 Generator functions are described below, while asynchronous generator
@@ -1424,6 +1424,10 @@ built-in types.
   themselves.  For example, if ``x = float('NaN')``, ``3 < x``, ``x < 3``, ``x
   == x``, ``x != x`` are all false.  This behavior is compliant with IEEE 754.
 
+* ``None`` and ``NotImplemented`` are singletons.  :PEP:`8` advises that
+  comparisons for singletons should always be done with ``is`` or ``is not``,
+  never the equality operators.
+
 * Binary sequences (instances of :class:`bytes` or :class:`bytearray`) can be
   compared within and across their types.  They compare lexicographically using
   the numeric values of their elements.
@@ -1441,25 +1445,9 @@ built-in types.
   :exc:`TypeError`.
 
   Sequences compare lexicographically using comparison of corresponding
-  elements, whereby reflexivity of the elements is enforced.
-
-  In enforcing reflexivity of elements, the comparison of collections assumes
-  that for a collection element ``x``, ``x == x`` is always true.  Based on
-  that assumption, element identity is compared first, and element comparison
-  is performed only for distinct elements.  This approach yields the same
-  result as a strict element comparison would, if the compared elements are
-  reflexive.  For non-reflexive elements, the result is different than for
-  strict element comparison, and may be surprising:  The non-reflexive
-  not-a-number values for example result in the following comparison behavior
-  when used in a list::
-
-    >>> nan = float('NaN')
-    >>> nan is nan
-    True
-    >>> nan == nan
-    False                 <-- the defined non-reflexive behavior of NaN
-    >>> [nan] == [nan]
-    True                  <-- list enforces reflexivity and tests identity first
+  elements.  The built-in containers typically assume identical objects are
+  equal to themselves.  That lets them bypass equality tests for identical
+  objects to improve performance and to maintain their internal invariants.
 
   Lexicographical comparison between built-in collections works as follows:
 
@@ -1796,6 +1784,8 @@ precedence and have a left-to-right chaining feature as described in the
 +-----------------------------------------------+-------------------------------------+
 | Operator                                      | Description                         |
 +===============================================+=====================================+
+| ``:=``                                        | Assignment expression               |
++-----------------------------------------------+-------------------------------------+
 | :keyword:`lambda`                             | Lambda expression                   |
 +-----------------------------------------------+-------------------------------------+
 | :keyword:`if <if_expr>` -- :keyword:`!else`   | Conditional expression              |
@@ -1833,7 +1823,8 @@ precedence and have a left-to-right chaining feature as described in the
 | ``x[index]``, ``x[index:index]``,             | Subscription, slicing,              |
 | ``x(arguments...)``, ``x.attribute``          | call, attribute reference           |
 +-----------------------------------------------+-------------------------------------+
-| ``(expressions...)``,                         | Binding or tuple display,           |
+| ``(expressions...)``,                         | Binding or parenthesized            |
+|                                               | expression,                         |
 | ``[expressions...]``,                         | list display,                       |
 | ``{key: value...}``,                          | dictionary display,                 |
 | ``{expressions...}``                          | set display                         |

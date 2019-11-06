@@ -140,6 +140,10 @@ Extension types can easily be made to support weak references; see
    prevent their use as dictionary keys.  *callback* is the same as the parameter
    of the same name to the :func:`ref` function.
 
+   .. versionchanged:: 3.8
+      Extended the operator support on proxy objects to include the matrix
+      multiplication operators ``@`` and ``@=``.
+
 
 .. function:: getweakrefcount(object)
 
@@ -393,7 +397,7 @@ the referent is accessed::
    import weakref
 
    class ExtendedRef(weakref.ref):
-       def __init__(self, ob, callback=None, **annotations):
+       def __init__(self, ob, callback=None, /, **annotations):
            super(ExtendedRef, self).__init__(ob, callback)
            self.__counter = 0
            for k, v in annotations.items():
