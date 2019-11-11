@@ -43,6 +43,10 @@
 
 #endif /* _POSIX_THREADS */
 
+// ANDROID: dprintf macro is already defined by our glibc sysroot
+#ifdef dprintf
+#undef dprintf
+#endif
 
 #ifdef Py_DEBUG
 static int thread_debug = 0;
