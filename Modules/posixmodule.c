@@ -47,7 +47,7 @@
 
 /* On android API level 21, 'AT_EACCESS' is not declared although
  * HAVE_FACCESSAT is defined. */
-#ifdef __ANDROID__
+#ifdef __BIONIC__
 #undef HAVE_FACCESSAT
 #endif
 
