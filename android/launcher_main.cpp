@@ -60,21 +60,6 @@ int main(int argc, char *argv[]) {
   std::string internal_path = executable_path + "/internal";
   std::string stdlib_path = internal_path + "/stdlib";
 
-#ifdef ANDROID_AUTORUN
-  argc += 1;
-  char **new_argv = reinterpret_cast<char**>(calloc(argc, sizeof(*argv)));
-
-  // Inject the path to our binary into argv[1] so the Py_Main won't parse any
-  // other options, and will execute the __main__.py script inside the zip file
-  // attached to our executable.
-  new_argv[0] = argv[0];
-  new_argv[1] = const_cast<char*>(executable_path.c_str());
-  for (int i = 1; i < argc - 1; i++) {
-    new_argv[i+1] = argv[i];
-  }
-  argv = new_argv;
-#endif
-
   PyStatus status;
 
   PyConfig config;
@@ -88,6 +73,7 @@ int main(int argc, char *argv[]) {
 #ifdef ANDROID_AUTORUN
   config.use_environment = 0;
   config.module_search_paths_set = 1;
+  config.parse_argv = 0;
 #endif
 
   // Set the equivalent of PYTHONHOME internally.
@@ -96,6 +82,11 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Unable to parse executable name\n");
     return 1;
   }
+
+#ifdef ANDROID_AUTORUN
+  // Execute the __main__.py script inside the zip file attached to our executable.
+  config.run_filename = wcsdup(config.home);
+#endif
 
   status = PyConfig_SetBytesArgv(&config, argc, argv);
   if (PyStatus_Exception(status)) {
