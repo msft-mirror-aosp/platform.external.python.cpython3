@@ -12,7 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-build = ["Android-bionic.bp", "Android-linux_x86_64.bp", "Android-darwin_x86_64.bp"]
+build = [
+    "Android-bionic.bp",
+    "Android-linux_x86_64.bp",
+    "Android-darwin_x86_64.bp",
+]
 
 cc_defaults {
     name: "py3-interp-defaults",
@@ -266,7 +270,10 @@ cc_defaults {
             ],
         },
         host: {
-            static_libs: ["libsqlite"],
+            static_libs: [
+                "libsqlite",
+                "liblog",
+            ],
         },
         android: {
             shared_libs: [
@@ -310,7 +317,7 @@ cc_library_static {
         darwin: {
             srcs: ["android/darwin_x86_64/config.c"],
         },
-    }
+    },
 }
 
 cc_binary {
@@ -364,5 +371,5 @@ cc_library_static {
         darwin: {
             srcs: [":py3-c-modules-darwin_x86_64"],
         },
-    }
+    },
 }
