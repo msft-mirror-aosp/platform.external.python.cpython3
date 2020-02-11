@@ -3,8 +3,9 @@
 #define PY_SSIZE_T_CLEAN
 
 #include "Python.h"
-#include "internal/mem.h"
-#include "internal/pystate.h"
+#include "pycore_object.h"
+#include "pycore_pymem.h"
+#include "pycore_pystate.h"
 
 #include "bytes_methods.h"
 #include "pystrhex.h"
@@ -18,7 +19,7 @@ class bytes "PyBytesObject *" "&PyBytes_Type"
 #include "clinic/bytesobject.c.h"
 
 #ifdef COUNT_ALLOCS
-Py_ssize_t null_strings, one_strings;
+Py_ssize_t _Py_null_strings, _Py_one_strings;
 #endif
 
 static PyBytesObject *characters[UCHAR_MAX + 1];
@@ -66,7 +67,7 @@ _PyBytes_FromSize(Py_ssize_t size, int use_calloc)
 
     if (size == 0 && (op = nullstring) != NULL) {
 #ifdef COUNT_ALLOCS
-        null_strings++;
+        _Py_null_strings++;
 #endif
         Py_INCREF(op);
         return (PyObject *)op;
@@ -110,7 +111,7 @@ PyBytes_FromStringAndSize(const char *str, Py_ssize_t size)
         (op = characters[*str & UCHAR_MAX]) != NULL)
     {
 #ifdef COUNT_ALLOCS
-        one_strings++;
+        _Py_one_strings++;
 #endif
         Py_INCREF(op);
         return (PyObject *)op;
@@ -146,14 +147,14 @@ PyBytes_FromString(const char *str)
     }
     if (size == 0 && (op = nullstring) != NULL) {
 #ifdef COUNT_ALLOCS
-        null_strings++;
+        _Py_null_strings++;
 #endif
         Py_INCREF(op);
         return (PyObject *)op;
     }
     if (size == 1 && (op = characters[*str & UCHAR_MAX]) != NULL) {
 #ifdef COUNT_ALLOCS
-        one_strings++;
+        _Py_one_strings++;
 #endif
         Py_INCREF(op);
         return (PyObject *)op;
@@ -1076,14 +1077,6 @@ _PyBytes_FormatEx(const char *format, Py_ssize_t format_len,
     return NULL;
 }
 
-/* =-= */
-
-static void
-bytes_dealloc(PyObject *op)
-{
-    Py_TYPE(op)->tp_free(op);
-}
-
 /* Unescape a backslash-escaped string. If unicode is non-zero,
    the string is a u-literal. If recode_encoding is non-zero,
    the string is UTF-8 encoded and should be re-encoded in the
@@ -1420,10 +1413,12 @@ bytes_repr(PyObject *op)
 static PyObject *
 bytes_str(PyObject *op)
 {
-    if (Py_BytesWarningFlag) {
+    PyConfig *config = &_PyInterpreterState_GET_UNSAFE()->config;
+    if (config->bytes_warning) {
         if (PyErr_WarnEx(PyExc_BytesWarning,
-                         "str() on a bytes instance", 1))
+                         "str() on a bytes instance", 1)) {
             return NULL;
+        }
     }
     return bytes_repr(op);
 }
@@ -1576,7 +1571,8 @@ bytes_richcompare(PyBytesObject *a, PyBytesObject *b, int op)
 
     /* Make sure both arguments are strings. */
     if (!(PyBytes_Check(a) && PyBytes_Check(b))) {
-        if (Py_BytesWarningFlag && (op == Py_EQ || op == Py_NE)) {
+        PyConfig *config = &_PyInterpreterState_GET_UNSAFE()->config;
+        if (config->bytes_warning && (op == Py_EQ || op == Py_NE)) {
             rc = PyObject_IsInstance((PyObject*)a,
                                      (PyObject*)&PyUnicode_Type);
             if (!rc)
@@ -1613,12 +1609,10 @@ bytes_richcompare(PyBytesObject *a, PyBytesObject *b, int op)
         case Py_GE:
             /* a string is equal to itself */
             Py_RETURN_TRUE;
-            break;
         case Py_NE:
         case Py_LT:
         case Py_GT:
             Py_RETURN_FALSE;
-            break;
         default:
             PyErr_BadArgument();
             return NULL;
@@ -2010,7 +2004,7 @@ do_strip(PyBytesObject *self, int striptype)
 Py_LOCAL_INLINE(PyObject *)
 do_argstrip(PyBytesObject *self, int striptype, PyObject *bytes)
 {
-    if (bytes != NULL && bytes != Py_None) {
+    if (bytes != Py_None) {
         return do_xstrip(self, striptype, bytes);
     }
     return do_strip(self, striptype);
@@ -2422,22 +2416,40 @@ _PyBytes_FromHex(PyObject *string, int use_bytearray)
     return NULL;
 }
 
-PyDoc_STRVAR(hex__doc__,
-"B.hex() -> string\n\
-\n\
-Create a string of hexadecimal numbers from a bytes object.\n\
-Example: b'\\xb9\\x01\\xef'.hex() -> 'b901ef'.");
+/*[clinic input]
+bytes.hex
+
+    sep: object = NULL
+        An optional single character or byte to separate hex bytes.
+    bytes_per_sep: int = 1
+        How many bytes between separators.  Positive values count from the
+        right, negative values count from the left.
+
+Create a str of hexadecimal numbers from a bytes object.
+
+Example:
+>>> value = b'\xb9\x01\xef'
+>>> value.hex()
+'b901ef'
+>>> value.hex(':')
+'b9:01:ef'
+>>> value.hex(':', 2)
+'b9:01ef'
+>>> value.hex(':', -2)
+'b901:ef'
+[clinic start generated code]*/
 
 static PyObject *
-bytes_hex(PyBytesObject *self)
+bytes_hex_impl(PyBytesObject *self, PyObject *sep, int bytes_per_sep)
+/*[clinic end generated code: output=1f134da504064139 input=f1238d3455990218]*/
 {
     char* argbuf = PyBytes_AS_STRING(self);
     Py_ssize_t arglen = PyBytes_GET_SIZE(self);
-    return _Py_strhex(argbuf, arglen);
+    return _Py_strhex_with_sep(argbuf, arglen, sep, bytes_per_sep);
 }
 
 static PyObject *
-bytes_getnewargs(PyBytesObject *v)
+bytes_getnewargs(PyBytesObject *v, PyObject *Py_UNUSED(ignored))
 {
     return Py_BuildValue("(y#)", v->ob_sval, Py_SIZE(v));
 }
@@ -2446,48 +2458,46 @@ bytes_getnewargs(PyBytesObject *v)
 static PyMethodDef
 bytes_methods[] = {
     {"__getnewargs__",          (PyCFunction)bytes_getnewargs,  METH_NOARGS},
-    {"capitalize", (PyCFunction)stringlib_capitalize, METH_NOARGS,
+    {"capitalize", stringlib_capitalize, METH_NOARGS,
      _Py_capitalize__doc__},
-    {"center", (PyCFunction)stringlib_center, METH_VARARGS,
-     _Py_center__doc__},
+    STRINGLIB_CENTER_METHODDEF
     {"count", (PyCFunction)bytes_count, METH_VARARGS,
      _Py_count__doc__},
     BYTES_DECODE_METHODDEF
     {"endswith", (PyCFunction)bytes_endswith, METH_VARARGS,
      _Py_endswith__doc__},
-    {"expandtabs", (PyCFunction)stringlib_expandtabs, METH_VARARGS | METH_KEYWORDS,
-     _Py_expandtabs__doc__},
+    STRINGLIB_EXPANDTABS_METHODDEF
     {"find", (PyCFunction)bytes_find, METH_VARARGS,
      _Py_find__doc__},
     BYTES_FROMHEX_METHODDEF
-    {"hex", (PyCFunction)bytes_hex, METH_NOARGS, hex__doc__},
+    BYTES_HEX_METHODDEF
     {"index", (PyCFunction)bytes_index, METH_VARARGS, _Py_index__doc__},
-    {"isalnum", (PyCFunction)stringlib_isalnum, METH_NOARGS,
+    {"isalnum", stringlib_isalnum, METH_NOARGS,
      _Py_isalnum__doc__},
-    {"isalpha", (PyCFunction)stringlib_isalpha, METH_NOARGS,
+    {"isalpha", stringlib_isalpha, METH_NOARGS,
      _Py_isalpha__doc__},
-    {"isascii", (PyCFunction)stringlib_isascii, METH_NOARGS,
+    {"isascii", stringlib_isascii, METH_NOARGS,
      _Py_isascii__doc__},
-    {"isdigit", (PyCFunction)stringlib_isdigit, METH_NOARGS,
+    {"isdigit", stringlib_isdigit, METH_NOARGS,
      _Py_isdigit__doc__},
-    {"islower", (PyCFunction)stringlib_islower, METH_NOARGS,
+    {"islower", stringlib_islower, METH_NOARGS,
      _Py_islower__doc__},
-    {"isspace", (PyCFunction)stringlib_isspace, METH_NOARGS,
+    {"isspace", stringlib_isspace, METH_NOARGS,
      _Py_isspace__doc__},
-    {"istitle", (PyCFunction)stringlib_istitle, METH_NOARGS,
+    {"istitle", stringlib_istitle, METH_NOARGS,
      _Py_istitle__doc__},
-    {"isupper", (PyCFunction)stringlib_isupper, METH_NOARGS,
+    {"isupper", stringlib_isupper, METH_NOARGS,
      _Py_isupper__doc__},
     BYTES_JOIN_METHODDEF
-    {"ljust", (PyCFunction)stringlib_ljust, METH_VARARGS, _Py_ljust__doc__},
-    {"lower", (PyCFunction)stringlib_lower, METH_NOARGS, _Py_lower__doc__},
+    STRINGLIB_LJUST_METHODDEF
+    {"lower", stringlib_lower, METH_NOARGS, _Py_lower__doc__},
     BYTES_LSTRIP_METHODDEF
     BYTES_MAKETRANS_METHODDEF
     BYTES_PARTITION_METHODDEF
     BYTES_REPLACE_METHODDEF
     {"rfind", (PyCFunction)bytes_rfind, METH_VARARGS, _Py_rfind__doc__},
     {"rindex", (PyCFunction)bytes_rindex, METH_VARARGS, _Py_rindex__doc__},
-    {"rjust", (PyCFunction)stringlib_rjust, METH_VARARGS, _Py_rjust__doc__},
+    STRINGLIB_RJUST_METHODDEF
     BYTES_RPARTITION_METHODDEF
     BYTES_RSPLIT_METHODDEF
     BYTES_RSTRIP_METHODDEF
@@ -2496,12 +2506,12 @@ bytes_methods[] = {
     {"startswith", (PyCFunction)bytes_startswith, METH_VARARGS,
      _Py_startswith__doc__},
     BYTES_STRIP_METHODDEF
-    {"swapcase", (PyCFunction)stringlib_swapcase, METH_NOARGS,
+    {"swapcase", stringlib_swapcase, METH_NOARGS,
      _Py_swapcase__doc__},
-    {"title", (PyCFunction)stringlib_title, METH_NOARGS, _Py_title__doc__},
+    {"title", stringlib_title, METH_NOARGS, _Py_title__doc__},
     BYTES_TRANSLATE_METHODDEF
-    {"upper", (PyCFunction)stringlib_upper, METH_NOARGS, _Py_upper__doc__},
-    {"zfill", (PyCFunction)stringlib_zfill, METH_VARARGS, _Py_zfill__doc__},
+    {"upper", stringlib_upper, METH_NOARGS, _Py_upper__doc__},
+    STRINGLIB_ZFILL_METHODDEF
     {NULL,     NULL}                         /* sentinel */
 };
 
@@ -2545,8 +2555,9 @@ bytes_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     if (x == NULL) {
         if (encoding != NULL || errors != NULL) {
             PyErr_SetString(PyExc_TypeError,
-                            "encoding or errors without sequence "
-                            "argument");
+                            encoding != NULL ?
+                            "encoding without a string argument" :
+                            "errors without a string argument");
             return NULL;
         }
         return PyBytes_FromStringAndSize(NULL, 0);
@@ -2874,11 +2885,11 @@ PyTypeObject PyBytes_Type = {
     "bytes",
     PyBytesObject_SIZE,
     sizeof(char),
-    bytes_dealloc,                      /* tp_dealloc */
-    0,                                          /* tp_print */
+    0,                                          /* tp_dealloc */
+    0,                                          /* tp_vectorcall_offset */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
-    0,                                          /* tp_reserved */
+    0,                                          /* tp_as_async */
     (reprfunc)bytes_repr,                       /* tp_repr */
     &bytes_as_number,                           /* tp_as_number */
     &bytes_as_sequence,                         /* tp_as_sequence */
@@ -2928,7 +2939,6 @@ PyBytes_Concat(PyObject **pv, PyObject *w)
         Py_ssize_t oldsize;
         Py_buffer wb;
 
-        wb.len = -1;
         if (PyObject_GetBuffer(w, &wb, PyBUF_SIMPLE) != 0) {
             PyErr_Format(PyExc_TypeError, "can't concat %.100s to %.100s",
                          Py_TYPE(w)->tp_name, Py_TYPE(*pv)->tp_name);
@@ -3094,7 +3104,7 @@ striter_next(striterobject *it)
 }
 
 static PyObject *
-striter_len(striterobject *it)
+striter_len(striterobject *it, PyObject *Py_UNUSED(ignored))
 {
     Py_ssize_t len = 0;
     if (it->it_seq)
@@ -3106,13 +3116,14 @@ PyDoc_STRVAR(length_hint_doc,
              "Private method returning an estimate of len(list(it)).");
 
 static PyObject *
-striter_reduce(striterobject *it)
+striter_reduce(striterobject *it, PyObject *Py_UNUSED(ignored))
 {
+    _Py_IDENTIFIER(iter);
     if (it->it_seq != NULL) {
-        return Py_BuildValue("N(O)n", _PyObject_GetBuiltin("iter"),
+        return Py_BuildValue("N(O)n", _PyEval_GetBuiltinId(&PyId_iter),
                              it->it_seq, it->it_index);
     } else {
-        return Py_BuildValue("N(())", _PyObject_GetBuiltin("iter"));
+        return Py_BuildValue("N(())", _PyEval_GetBuiltinId(&PyId_iter));
     }
 }
 
@@ -3153,10 +3164,10 @@ PyTypeObject PyBytesIter_Type = {
     0,                                          /* tp_itemsize */
     /* methods */
     (destructor)striter_dealloc,                /* tp_dealloc */
-    0,                                          /* tp_print */
+    0,                                          /* tp_vectorcall_offset */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
-    0,                                          /* tp_reserved */
+    0,                                          /* tp_as_async */
     0,                                          /* tp_repr */
     0,                                          /* tp_as_number */
     0,                                          /* tp_as_sequence */
