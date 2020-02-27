@@ -130,6 +130,9 @@ int main(int argc, char *argv[]) {
 
   config.write_bytecode = 0;
 
+  // We've already parsed argv in PyConfig_Read
+  config.parse_argv = 0;
+
   status = Py_InitializeFromConfig(&config);
   if (PyStatus_Exception(status)) {
     goto fail;
