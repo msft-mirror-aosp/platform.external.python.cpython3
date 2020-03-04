@@ -9,6 +9,10 @@ cd %PYTHON_SRC%
 md %DEST%
 IF %ERRORLEVEL% NEQ 0 goto :end
 
+:: Deletes Android.bp or it will be packaged.
+DEL Lib\Android.bp
+IF %ERRORLEVEL% NEQ 0 goto :end
+
 ECHO ## Building python...
 CALL PCbuild\build.bat -c Release -p x64
 IF %ERRORLEVEL% NEQ 0 goto :end
