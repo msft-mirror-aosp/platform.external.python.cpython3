@@ -41,9 +41,22 @@ def build_autoconf_target(host, python_src, out_dir):
     if host == Host.Linux:
         config_cmd.append('LDFLAGS=-s -Wl,-rpath,\'$$ORIGIN/../lib\'')
     elif host == Host.Darwin:
-        config_cmd.append('LDFLAGS=-s -Wl,-rpath,\'@loader_path/../lib\'')
+        config_cmd.append('LDFLAGS=-Wl,-rpath,\'@loader_path/../lib\'')
 
     subprocess.check_call(config_cmd, cwd=build_dir)
+
+    if host == Host.Darwin:
+        # By default, LC_ID_DYLIB for libpython will be set to an absolute path.
+        # Linker will embed this path to all binaries linking this library.
+        # Since configure does not give us a chance to set -install_name, we have
+        # to edit the library afterwards.
+        libpython = 'libpython3.8.dylib'
+        subprocess.check_call(['make',
+                               '-j{}'.format(multiprocessing.cpu_count()),
+                               libpython],
+                              cwd=build_dir)
+        subprocess.check_call(['install_name_tool', '-id', '@rpath/' + libpython,
+                               libpython], cwd=build_dir)
 
     subprocess.check_call(['make',
                            '-j{}'.format(multiprocessing.cpu_count()),
