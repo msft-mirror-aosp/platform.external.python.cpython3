@@ -41,7 +41,7 @@ def build_autoconf_target(host, python_src, out_dir):
     if host == Host.Linux:
         config_cmd.append('LDFLAGS=-s -Wl,-rpath,\'$$ORIGIN/../lib\'')
     elif host == Host.Darwin:
-        config_cmd.append('LDFLAGS=-Wl,-rpath,\'@loader_path/../lib\'')
+        config_cmd.append('LDFLAGS=-s -Wl,-rpath,\'@loader_path/../lib\'')
 
     subprocess.check_call(config_cmd, cwd=build_dir)
 
