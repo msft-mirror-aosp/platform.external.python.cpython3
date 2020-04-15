@@ -68,10 +68,12 @@ extern PyObject* PyInit__codecs_hk(void);
 extern PyObject* PyInit__codecs_iso2022(void);
 extern PyObject* PyInit__multiprocessing(void);
 extern PyObject* PyInit__ctypes(void);
-extern PyObject* PyInit__sha256(void);
-extern PyObject* PyInit__sha512(void);
+extern PyObject* PyInit__blake2(void);
 extern PyObject* PyInit__md5(void);
 extern PyObject* PyInit__sha1(void);
+extern PyObject* PyInit__sha256(void);
+extern PyObject* PyInit__sha512(void);
+extern PyObject* PyInit__sha3(void);
 extern PyObject* PyInit__struct(void);
 extern PyObject* PyInit_posix(void);
 extern PyObject* PyInit_errno(void);
@@ -152,10 +154,12 @@ struct _inittab _PyImport_Inittab[] = {
     {"_codecs_iso2022", PyInit__codecs_iso2022},
     {"_multiprocessing", PyInit__multiprocessing},
     {"_ctypes", PyInit__ctypes},
-    {"_sha256", PyInit__sha256},
-    {"_sha512", PyInit__sha512},
+    {"_blake2", PyInit__blake2},
     {"_md5", PyInit__md5},
     {"_sha1", PyInit__sha1},
+    {"_sha256", PyInit__sha256},
+    {"_sha512", PyInit__sha512},
+    {"_sha3", PyInit__sha3},
     {"_struct", PyInit__struct},
     {"posix", PyInit_posix},
     {"errno", PyInit_errno},
