@@ -491,10 +491,10 @@ static PyTypeObject record_Type = {
         0,                      /*tp_itemsize*/
         /* methods */
         (destructor)msiobj_dealloc, /*tp_dealloc*/
-        0,                      /*tp_vectorcall_offset*/
+        0,                      /*tp_print*/
         0,                      /*tp_getattr*/
         0,                      /*tp_setattr*/
-        0,                      /*tp_as_async*/
+        0,                      /*tp_reserved*/
         0,                      /*tp_repr*/
         0,                      /*tp_as_number*/
         0,                      /*tp_as_sequence*/
@@ -570,9 +570,6 @@ summary_getproperty(msiobj* si, PyObject *args)
         }
         status = MsiSummaryInfoGetProperty(si->h, field, &type, &ival,
             &fval, sval, &ssize);
-    }
-    if (status != ERROR_SUCCESS) {
-        return msierror(status);
     }
 
     switch(type) {
@@ -680,10 +677,10 @@ static PyTypeObject summary_Type = {
         0,                      /*tp_itemsize*/
         /* methods */
         (destructor)msiobj_dealloc, /*tp_dealloc*/
-        0,                      /*tp_vectorcall_offset*/
+        0,                      /*tp_print*/
         0,                      /*tp_getattr*/
         0,                      /*tp_setattr*/
-        0,                      /*tp_as_async*/
+        0,                      /*tp_reserved*/
         0,                      /*tp_repr*/
         0,                      /*tp_as_number*/
         0,                      /*tp_as_sequence*/
@@ -829,10 +826,10 @@ static PyTypeObject msiview_Type = {
         0,                      /*tp_itemsize*/
         /* methods */
         (destructor)msiobj_dealloc, /*tp_dealloc*/
-        0,                      /*tp_vectorcall_offset*/
+        0,                      /*tp_print*/
         0,                      /*tp_getattr*/
         0,                      /*tp_setattr*/
-        0,                      /*tp_as_async*/
+        0,                      /*tp_reserved*/
         0,                      /*tp_repr*/
         0,                      /*tp_as_number*/
         0,                      /*tp_as_sequence*/
@@ -947,10 +944,10 @@ static PyTypeObject msidb_Type = {
         0,                      /*tp_itemsize*/
         /* methods */
         (destructor)msiobj_dealloc, /*tp_dealloc*/
-        0,                      /*tp_vectorcall_offset*/
+        0,                      /*tp_print*/
         0,                      /*tp_getattr*/
         0,                      /*tp_setattr*/
-        0,                      /*tp_as_async*/
+        0,                      /*tp_reserved*/
         0,                      /*tp_repr*/
         0,                      /*tp_as_number*/
         0,                      /*tp_as_sequence*/

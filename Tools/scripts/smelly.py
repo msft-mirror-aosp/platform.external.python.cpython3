@@ -27,11 +27,6 @@ def get_exported_symbols():
 def get_smelly_symbols(stdout):
     symbols = []
     ignored_symtypes = set()
-
-    allowed_prefixes = ('Py', '_Py')
-    if sys.platform == 'darwin':
-        allowed_prefixes += ('__Py',)
-
     for line in stdout.splitlines():
         # Split line '0000000000001b80 D PyTextIOWrapper_Type'
         if not line:
@@ -52,7 +47,7 @@ def get_smelly_symbols(stdout):
             continue
 
         symbol = parts[-1]
-        if symbol.startswith(allowed_prefixes):
+        if symbol.startswith(('Py', '_Py')):
             continue
         symbol = '%s (type: %s)' % (symbol, symtype)
         symbols.append(symbol)

@@ -1,2 +1,0 @@
-_posixshmem _multiprocessing/posixshmem.c
-_scproxy _scproxy.c

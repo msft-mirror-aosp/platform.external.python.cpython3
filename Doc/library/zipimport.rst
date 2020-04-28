@@ -6,8 +6,6 @@
 
 .. moduleauthor:: Just van Rossum <just@letterror.com>
 
-**Source code:** :source:`Lib/zipimport.py`
-
 --------------
 
 This module adds the ability to import Python modules (:file:`\*.py`,
@@ -30,8 +28,7 @@ Any files may be present in the ZIP archive, but only files :file:`.py` and
 corresponding :file:`.pyc` file, meaning that if a ZIP archive
 doesn't contain :file:`.pyc` files, importing may be rather slow.
 
-.. versionchanged:: 3.8
-   Previously, ZIP archives with an archive comment were not supported.
+ZIP archives with an archive comment are currently not supported.
 
 .. seealso::
 
@@ -41,8 +38,8 @@ doesn't contain :file:`.pyc` files, importing may be rather slow.
 
    :pep:`273` - Import Modules from Zip Archives
       Written by James C. Ahlstrom, who also provided an implementation. Python 2.3
-      follows the specification in :pep:`273`, but uses an implementation written by Just
-      van Rossum that uses the import hooks described in :pep:`302`.
+      follows the specification in PEP 273, but uses an implementation written by Just
+      van Rossum that uses the import hooks described in PEP 302.
 
    :pep:`302` - New Import Hooks
       The PEP to add the import hooks that help this module work.

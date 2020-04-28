@@ -944,18 +944,18 @@ cmath_tanh_impl(PyObject *module, Py_complex z)
 /*[clinic input]
 cmath.log
 
-    z as x: Py_complex
-    base as y_obj: object = NULL
+    x: Py_complex
+    y_obj: object = NULL
     /
 
-log(z[, base]) -> the logarithm of z to the given base.
+The logarithm of z to the given base.
 
 If the base not specified, returns the natural logarithm (base e) of z.
 [clinic start generated code]*/
 
 static PyObject *
 cmath_log_impl(PyObject *module, Py_complex x, PyObject *y_obj)
-/*[clinic end generated code: output=4effdb7d258e0d94 input=230ed3a71ecd000a]*/
+/*[clinic end generated code: output=4effdb7d258e0d94 input=ee0e823a7c6e68ea]*/
 {
     Py_complex y;
 
@@ -1232,8 +1232,8 @@ cmath_isclose_impl(PyObject *module, Py_complex a, Py_complex b,
 }
 
 PyDoc_STRVAR(module_doc,
-"This module provides access to mathematical functions for complex\n"
-"numbers.");
+"This module is always available. It provides access to mathematical\n"
+"functions for complex numbers.");
 
 static PyMethodDef cmath_methods[] = {
     CMATH_ACOS_METHODDEF

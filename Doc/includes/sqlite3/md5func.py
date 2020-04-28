@@ -9,5 +9,3 @@ con.create_function("md5", 1, md5sum)
 cur = con.cursor()
 cur.execute("select md5(?)", (b"foo",))
 print(cur.fetchone()[0])
-
-con.close()

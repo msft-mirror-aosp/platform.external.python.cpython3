@@ -31,27 +31,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-#include "pycore_getopt.h"
+#include "internal/pygetopt.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int _PyOS_opterr = 1;                 /* generate error messages */
-Py_ssize_t _PyOS_optind = 1;          /* index into argv array   */
-const wchar_t *_PyOS_optarg = NULL;   /* optional argument       */
+int _PyOS_opterr = 1;          /* generate error messages */
+int _PyOS_optind = 1;          /* index into argv array   */
+wchar_t *_PyOS_optarg = NULL;     /* optional argument       */
 
-static const wchar_t *opt_ptr = L"";
-
-/* Python command line short and long options */
-
-#define SHORT_OPTS L"bBc:dEhiIJm:OqRsStuvVW:xX:?"
-
-static const _PyOS_LongOption longopts[] = {
-    {L"check-hash-based-pycs", 1, 0},
-    {NULL, 0, 0},
-};
-
+static wchar_t *opt_ptr = L"";
 
 void _PyOS_ResetGetOpt(void)
 {
@@ -61,7 +51,8 @@ void _PyOS_ResetGetOpt(void)
     opt_ptr = L"";
 }
 
-int _PyOS_GetOpt(Py_ssize_t argc, wchar_t * const *argv, int *longindex)
+int _PyOS_GetOpt(int argc, wchar_t **argv, wchar_t *optstring,
+                 const _PyOS_LongOption *longopts, int *longindex)
 {
     wchar_t *ptr;
     wchar_t option;
@@ -137,7 +128,7 @@ int _PyOS_GetOpt(Py_ssize_t argc, wchar_t * const *argv, int *longindex)
         return '_';
     }
 
-    if ((ptr = wcschr(SHORT_OPTS, option)) == NULL) {
+    if ((ptr = wcschr(optstring, option)) == NULL) {
         if (_PyOS_opterr)
             fprintf(stderr, "Unknown option: -%c\n", (char)option);
         return '_';

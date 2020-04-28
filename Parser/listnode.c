@@ -1,7 +1,7 @@
 
 /* List a node on a file */
 
-#include "Python.h"
+#include "pgenheaders.h"
 #include "token.h"
 #include "node.h"
 

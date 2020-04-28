@@ -141,7 +141,7 @@ semlock_acquire(SemLockObject *self, PyObject *args, PyObject *kwds)
     default:
         PyErr_Format(PyExc_RuntimeError, "WaitForSingleObject() or "
                      "WaitForMultipleObjects() gave unrecognized "
-                     "value %u", res);
+                     "value %d", res);
         return NULL;
     }
 }
@@ -521,20 +521,20 @@ semlock_dealloc(SemLockObject* self)
 }
 
 static PyObject *
-semlock_count(SemLockObject *self, PyObject *Py_UNUSED(ignored))
+semlock_count(SemLockObject *self)
 {
     return PyLong_FromLong((long)self->count);
 }
 
 static PyObject *
-semlock_ismine(SemLockObject *self, PyObject *Py_UNUSED(ignored))
+semlock_ismine(SemLockObject *self)
 {
     /* only makes sense for a lock */
     return PyBool_FromLong(ISMINE(self));
 }
 
 static PyObject *
-semlock_getvalue(SemLockObject *self, PyObject *Py_UNUSED(ignored))
+semlock_getvalue(SemLockObject *self)
 {
 #ifdef HAVE_BROKEN_SEM_GETVALUE
     PyErr_SetNone(PyExc_NotImplementedError);
@@ -552,7 +552,7 @@ semlock_getvalue(SemLockObject *self, PyObject *Py_UNUSED(ignored))
 }
 
 static PyObject *
-semlock_iszero(SemLockObject *self, PyObject *Py_UNUSED(ignored))
+semlock_iszero(SemLockObject *self)
 {
 #ifdef HAVE_BROKEN_SEM_GETVALUE
     if (sem_trywait(self->handle) < 0) {
@@ -573,7 +573,7 @@ semlock_iszero(SemLockObject *self, PyObject *Py_UNUSED(ignored))
 }
 
 static PyObject *
-semlock_afterfork(SemLockObject *self, PyObject *Py_UNUSED(ignored))
+semlock_afterfork(SemLockObject *self)
 {
     self->count = 0;
     Py_RETURN_NONE;
@@ -584,11 +584,11 @@ semlock_afterfork(SemLockObject *self, PyObject *Py_UNUSED(ignored))
  */
 
 static PyMethodDef semlock_methods[] = {
-    {"acquire", (PyCFunction)(void(*)(void))semlock_acquire, METH_VARARGS | METH_KEYWORDS,
+    {"acquire", (PyCFunction)semlock_acquire, METH_VARARGS | METH_KEYWORDS,
      "acquire the semaphore/lock"},
     {"release", (PyCFunction)semlock_release, METH_NOARGS,
      "release the semaphore/lock"},
-    {"__enter__", (PyCFunction)(void(*)(void))semlock_acquire, METH_VARARGS | METH_KEYWORDS,
+    {"__enter__", (PyCFunction)semlock_acquire, METH_VARARGS | METH_KEYWORDS,
      "enter the semaphore/lock"},
     {"__exit__", (PyCFunction)semlock_release, METH_VARARGS,
      "exit the semaphore/lock"},
@@ -633,10 +633,10 @@ PyTypeObject _PyMp_SemLockType = {
     /* tp_basicsize      */ sizeof(SemLockObject),
     /* tp_itemsize       */ 0,
     /* tp_dealloc        */ (destructor)semlock_dealloc,
-    /* tp_vectorcall_offset */ 0,
+    /* tp_print          */ 0,
     /* tp_getattr        */ 0,
     /* tp_setattr        */ 0,
-    /* tp_as_async       */ 0,
+    /* tp_reserved       */ 0,
     /* tp_repr           */ 0,
     /* tp_as_number      */ 0,
     /* tp_as_sequence    */ 0,

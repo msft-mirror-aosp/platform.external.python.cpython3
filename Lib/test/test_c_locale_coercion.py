@@ -2,15 +2,18 @@
 
 import locale
 import os
+import shutil
 import subprocess
 import sys
 import sysconfig
 import unittest
 from collections import namedtuple
 
-from test import support
-from test.support.script_helper import run_python_until_end
-
+import test.support
+from test.support.script_helper import (
+    run_python_until_end,
+    interpreter_requires_environment,
+)
 
 # Set the list of ways we expect to be able to ask for the "C" locale
 EXPECTED_C_LOCALE_EQUIVALENTS = ["C", "invalid.ascii"]
@@ -27,7 +30,7 @@ TARGET_LOCALES = ["C.UTF-8", "C.utf8", "UTF-8"]
 
 # Apply some platform dependent overrides
 if sys.platform.startswith("linux"):
-    if support.is_android:
+    if test.support.is_android:
         # Android defaults to using UTF-8 for all system interfaces
         EXPECTED_C_LOCALE_STREAM_ENCODING = "utf-8"
         EXPECTED_C_LOCALE_FS_ENCODING = "utf-8"
@@ -116,14 +119,27 @@ class EncodingDetails(_EncodingDetails):
         stream_info = 2*[_stream.format("surrogateescape")]
         # stderr should always use backslashreplace
         stream_info.append(_stream.format("backslashreplace"))
-        expected_lang = env_vars.get("LANG", "not set")
+        expected_lang = env_vars.get("LANG", "not set").lower()
         if coercion_expected:
-            expected_lc_ctype = CLI_COERCION_TARGET
+            expected_lc_ctype = CLI_COERCION_TARGET.lower()
         else:
-            expected_lc_ctype = env_vars.get("LC_CTYPE", "not set")
-        expected_lc_all = env_vars.get("LC_ALL", "not set")
+            expected_lc_ctype = env_vars.get("LC_CTYPE", "not set").lower()
+        expected_lc_all = env_vars.get("LC_ALL", "not set").lower()
         env_info = expected_lang, expected_lc_ctype, expected_lc_all
         return dict(cls(fs_encoding, *stream_info, *env_info)._asdict())
+
+    @staticmethod
+    def _handle_output_variations(data):
+        """Adjust the output to handle platform specific idiosyncrasies
+
+        * Some platforms report ASCII as ANSI_X3.4-1968
+        * Some platforms report ASCII as US-ASCII
+        * Some platforms report UTF-8 instead of utf-8
+        """
+        data = data.replace(b"ANSI_X3.4-1968", b"ascii")
+        data = data.replace(b"US-ASCII", b"ascii")
+        data = data.lower()
+        return data
 
     @classmethod
     def get_child_details(cls, env_vars):
@@ -144,7 +160,8 @@ class EncodingDetails(_EncodingDetails):
         if not result.rc == 0:
             result.fail(py_cmd)
         # All subprocess outputs in this test case should be pure ASCII
-        stdout_lines = result.out.decode("ascii").splitlines()
+        adjusted_output = cls._handle_output_variations(result.out)
+        stdout_lines = adjusted_output.decode("ascii").splitlines()
         child_encoding_details = dict(cls(*stdout_lines)._asdict())
         stderr_lines = result.err.decode("ascii").rstrip().splitlines()
         return child_encoding_details, stderr_lines
@@ -188,15 +205,6 @@ def setUpModule():
         # Coercion is expected to use the first available target locale
         CLI_COERCION_TARGET = AVAILABLE_TARGETS[0]
         CLI_COERCION_WARNING = CLI_COERCION_WARNING_FMT.format(CLI_COERCION_TARGET)
-
-    if support.verbose:
-        print(f"AVAILABLE_TARGETS = {AVAILABLE_TARGETS!r}")
-        print(f"EXPECTED_C_LOCALE_EQUIVALENTS = {EXPECTED_C_LOCALE_EQUIVALENTS!r}")
-        print(f"EXPECTED_C_LOCALE_STREAM_ENCODING = {EXPECTED_C_LOCALE_STREAM_ENCODING!r}")
-        print(f"EXPECTED_C_LOCALE_FS_ENCODING = {EXPECTED_C_LOCALE_FS_ENCODING!r}")
-        print(f"EXPECT_COERCION_IN_DEFAULT_LOCALE = {EXPECT_COERCION_IN_DEFAULT_LOCALE!r}")
-        print(f"_C_UTF8_LOCALES = {_C_UTF8_LOCALES!r}")
-        print(f"_check_nl_langinfo_CODESET = {_check_nl_langinfo_CODESET!r}")
 
 
 class _LocaleHandlingTestCase(unittest.TestCase):
@@ -274,7 +282,7 @@ class LocaleConfigurationTests(_LocaleHandlingTestCase):
 
 
 
-@support.cpython_only
+@test.support.cpython_only
 @unittest.skipUnless(sysconfig.get_config_var("PY_COERCE_C_LOCALE"),
                      "C locale coercion disabled at build time")
 class LocaleCoercionTests(_LocaleHandlingTestCase):
@@ -330,7 +338,7 @@ class LocaleCoercionTests(_LocaleHandlingTestCase):
             # locale environment variables are undefined or empty. When
             # this code path is run with environ['LC_ALL'] == 'C', then
             # LEGACY_LOCALE_WARNING is printed.
-            if (support.is_android and
+            if (test.support.is_android and
                     _expected_warnings == [CLI_COERCION_WARNING]):
                 _expected_warnings = None
             self._check_child_encoding_details(base_var_dict,
@@ -421,11 +429,11 @@ class LocaleCoercionTests(_LocaleHandlingTestCase):
 
 
 def test_main():
-    support.run_unittest(
+    test.support.run_unittest(
         LocaleConfigurationTests,
         LocaleCoercionTests
     )
-    support.reap_children()
+    test.support.reap_children()
 
 if __name__ == "__main__":
     test_main()

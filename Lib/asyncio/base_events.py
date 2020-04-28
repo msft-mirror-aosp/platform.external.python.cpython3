@@ -16,12 +16,11 @@ to modify the meaning of the API call itself.
 import collections
 import collections.abc
 import concurrent.futures
-import functools
 import heapq
 import itertools
+import logging
 import os
 import socket
-import stat
 import subprocess
 import threading
 import time
@@ -38,14 +37,11 @@ except ImportError:  # pragma: no cover
 from . import constants
 from . import coroutines
 from . import events
-from . import exceptions
 from . import futures
 from . import protocols
 from . import sslproto
-from . import staggered
 from . import tasks
 from . import transports
-from . import trsock
 from .log import logger
 
 
@@ -60,6 +56,10 @@ _MIN_SCHEDULED_TIMER_HANDLES = 100
 # before cleanup of cancelled handles is performed.
 _MIN_CANCELLED_TIMER_HANDLES_FRACTION = 0.5
 
+# Exceptions which must not call the exception handler in fatal error
+# methods (_fatal_error())
+_FATAL_ERROR_IGNORE = (BrokenPipeError,
+                       ConnectionResetError, ConnectionAbortedError)
 
 _HAS_IPv6 = hasattr(socket, 'AF_INET6')
 
@@ -96,7 +96,7 @@ def _set_reuseport(sock):
                              'SO_REUSEPORT defined but not implemented.')
 
 
-def _ipaddr_info(host, port, family, type, proto, flowinfo=0, scopeid=0):
+def _ipaddr_info(host, port, family, type, proto):
     # Try to skip getaddrinfo if "host" is already an IP. Users might have
     # handled name resolution in their own code and pass in resolved IPs.
     if not hasattr(socket, 'inet_pton'):
@@ -145,7 +145,7 @@ def _ipaddr_info(host, port, family, type, proto, flowinfo=0, scopeid=0):
             socket.inet_pton(af, host)
             # The host has already been resolved.
             if _HAS_IPv6 and af == socket.AF_INET6:
-                return af, type, proto, '', (host, port, flowinfo, scopeid)
+                return af, type, proto, '', (host, port, 0, 0)
             else:
                 return af, type, proto, '', (host, port)
         except OSError:
@@ -155,32 +155,10 @@ def _ipaddr_info(host, port, family, type, proto, flowinfo=0, scopeid=0):
     return None
 
 
-def _interleave_addrinfos(addrinfos, first_address_family_count=1):
-    """Interleave list of addrinfo tuples by family."""
-    # Group addresses by family
-    addrinfos_by_family = collections.OrderedDict()
-    for addr in addrinfos:
-        family = addr[0]
-        if family not in addrinfos_by_family:
-            addrinfos_by_family[family] = []
-        addrinfos_by_family[family].append(addr)
-    addrinfos_lists = list(addrinfos_by_family.values())
-
-    reordered = []
-    if first_address_family_count > 1:
-        reordered.extend(addrinfos_lists[0][:first_address_family_count - 1])
-        del addrinfos_lists[0][:first_address_family_count - 1]
-    reordered.extend(
-        a for a in itertools.chain.from_iterable(
-            itertools.zip_longest(*addrinfos_lists)
-        ) if a is not None)
-    return reordered
-
-
 def _run_until_complete_cb(fut):
     if not fut.cancelled():
         exc = fut.exception()
-        if isinstance(exc, (SystemExit, KeyboardInterrupt)):
+        if isinstance(exc, BaseException) and not isinstance(exc, Exception):
             # Issue #22429: run_forever() already finished, no need to
             # stop it.
             return
@@ -320,8 +298,8 @@ class Server(events.AbstractServer):
     @property
     def sockets(self):
         if self._sockets is None:
-            return ()
-        return tuple(trsock.TransportSocket(s) for s in self._sockets)
+            return []
+        return list(self._sockets)
 
     def close(self):
         sockets = self._sockets
@@ -360,7 +338,7 @@ class Server(events.AbstractServer):
 
         try:
             await self._serving_forever_fut
-        except exceptions.CancelledError:
+        except futures.CancelledError:
             try:
                 self.close()
                 await self.wait_closed()
@@ -417,20 +395,18 @@ class BaseEventLoop(events.AbstractEventLoop):
         """Create a Future object attached to the loop."""
         return futures.Future(loop=self)
 
-    def create_task(self, coro, *, name=None):
+    def create_task(self, coro):
         """Schedule a coroutine object.
 
         Return a task object.
         """
         self._check_closed()
         if self._task_factory is None:
-            task = tasks.Task(coro, loop=self, name=name)
+            task = tasks.Task(coro, loop=self)
             if task._source_traceback:
                 del task._source_traceback[-1]
         else:
             task = self._task_factory(self, coro)
-            tasks._set_task_name(task, name)
-
         return task
 
     def set_task_factory(self, factory):
@@ -641,9 +617,10 @@ class BaseEventLoop(events.AbstractEventLoop):
         """Returns True if the event loop was closed."""
         return self._closed
 
-    def __del__(self, _warn=warnings.warn):
+    def __del__(self):
         if not self.is_closed():
-            _warn(f"unclosed event loop {self!r}", ResourceWarning, source=self)
+            warnings.warn(f"unclosed event loop {self!r}", ResourceWarning,
+                          source=self)
             if not self.is_running():
                 self.close()
 
@@ -775,12 +752,6 @@ class BaseEventLoop(events.AbstractEventLoop):
             executor.submit(func, *args), loop=self)
 
     def set_default_executor(self, executor):
-        if not isinstance(executor, concurrent.futures.ThreadPoolExecutor):
-            warnings.warn(
-                'Using the default executor that is not an instance of '
-                'ThreadPoolExecutor is deprecated and will be prohibited '
-                'in Python 3.9',
-                DeprecationWarning, 2)
         self._default_executor = executor
 
     def _getaddrinfo_debug(self, host, port, family, type, proto, flags):
@@ -829,7 +800,7 @@ class BaseEventLoop(events.AbstractEventLoop):
         try:
             return await self._sock_sendfile_native(sock, file,
                                                     offset, count)
-        except exceptions.SendfileNotAvailableError as exc:
+        except events.SendfileNotAvailableError as exc:
             if not fallback:
                 raise
         return await self._sock_sendfile_fallback(sock, file,
@@ -838,7 +809,7 @@ class BaseEventLoop(events.AbstractEventLoop):
     async def _sock_sendfile_native(self, sock, file, offset, count):
         # NB: sendfile syscall is not supported for SSL sockets and
         # non-mmap files even if sendfile is supported by OS
-        raise exceptions.SendfileNotAvailableError(
+        raise events.SendfileNotAvailableError(
             f"syscall sendfile is not available for socket {sock!r} "
             "and file {file!r} combination")
 
@@ -861,7 +832,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                 read = await self.run_in_executor(None, file.readinto, view)
                 if not read:
                     break  # EOF
-                await self.sock_sendall(sock, view[:read])
+                await self.sock_sendall(sock, view)
                 total_sent += read
             return total_sent
         finally:
@@ -889,49 +860,12 @@ class BaseEventLoop(events.AbstractEventLoop):
                 "offset must be a non-negative integer (got {!r})".format(
                     offset))
 
-    async def _connect_sock(self, exceptions, addr_info, local_addr_infos=None):
-        """Create, bind and connect one socket."""
-        my_exceptions = []
-        exceptions.append(my_exceptions)
-        family, type_, proto, _, address = addr_info
-        sock = None
-        try:
-            sock = socket.socket(family=family, type=type_, proto=proto)
-            sock.setblocking(False)
-            if local_addr_infos is not None:
-                for _, _, _, _, laddr in local_addr_infos:
-                    try:
-                        sock.bind(laddr)
-                        break
-                    except OSError as exc:
-                        msg = (
-                            f'error while attempting to bind on '
-                            f'address {laddr!r}: '
-                            f'{exc.strerror.lower()}'
-                        )
-                        exc = OSError(exc.errno, msg)
-                        my_exceptions.append(exc)
-                else:  # all bind attempts failed
-                    raise my_exceptions.pop()
-            await self.sock_connect(sock, address)
-            return sock
-        except OSError as exc:
-            my_exceptions.append(exc)
-            if sock is not None:
-                sock.close()
-            raise
-        except:
-            if sock is not None:
-                sock.close()
-            raise
-
     async def create_connection(
             self, protocol_factory, host=None, port=None,
             *, ssl=None, family=0,
             proto=0, flags=0, sock=None,
             local_addr=None, server_hostname=None,
-            ssl_handshake_timeout=None,
-            happy_eyeballs_delay=None, interleave=None):
+            ssl_handshake_timeout=None):
         """Connect to a TCP server.
 
         Create a streaming transport connection to a given Internet host and
@@ -966,10 +900,6 @@ class BaseEventLoop(events.AbstractEventLoop):
             raise ValueError(
                 'ssl_handshake_timeout is only meaningful with ssl')
 
-        if happy_eyeballs_delay is not None and interleave is None:
-            # If using happy eyeballs, default to interleave addresses by family
-            interleave = 1
-
         if host is not None or port is not None:
             if sock is not None:
                 raise ValueError(
@@ -988,31 +918,43 @@ class BaseEventLoop(events.AbstractEventLoop):
                     flags=flags, loop=self)
                 if not laddr_infos:
                     raise OSError('getaddrinfo() returned empty list')
-            else:
-                laddr_infos = None
-
-            if interleave:
-                infos = _interleave_addrinfos(infos, interleave)
 
             exceptions = []
-            if happy_eyeballs_delay is None:
-                # not using happy eyeballs
-                for addrinfo in infos:
-                    try:
-                        sock = await self._connect_sock(
-                            exceptions, addrinfo, laddr_infos)
-                        break
-                    except OSError:
-                        continue
-            else:  # using happy eyeballs
-                sock, _, _ = await staggered.staggered_race(
-                    (functools.partial(self._connect_sock,
-                                       exceptions, addrinfo, laddr_infos)
-                     for addrinfo in infos),
-                    happy_eyeballs_delay, loop=self)
-
-            if sock is None:
-                exceptions = [exc for sub in exceptions for exc in sub]
+            for family, type, proto, cname, address in infos:
+                try:
+                    sock = socket.socket(family=family, type=type, proto=proto)
+                    sock.setblocking(False)
+                    if local_addr is not None:
+                        for _, _, _, _, laddr in laddr_infos:
+                            try:
+                                sock.bind(laddr)
+                                break
+                            except OSError as exc:
+                                msg = (
+                                    f'error while attempting to bind on '
+                                    f'address {laddr!r}: '
+                                    f'{exc.strerror.lower()}'
+                                )
+                                exc = OSError(exc.errno, msg)
+                                exceptions.append(exc)
+                        else:
+                            sock.close()
+                            sock = None
+                            continue
+                    if self._debug:
+                        logger.debug("connect %r to %r", sock, address)
+                    await self.sock_connect(sock, address)
+                except OSError as exc:
+                    if sock is not None:
+                        sock.close()
+                    exceptions.append(exc)
+                except:
+                    if sock is not None:
+                        sock.close()
+                    raise
+                else:
+                    break
+            else:
                 if len(exceptions) == 1:
                     raise exceptions[0]
                 else:
@@ -1111,7 +1053,7 @@ class BaseEventLoop(events.AbstractEventLoop):
             try:
                 return await self._sendfile_native(transport, file,
                                                    offset, count)
-            except exceptions.SendfileNotAvailableError as exc:
+            except events.SendfileNotAvailableError as exc:
                 if not fallback:
                     raise
 
@@ -1124,7 +1066,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                                              offset, count)
 
     async def _sendfile_native(self, transp, file, offset, count):
-        raise exceptions.SendfileNotAvailableError(
+        raise events.SendfileNotAvailableError(
             "sendfile syscall is not supported")
 
     async def _sendfile_fallback(self, transp, file, offset, count):
@@ -1141,11 +1083,11 @@ class BaseEventLoop(events.AbstractEventLoop):
                     if blocksize <= 0:
                         return total_sent
                 view = memoryview(buf)[:blocksize]
-                read = await self.run_in_executor(None, file.readinto, view)
+                read = file.readinto(view)
                 if not read:
                     return total_sent  # EOF
                 await proto.drain()
-                transp.write(view[:read])
+                transp.write(view)
                 total_sent += read
         finally:
             if total_sent > 0 and hasattr(file, 'seek'):
@@ -1190,7 +1132,7 @@ class BaseEventLoop(events.AbstractEventLoop):
 
         try:
             await waiter
-        except BaseException:
+        except Exception:
             transport.close()
             conmade_cb.cancel()
             resume_cb.cancel()
@@ -1231,24 +1173,11 @@ class BaseEventLoop(events.AbstractEventLoop):
                 for addr in (local_addr, remote_addr):
                     if addr is not None and not isinstance(addr, str):
                         raise TypeError('string is expected')
-
-                if local_addr and local_addr[0] not in (0, '\x00'):
-                    try:
-                        if stat.S_ISSOCK(os.stat(local_addr).st_mode):
-                            os.remove(local_addr)
-                    except FileNotFoundError:
-                        pass
-                    except OSError as err:
-                        # Directory may have permissions only to create socket.
-                        logger.error('Unable to check or remove stale UNIX '
-                                     'socket %r: %r',
-                                     local_addr, err)
-
                 addr_pairs_info = (((family, proto),
                                     (local_addr, remote_addr)), )
             else:
                 # join address by (family, protocol)
-                addr_infos = {}  # Using order preserving dict
+                addr_infos = collections.OrderedDict()
                 for idx, addr in ((0, local_addr), (1, remote_addr)):
                     if addr is not None:
                         assert isinstance(addr, tuple) and len(addr) == 2, (
@@ -1300,8 +1229,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                     if local_addr:
                         sock.bind(local_address)
                     if remote_addr:
-                        if not allow_broadcast:
-                            await self.sock_connect(sock, remote_address)
+                        await self.sock_connect(sock, remote_address)
                         r_addr = remote_address
                 except OSError as exc:
                     if sock is not None:
@@ -1342,7 +1270,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                                family=0, type=socket.SOCK_STREAM,
                                proto=0, flags=0, loop):
         host, port = address[:2]
-        info = _ipaddr_info(host, port, family, type, proto, *address[2:])
+        info = _ipaddr_info(host, port, family, type, proto)
         if info is not None:
             # "host" is already a resolved IP.
             return [info]
@@ -1555,7 +1483,6 @@ class BaseEventLoop(events.AbstractEventLoop):
                                stderr=subprocess.PIPE,
                                universal_newlines=False,
                                shell=True, bufsize=0,
-                               encoding=None, errors=None, text=None,
                                **kwargs):
         if not isinstance(cmd, (bytes, str)):
             raise ValueError("cmd must be a string")
@@ -1565,13 +1492,6 @@ class BaseEventLoop(events.AbstractEventLoop):
             raise ValueError("shell must be True")
         if bufsize != 0:
             raise ValueError("bufsize must be 0")
-        if text:
-            raise ValueError("text must be False")
-        if encoding is not None:
-            raise ValueError("encoding must be None")
-        if errors is not None:
-            raise ValueError("errors must be None")
-
         protocol = protocol_factory()
         debug_log = None
         if self._debug:
@@ -1588,23 +1508,19 @@ class BaseEventLoop(events.AbstractEventLoop):
     async def subprocess_exec(self, protocol_factory, program, *args,
                               stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, universal_newlines=False,
-                              shell=False, bufsize=0,
-                              encoding=None, errors=None, text=None,
-                              **kwargs):
+                              shell=False, bufsize=0, **kwargs):
         if universal_newlines:
             raise ValueError("universal_newlines must be False")
         if shell:
             raise ValueError("shell must be False")
         if bufsize != 0:
             raise ValueError("bufsize must be 0")
-        if text:
-            raise ValueError("text must be False")
-        if encoding is not None:
-            raise ValueError("encoding must be None")
-        if errors is not None:
-            raise ValueError("errors must be None")
-
         popen_args = (program,) + args
+        for arg in popen_args:
+            if not isinstance(arg, (str, bytes)):
+                raise TypeError(
+                    f"program arguments must be a bytes or text string, "
+                    f"not {type(arg).__name__}")
         protocol = protocol_factory()
         debug_log = None
         if self._debug:
@@ -1716,9 +1632,7 @@ class BaseEventLoop(events.AbstractEventLoop):
         if self._exception_handler is None:
             try:
                 self.default_exception_handler(context)
-            except (SystemExit, KeyboardInterrupt):
-                raise
-            except BaseException:
+            except Exception:
                 # Second protection layer for unexpected errors
                 # in the default implementation, as well as for subclassed
                 # event loops with overloaded "default_exception_handler".
@@ -1727,9 +1641,7 @@ class BaseEventLoop(events.AbstractEventLoop):
         else:
             try:
                 self._exception_handler(self, context)
-            except (SystemExit, KeyboardInterrupt):
-                raise
-            except BaseException as exc:
+            except Exception as exc:
                 # Exception in the user set custom exception handler.
                 try:
                     # Let's try default handler.
@@ -1738,9 +1650,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                         'exception': exc,
                         'context': context,
                     })
-                except (SystemExit, KeyboardInterrupt):
-                    raise
-                except BaseException:
+                except Exception:
                     # Guard 'default_exception_handler' in case it is
                     # overloaded.
                     logger.error('Exception in default exception handler '
@@ -1805,7 +1715,28 @@ class BaseEventLoop(events.AbstractEventLoop):
             when = self._scheduled[0]._when
             timeout = min(max(0, when - self.time()), MAXIMUM_SELECT_TIMEOUT)
 
-        event_list = self._selector.select(timeout)
+        if self._debug and timeout != 0:
+            t0 = self.time()
+            event_list = self._selector.select(timeout)
+            dt = self.time() - t0
+            if dt >= 1.0:
+                level = logging.INFO
+            else:
+                level = logging.DEBUG
+            nevent = len(event_list)
+            if timeout is None:
+                logger.log(level, 'poll took %.3f ms: %s events',
+                           dt * 1e3, nevent)
+            elif nevent:
+                logger.log(level,
+                           'poll %.3f ms took %.3f ms: %s events',
+                           timeout * 1e3, dt * 1e3, nevent)
+            elif dt >= 1.0:
+                logger.log(level,
+                           'poll %.3f ms took %.3f ms: timeout',
+                           timeout * 1e3, dt * 1e3)
+        else:
+            event_list = self._selector.select(timeout)
         self._process_events(event_list)
 
         # Handle 'later' callbacks that are ready.

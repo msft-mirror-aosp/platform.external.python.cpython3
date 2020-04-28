@@ -850,18 +850,12 @@ boolean {0[0]} NO
         self.assertEqual(set(cf['section3'].keys()), {'named'})
         self.assertNotIn('name3', cf['section3'])
         self.assertEqual(cf.sections(), ['section1', 'section2', 'section3'])
-        # For bpo-32108, assigning default_section to itself.
-        cf[self.default_section] = cf[self.default_section]
-        self.assertNotEqual(set(cf[self.default_section].keys()), set())
         cf[self.default_section] = {}
         self.assertEqual(set(cf[self.default_section].keys()), set())
         self.assertEqual(set(cf['section1'].keys()), {'name1'})
         self.assertEqual(set(cf['section2'].keys()), {'name22'})
         self.assertEqual(set(cf['section3'].keys()), set())
         self.assertEqual(cf.sections(), ['section1', 'section2', 'section3'])
-        # For bpo-32108, assigning section to itself.
-        cf['section2'] = cf['section2']
-        self.assertEqual(set(cf['section2'].keys()), {'name22'})
 
     def test_invalid_multiline_value(self):
         if self.allow_no_value:
@@ -921,7 +915,8 @@ class ConfigParserTestCase(BasicTestCase, unittest.TestCase):
         self.check_items_config([('default', '<default>'),
                                  ('getdefault', '|<default>|'),
                                  ('key', '|value|'),
-                                 ('name', 'value')])
+                                 ('name', 'value'),
+                                 ('value', 'value')])
 
     def test_safe_interpolation(self):
         # See http://www.python.org/sf/511737
@@ -1098,7 +1093,8 @@ class RawConfigParserTestCase(BasicTestCase, unittest.TestCase):
         self.check_items_config([('default', '<default>'),
                                  ('getdefault', '|%(default)s|'),
                                  ('key', '|%(name)s|'),
-                                 ('name', '%(value)s')])
+                                 ('name', '%(value)s'),
+                                 ('value', 'value')])
 
     def test_set_nonstring_types(self):
         cf = self.newconfig()
@@ -1115,7 +1111,7 @@ class RawConfigParserTestCase(BasicTestCase, unittest.TestCase):
         self.assertEqual(cf.get(123, 'this is sick'), True)
         if cf._dict is configparser._default_dict:
             # would not work for SortedDict; only checking for the most common
-            # default dictionary (dict)
+            # default dictionary (OrderedDict)
             cf.optionxform = lambda x: x
             cf.set('non-string', 1, 1)
             self.assertEqual(cf.get('non-string', 1), 1)

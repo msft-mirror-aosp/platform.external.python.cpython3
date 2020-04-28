@@ -248,20 +248,11 @@ operation is being performed, so the intermediate analysis object isn't useful:
    return a list of these offsets.
 
 
-.. function:: stack_effect(opcode, oparg=None, *, jump=None)
+.. function:: stack_effect(opcode, [oparg])
 
    Compute the stack effect of *opcode* with argument *oparg*.
 
-   If the code has a jump target and *jump* is ``True``, :func:`~stack_effect`
-   will return the stack effect of jumping.  If *jump* is ``False``,
-   it will return the stack effect of not jumping. And if *jump* is
-   ``None`` (default), it will return the maximal stack effect of both cases.
-
    .. versionadded:: 3.4
-
-   .. versionchanged:: 3.8
-      Added *jump* parameter.
-
 
 .. _bytecodes:
 
@@ -342,14 +333,6 @@ The Python compiler currently generates the following bytecode instructions.
 
    Lifts second and third stack item one position up, moves top down to position
    three.
-
-
-.. opcode:: ROT_FOUR
-
-   Lifts second, third and forth stack items one position up, moves top down
-   to position four.
-
-   .. versionadded:: 3.8
 
 
 .. opcode:: DUP_TOP
@@ -597,17 +580,6 @@ the original TOS1.
    .. versionadded:: 3.5
 
 
-.. opcode:: END_ASYNC_FOR
-
-   Terminates an :keyword:`async for` loop.  Handles an exception raised
-   when awaiting a next item.  If TOS is :exc:`StopAsyncIteration` pop 7
-   values from the stack and restore the exception state using the second
-   three of them.  Otherwise re-raise the exception using the three values
-   from the stack.  An exception handler block is removed from the block stack.
-
-   .. versionadded:: 3.8
-
-
 .. opcode:: BEFORE_ASYNC_WITH
 
    Resolves ``__aenter__`` and ``__aexit__`` from the object on top of the
@@ -633,6 +605,17 @@ the original TOS1.
    is terminated with :opcode:`POP_TOP`.
 
 
+.. opcode:: BREAK_LOOP
+
+   Terminates a loop due to a :keyword:`break` statement.
+
+
+.. opcode:: CONTINUE_LOOP (target)
+
+   Continues a loop due to a :keyword:`continue` statement.  *target* is the
+   address to jump to (which should be a :opcode:`FOR_ITER` instruction).
+
+
 .. opcode:: SET_ADD (i)
 
    Calls ``set.add(TOS1[-i], TOS)``.  Used to implement set comprehensions.
@@ -645,12 +628,10 @@ the original TOS1.
 
 .. opcode:: MAP_ADD (i)
 
-   Calls ``dict.__setitem__(TOS1[-i], TOS1, TOS)``.  Used to implement dict
+   Calls ``dict.setitem(TOS1[-i], TOS, TOS1)``.  Used to implement dict
    comprehensions.
 
    .. versionadded:: 3.1
-   .. versionchanged:: 3.8
-      Map value is TOS and map key is TOS1. Before, those were reversed.
 
 For all of the :opcode:`SET_ADD`, :opcode:`LIST_APPEND` and :opcode:`MAP_ADD`
 instructions, while the added value or key/value pair is popped off, the
@@ -695,7 +676,7 @@ iterations of the loop.
 .. opcode:: POP_BLOCK
 
    Removes one block from the block stack.  Per frame, there is a stack of
-   blocks, denoting :keyword:`try` statements, and such.
+   blocks, denoting nested loops, try statements, and such.
 
 
 .. opcode:: POP_EXCEPT
@@ -706,50 +687,11 @@ iterations of the loop.
    popped values are used to restore the exception state.
 
 
-.. opcode:: POP_FINALLY (preserve_tos)
-
-   Cleans up the value stack and the block stack.  If *preserve_tos* is not
-   ``0`` TOS first is popped from the stack and pushed on the stack after
-   performing other stack operations:
-
-   * If TOS is ``NULL`` or an integer (pushed by :opcode:`BEGIN_FINALLY`
-     or :opcode:`CALL_FINALLY`) it is popped from the stack.
-   * If TOS is an exception type (pushed when an exception has been raised)
-     6 values are popped from the stack, the last three popped values are
-     used to restore the exception state.  An exception handler block is
-     removed from the block stack.
-
-   It is similar to :opcode:`END_FINALLY`, but doesn't change the bytecode
-   counter nor raise an exception.  Used for implementing :keyword:`break`,
-   :keyword:`continue` and :keyword:`return` in the :keyword:`finally` block.
-
-   .. versionadded:: 3.8
-
-
-.. opcode:: BEGIN_FINALLY
-
-   Pushes ``NULL`` onto the stack for using it in :opcode:`END_FINALLY`,
-   :opcode:`POP_FINALLY`, :opcode:`WITH_CLEANUP_START` and
-   :opcode:`WITH_CLEANUP_FINISH`.  Starts the :keyword:`finally` block.
-
-   .. versionadded:: 3.8
-
-
 .. opcode:: END_FINALLY
 
    Terminates a :keyword:`finally` clause.  The interpreter recalls whether the
-   exception has to be re-raised or execution has to be continued depending on
-   the value of TOS.
-
-   * If TOS is ``NULL`` (pushed by :opcode:`BEGIN_FINALLY`) continue from
-     the next instruction. TOS is popped.
-   * If TOS is an integer (pushed by :opcode:`CALL_FINALLY`), sets the
-     bytecode counter to TOS.  TOS is popped.
-   * If TOS is an exception type (pushed when an exception has been raised)
-     6 values are popped from the stack, the first three popped values are
-     used to re-raise the exception and the last three popped values are used
-     to restore the exception state.  An exception handler block is removed
-     from the block stack.
+   exception has to be re-raised, or whether the function returns, and continues
+   with the outer-next block.
 
 
 .. opcode:: LOAD_BUILD_CLASS
@@ -762,9 +704,9 @@ iterations of the loop.
 
    This opcode performs several operations before a with block starts.  First,
    it loads :meth:`~object.__exit__` from the context manager and pushes it onto
-   the stack for later use by :opcode:`WITH_CLEANUP_START`.  Then,
+   the stack for later use by :opcode:`WITH_CLEANUP`.  Then,
    :meth:`~object.__enter__` is called, and a finally block pointing to *delta*
-   is pushed.  Finally, the result of calling the ``__enter__()`` method is pushed onto
+   is pushed.  Finally, the result of calling the enter method is pushed onto
    the stack.  The next opcode will either ignore it (:opcode:`POP_TOP`), or
    store it in (a) variable(s) (:opcode:`STORE_FAST`, :opcode:`STORE_NAME`, or
    :opcode:`UNPACK_SEQUENCE`).
@@ -774,31 +716,30 @@ iterations of the loop.
 
 .. opcode:: WITH_CLEANUP_START
 
-   Starts cleaning up the stack when a :keyword:`with` statement block exits.
+   Cleans up the stack when a :keyword:`with` statement block exits.  TOS is the
+   context manager's :meth:`__exit__` bound method. Below TOS are 1--3 values
+   indicating how/why the finally clause was entered:
 
-   At the top of the stack are either ``NULL`` (pushed by
-   :opcode:`BEGIN_FINALLY`) or 6 values pushed if an exception has been
-   raised in the with block.  Below is the context manager's
-   :meth:`~object.__exit__` or :meth:`~object.__aexit__` bound method.
+   * SECOND = ``None``
+   * (SECOND, THIRD) = (``WHY_{RETURN,CONTINUE}``), retval
+   * SECOND = ``WHY_*``; no retval below it
+   * (SECOND, THIRD, FOURTH) = exc_info()
 
-   If TOS is ``NULL``, calls ``SECOND(None, None, None)``,
-   removes the function from the stack, leaving TOS, and pushes ``None``
-   to the stack.  Otherwise calls ``SEVENTH(TOP, SECOND, THIRD)``,
-   shifts the bottom 3 values of the stack down, replaces the empty spot
-   with ``NULL`` and pushes TOS.  Finally pushes the result of the call.
+   In the last case, ``TOS(SECOND, THIRD, FOURTH)`` is called, otherwise
+   ``TOS(None, None, None)``.  Pushes SECOND and result of the call
+   to the stack.
 
 
 .. opcode:: WITH_CLEANUP_FINISH
 
-   Finishes cleaning up the stack when a :keyword:`with` statement block exits.
+   Pops exception type and result of 'exit' function call from the stack.
 
-   TOS is result of ``__exit__()`` or ``__aexit__()`` function call pushed
-   by :opcode:`WITH_CLEANUP_START`.  SECOND is ``None`` or an exception type
-   (pushed when an exception has been raised).
+   If the stack represents an exception, *and* the function call returns a
+   'true' value, this information is "zapped" and replaced with a single
+   ``WHY_SILENCED`` to prevent :opcode:`END_FINALLY` from re-raising the
+   exception.  (But non-local gotos will still be resumed.)
 
-   Pops two values from the stack.  If SECOND is not None and TOS is true
-   unwinds the EXCEPT_HANDLER block which was created when the exception
-   was caught and pushes ``NULL`` to the stack.
+   .. XXX explain the WHY stuff!
 
 
 All of the following opcodes use their arguments.
@@ -1046,19 +987,22 @@ All of the following opcodes use their arguments.
    Loads the global named ``co_names[namei]`` onto the stack.
 
 
+.. opcode:: SETUP_LOOP (delta)
+
+   Pushes a block for a loop onto the block stack.  The block spans from the
+   current instruction with a size of *delta* bytes.
+
+
+.. opcode:: SETUP_EXCEPT (delta)
+
+   Pushes a try block from a try-except clause onto the block stack. *delta*
+   points to the first except block.
+
+
 .. opcode:: SETUP_FINALLY (delta)
 
-   Pushes a try block from a try-finally or try-except clause onto the block
-   stack.  *delta* points to the finally block or the first except block.
-
-
-.. opcode:: CALL_FINALLY (delta)
-
-   Pushes the address of the next instruction onto the stack and increments
-   bytecode counter by *delta*.  Used for calling the finally block as a
-   "subroutine".
-
-   .. versionadded:: 3.8
+   Pushes a try block from a try-except clause onto the block stack. *delta*
+   points to the finally block.
 
 
 .. opcode:: LOAD_FAST (var_num)
@@ -1115,13 +1059,9 @@ All of the following opcodes use their arguments.
 
 .. opcode:: RAISE_VARARGS (argc)
 
-   Raises an exception using one of the 3 forms of the ``raise`` statement,
-   depending on the value of *argc*:
-
-   * 0: ``raise`` (re-raise previous exception)
-   * 1: ``raise TOS`` (raise exception instance or type at ``TOS``)
-   * 2: ``raise TOS1 from TOS`` (raise exception instance or type at ``TOS1``
-     with ``__cause__`` set to ``TOS``)
+   Raises an exception. *argc* indicates the number of arguments to the raise
+   statement, ranging from 0 to 3.  The handler will find the traceback as TOS2,
+   the parameter as TOS1, and the exception as TOS.
 
 
 .. opcode:: CALL_FUNCTION (argc)
@@ -1221,10 +1161,10 @@ All of the following opcodes use their arguments.
 
 .. opcode:: EXTENDED_ARG (ext)
 
-   Prefixes any opcode which has an argument too big to fit into the default one
-   byte. *ext* holds an additional byte which act as higher bits in the argument.
-   For each opcode, at most three prefixal ``EXTENDED_ARG`` are allowed, forming
-   an argument from two-byte to four-byte.
+   Prefixes any opcode which has an argument too big to fit into the default two
+   bytes.  *ext* holds two additional bytes which, taken together with the
+   subsequent opcode's argument, comprise a four-byte argument, *ext* being the
+   two most-significant bytes.
 
 
 .. opcode:: FORMAT_VALUE (flags)

@@ -20,10 +20,10 @@
         <WxlTemplate Include="*.wxl_template" />
     </ItemGroup>
     <ItemGroup>
-        <InstallFiles Include="$(TclTkLibraryDir)\**\*">
-            <SourceBase>$(TclTkLibraryDir)</SourceBase>
+        <InstallFiles Include="$(tcltkDir)lib\**\*">
+            <SourceBase>$(tcltkDir)</SourceBase>
             <Source>!(bindpath.tcltk)</Source>
-            <TargetBase>$(TclTkLibraryDir)</TargetBase>
+            <TargetBase>$(tcltkDir)lib</TargetBase>
             <Target_>tcl\</Target_>
             <Group>tcltk_lib</Group>
         </InstallFiles>

@@ -82,17 +82,25 @@ class LineReader:
 
 class BufferSizesTests(BaseTests, unittest.TestCase):
     def test_buffer_sizes(self):
+        # First, run the tests with default and teeny buffer size.
+        for round, bs in (0, 0), (1, 30):
+            t1 = self.writeTmp(''.join("Line %s of file 1\n" % (i+1) for i in range(15)))
+            t2 = self.writeTmp(''.join("Line %s of file 2\n" % (i+1) for i in range(10)))
+            t3 = self.writeTmp(''.join("Line %s of file 3\n" % (i+1) for i in range(5)))
+            t4 = self.writeTmp(''.join("Line %s of file 4\n" % (i+1) for i in range(1)))
+            if bs:
+                with self.assertWarns(DeprecationWarning):
+                    self.buffer_size_test(t1, t2, t3, t4, bs, round)
+            else:
+                self.buffer_size_test(t1, t2, t3, t4, bs, round)
 
-        t1 = self.writeTmp(''.join("Line %s of file 1\n" % (i+1) for i in range(15)))
-        t2 = self.writeTmp(''.join("Line %s of file 2\n" % (i+1) for i in range(10)))
-        t3 = self.writeTmp(''.join("Line %s of file 3\n" % (i+1) for i in range(5)))
-        t4 = self.writeTmp(''.join("Line %s of file 4\n" % (i+1) for i in range(1)))
-
+    def buffer_size_test(self, t1, t2, t3, t4, bs=0, round=0):
         pat = re.compile(r'LINE (\d+) OF FILE (\d+)')
 
+        start = 1 + round*6
         if verbose:
-            print('1. Simple iteration')
-        fi = FileInput(files=(t1, t2, t3, t4))
+            print('%s. Simple iteration (bs=%s)' % (start+0, bs))
+        fi = FileInput(files=(t1, t2, t3, t4), bufsize=bs)
         lines = list(fi)
         fi.close()
         self.assertEqual(len(lines), 31)
@@ -102,8 +110,8 @@ class BufferSizesTests(BaseTests, unittest.TestCase):
         self.assertEqual(fi.filename(), t4)
 
         if verbose:
-            print('2. Status variables')
-        fi = FileInput(files=(t1, t2, t3, t4))
+            print('%s. Status variables (bs=%s)' % (start+1, bs))
+        fi = FileInput(files=(t1, t2, t3, t4), bufsize=bs)
         s = "x"
         while s and s != 'Line 6 of file 2\n':
             s = fi.readline()
@@ -114,15 +122,15 @@ class BufferSizesTests(BaseTests, unittest.TestCase):
         self.assertFalse(fi.isstdin())
 
         if verbose:
-            print('3. Nextfile')
+            print('%s. Nextfile (bs=%s)' % (start+2, bs))
         fi.nextfile()
         self.assertEqual(fi.readline(), 'Line 1 of file 3\n')
         self.assertEqual(fi.lineno(), 22)
         fi.close()
 
         if verbose:
-            print('4. Stdin')
-        fi = FileInput(files=(t1, t2, t3, t4, '-'))
+            print('%s. Stdin (bs=%s)' % (start+3, bs))
+        fi = FileInput(files=(t1, t2, t3, t4, '-'), bufsize=bs)
         savestdin = sys.stdin
         try:
             sys.stdin = StringIO("Line 1 of stdin\nLine 2 of stdin\n")
@@ -135,8 +143,8 @@ class BufferSizesTests(BaseTests, unittest.TestCase):
             sys.stdin = savestdin
 
         if verbose:
-            print('5. Boundary conditions')
-        fi = FileInput(files=(t1, t2, t3, t4))
+            print('%s. Boundary conditions (bs=%s)' % (start+4, bs))
+        fi = FileInput(files=(t1, t2, t3, t4), bufsize=bs)
         self.assertEqual(fi.lineno(), 0)
         self.assertEqual(fi.filename(), None)
         fi.nextfile()
@@ -144,10 +152,10 @@ class BufferSizesTests(BaseTests, unittest.TestCase):
         self.assertEqual(fi.filename(), None)
 
         if verbose:
-            print('6. Inplace')
+            print('%s. Inplace (bs=%s)' % (start+5, bs))
         savestdout = sys.stdout
         try:
-            fi = FileInput(files=(t1, t2, t3, t4), inplace=1)
+            fi = FileInput(files=(t1, t2, t3, t4), inplace=1, bufsize=bs)
             for line in fi:
                 line = line[:-1].upper()
                 print(line)
@@ -155,7 +163,7 @@ class BufferSizesTests(BaseTests, unittest.TestCase):
         finally:
             sys.stdout = savestdout
 
-        fi = FileInput(files=(t1, t2, t3, t4))
+        fi = FileInput(files=(t1, t2, t3, t4), bufsize=bs)
         for line in fi:
             self.assertEqual(line[-1], '\n')
             m = pat.match(line[:-1])
@@ -321,16 +329,6 @@ class FileInputTests(BaseTests, unittest.TestCase):
             self.assertEqual(fi.readline(), b'')
             self.assertEqual(fi.readline(), b'')
 
-    def test_inplace_binary_write_mode(self):
-        temp_file = self.writeTmp(b'Initial text.', mode='wb')
-        with FileInput(temp_file, mode='rb', inplace=True) as fobj:
-            line = fobj.readline()
-            self.assertEqual(line, b'Initial text.')
-            # print() cannot be used with files opened in binary mode.
-            sys.stdout.write(b'New line.')
-        with open(temp_file, 'rb') as f:
-            self.assertEqual(f.read(), b'New line.')
-
     def test_context_manager(self):
         t1 = self.writeTmp("A\nB\nC")
         t2 = self.writeTmp("D\nE\nF")
@@ -353,7 +351,6 @@ class FileInputTests(BaseTests, unittest.TestCase):
         with FileInput(files=[]) as fi:
             self.assertEqual(fi._files, ('-',))
 
-    @support.ignore_warnings(category=DeprecationWarning)
     def test__getitem__(self):
         """Tests invoking FileInput.__getitem__() with the current
            line number"""
@@ -364,14 +361,6 @@ class FileInputTests(BaseTests, unittest.TestCase):
             retval2 = fi[1]
             self.assertEqual(retval2, "line2\n")
 
-    def test__getitem___deprecation(self):
-        t = self.writeTmp("line1\nline2\n")
-        with self.assertWarnsRegex(DeprecationWarning,
-                                   r'Use iterator protocol instead'):
-            with FileInput(files=[t]) as fi:
-                self.assertEqual(fi[0], "line1\n")
-
-    @support.ignore_warnings(category=DeprecationWarning)
     def test__getitem__invalid_key(self):
         """Tests invoking FileInput.__getitem__() with an index unequal to
            the line number"""
@@ -381,7 +370,6 @@ class FileInputTests(BaseTests, unittest.TestCase):
                 fi[1]
         self.assertEqual(cm.exception.args, ("accessing lines out of order",))
 
-    @support.ignore_warnings(category=DeprecationWarning)
     def test__getitem__eof(self):
         """Tests invoking FileInput.__getitem__() with the line number but at
            end-of-input"""
@@ -430,6 +418,7 @@ class FileInputTests(BaseTests, unittest.TestCase):
         self.assertTrue(os_fstat_replacement.invoked,
                         "os.fstat() was not invoked")
 
+    @unittest.skipIf(not hasattr(os, "chmod"), "os.chmod does not exist")
     def test_readline_os_chmod_raises_OSError(self):
         """Tests invoking FileInput.readline() when os.chmod() raises OSError.
            This exception should be silently discarded."""
@@ -525,11 +514,12 @@ class FileInputTests(BaseTests, unittest.TestCase):
 class MockFileInput:
     """A class that mocks out fileinput.FileInput for use during unit tests"""
 
-    def __init__(self, files=None, inplace=False, backup="", *,
+    def __init__(self, files=None, inplace=False, backup="", bufsize=0,
                  mode="r", openhook=None):
         self.files = files
         self.inplace = inplace
         self.backup = backup
+        self.bufsize = bufsize
         self.mode = mode
         self.openhook = openhook
         self._file = None
@@ -632,11 +622,13 @@ class Test_fileinput_input(BaseFileInputGlobalMethodsTest):
         files = object()
         inplace = object()
         backup = object()
+        bufsize = object()
         mode = object()
         openhook = object()
 
         # call fileinput.input() with different values for each argument
         result = fileinput.input(files=files, inplace=inplace, backup=backup,
+                                 bufsize=bufsize,
             mode=mode, openhook=openhook)
 
         # ensure fileinput._state was set to the returned object
@@ -647,6 +639,7 @@ class Test_fileinput_input(BaseFileInputGlobalMethodsTest):
         self.assertIs(files, result.files, "files")
         self.assertIs(inplace, result.inplace, "inplace")
         self.assertIs(backup, result.backup, "backup")
+        self.assertIs(bufsize, result.bufsize, "bufsize")
         self.assertIs(mode, result.mode, "mode")
         self.assertIs(openhook, result.openhook, "openhook")
 

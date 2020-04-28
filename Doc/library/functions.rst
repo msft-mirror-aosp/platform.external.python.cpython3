@@ -44,8 +44,7 @@ are always available.  They are listed here in alphabetical order.
 
    Return the absolute value of a number.  The argument may be an
    integer or a floating point number.  If the argument is a complex number, its
-   magnitude is returned. If *x* defines :meth:`__abs__`,
-   ``abs(x)`` returns ``x.__abs__()``.
+   magnitude is returned.
 
 
 .. function:: all(iterable)
@@ -127,8 +126,6 @@ are always available.  They are listed here in alphabetical order.
    :func:`sys.breakpointhook` can be set to some other function and
    :func:`breakpoint` will automatically call that, allowing you to drop into
    the debugger of choice.
-
-   .. audit-event:: builtins.breakpoint breakpointhook breakpoint
 
    .. versionadded:: 3.7
 
@@ -213,18 +210,19 @@ are always available.  They are listed here in alphabetical order.
           @classmethod
           def f(cls, arg1, arg2, ...): ...
 
-   The ``@classmethod`` form is a function :term:`decorator` -- see
-   :ref:`function` for details.
+   The ``@classmethod`` form is a function :term:`decorator` -- see the description
+   of function definitions in :ref:`function` for details.
 
-   A class method can be called either on the class (such as ``C.f()``) or on an instance (such
+   It can be called either on the class (such as ``C.f()``) or on an instance (such
    as ``C().f()``).  The instance is ignored except for its class. If a class
    method is called for a derived class, the derived class object is passed as the
    implied first argument.
 
    Class methods are different than C++ or Java static methods. If you want those,
-   see :func:`staticmethod`.
+   see :func:`staticmethod` in this section.
 
-   For more information on class methods, see :ref:`types`.
+   For more information on class methods, consult the documentation on the standard
+   type hierarchy in :ref:`types`.
 
 
 .. function:: compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
@@ -259,12 +257,6 @@ are always available.  They are listed here in alphabetical order.
    can be found as the :attr:`~__future__._Feature.compiler_flag` attribute on
    the :class:`~__future__._Feature` instance in the :mod:`__future__` module.
 
-   The optional argument *flags* also controls whether the compiled source is
-   allowed to contain top-level ``await``, ``async for`` and ``async with``.
-   When the bit ``ast.PyCF_ALLOW_TOP_LEVEL_AWAIT`` is set, the return code
-   object has ``CO_COROUTINE`` set in ``co_code``, and can be interactively
-   executed via ``await eval(code_object)``.
-
    The argument *optimize* specifies the optimization level of the compiler; the
    default value of ``-1`` selects the optimization level of the interpreter as
    given by :option:`-O` options.  Explicit levels are ``0`` (no optimization;
@@ -276,12 +268,6 @@ are always available.  They are listed here in alphabetical order.
 
    If you want to parse Python code into its AST representation, see
    :func:`ast.parse`.
-
-   .. audit-event:: compile source,filename compile
-
-      Raises an :ref:`auditing event <auditing>` ``compile`` with arguments
-      ``source`` and ``filename``. This event may also be raised by implicit
-      compilation.
 
    .. note::
 
@@ -304,10 +290,6 @@ are always available.  They are listed here in alphabetical order.
       Previously, :exc:`TypeError` was raised when null bytes were encountered
       in *source*.
 
-   .. versionadded:: 3.8
-      ``ast.PyCF_ALLOW_TOP_LEVEL_AWAIT`` can now be passed in flags to enable
-      support for top-level ``await``, ``async for``, and ``async with``.
-
 
 .. class:: complex([real[, imag]])
 
@@ -320,11 +302,6 @@ are always available.  They are listed here in alphabetical order.
    :class:`int` and :class:`float`.  If both arguments are omitted, returns
    ``0j``.
 
-   For a general Python object ``x``, ``complex(x)`` delegates to
-   ``x.__complex__()``.  If ``__complex__()`` is not defined then it falls back
-   to :meth:`__float__`.  If ``__float__()`` is not defined then it falls back
-   to :meth:`__index__`.
-
    .. note::
 
       When converting from a string, the string must not contain whitespace
@@ -336,10 +313,6 @@ are always available.  They are listed here in alphabetical order.
 
    .. versionchanged:: 3.6
       Grouping digits with underscores as in code literals is allowed.
-
-   .. versionchanged:: 3.8
-      Falls back to :meth:`__index__` if :meth:`__complex__` and
-      :meth:`__float__` are not defined.
 
 
 .. function:: delattr(object, name)
@@ -454,7 +427,7 @@ are always available.  They are listed here in alphabetical order.
               n += 1
 
 
-.. function:: eval(expression[, globals[, locals]])
+.. function:: eval(expression, globals=None, locals=None)
 
    The arguments are a string and optional globals and locals.  If provided,
    *globals* must be a dictionary.  If provided, *locals* can be any mapping
@@ -465,16 +438,12 @@ are always available.  They are listed here in alphabetical order.
    dictionaries as global and local namespace.  If the *globals* dictionary is
    present and does not contain a value for the key ``__builtins__``, a
    reference to the dictionary of the built-in module :mod:`builtins` is
-   inserted under that key before *expression* is parsed.  This means that
-   *expression* normally has full access to the standard :mod:`builtins`
-   module and restricted environments are propagated.  If the *locals*
-   dictionary is omitted it defaults to the *globals* dictionary.  If both
-   dictionaries are omitted, the expression is executed with the *globals* and
-   *locals* in the environment where :func:`eval` is called.  Note, *eval()*
-   does not have access to the :term:`nested scope`\s (non-locals) in the
-   enclosing environment.
-
-   The return value is the result of
+   inserted under that key before *expression* is parsed.
+   This means that *expression* normally has full
+   access to the standard :mod:`builtins` module and restricted environments are
+   propagated.  If the *locals* dictionary is omitted it defaults to the *globals*
+   dictionary.  If both dictionaries are omitted, the expression is executed in the
+   environment where :func:`eval` is called.  The return value is the result of
    the evaluated expression. Syntax errors are reported as exceptions.  Example:
 
       >>> x = 1
@@ -494,11 +463,6 @@ are always available.  They are listed here in alphabetical order.
    See :func:`ast.literal_eval` for a function that can safely evaluate strings
    with expressions containing only literals.
 
-   .. audit-event:: exec code_object eval
-
-      Raises an :ref:`auditing event <auditing>` ``exec`` with the code object
-      as the argument. Code compilation events may also be raised.
-
 .. index:: builtin: exec
 
 .. function:: exec(object[, globals[, locals]])
@@ -514,8 +478,7 @@ are always available.  They are listed here in alphabetical order.
    :func:`exec` function. The return value is ``None``.
 
    In all cases, if the optional parts are omitted, the code is executed in the
-   current scope.  If only *globals* is provided, it must be a dictionary
-   (and not a subclass of dictionary), which
+   current scope.  If only *globals* is provided, it must be a dictionary, which
    will be used for both the global and the local variables.  If *globals* and
    *locals* are given, they are used for the global and local variables,
    respectively.  If provided, *locals* can be any mapping object.  Remember
@@ -528,11 +491,6 @@ are always available.  They are listed here in alphabetical order.
    :mod:`builtins` is inserted under that key.  That way you can control what
    builtins are available to the executed code by inserting your own
    ``__builtins__`` dictionary into *globals* before passing it to :func:`exec`.
-
-   .. audit-event:: exec code_object exec
-
-      Raises an :ref:`auditing event <auditing>` ``exec`` with the code object
-      as the argument. Code compilation events may also be raised.
 
    .. note::
 
@@ -599,8 +557,7 @@ are always available.  They are listed here in alphabetical order.
    float, an :exc:`OverflowError` will be raised.
 
    For a general Python object ``x``, ``float(x)`` delegates to
-   ``x.__float__()``.  If ``__float__()`` is not defined then it falls back
-   to :meth:`__index__`.
+   ``x.__float__()``.
 
    If no argument is given, ``0.0`` is returned.
 
@@ -624,9 +581,6 @@ are always available.  They are listed here in alphabetical order.
 
    .. versionchanged:: 3.7
       *x* is now a positional-only parameter.
-
-   .. versionchanged:: 3.8
-      Falls back to :meth:`__index__` if :meth:`__float__` is not defined.
 
 
 .. index::
@@ -783,24 +737,13 @@ are always available.  They are listed here in alphabetical order.
    If the :mod:`readline` module was loaded, then :func:`input` will use it
    to provide elaborate line editing and history features.
 
-   .. audit-event:: builtins.input prompt input
-
-      Raises an :ref:`auditing event <auditing>` ``builtins.input`` with
-      argument ``prompt`` before reading input
-
-   .. audit-event:: builtins.input/result result input
-
-      Raises an auditing event ``builtins.input/result`` with the result after
-      successfully reading input.
-
 
 .. class:: int([x])
            int(x, base=10)
 
    Return an integer object constructed from a number or string *x*, or return
    ``0`` if no arguments are given.  If *x* defines :meth:`__int__`,
-   ``int(x)`` returns ``x.__int__()``.  If *x* defines :meth:`__index__`,
-   it returns ``x.__index__()``.  If *x* defines :meth:`__trunc__`,
+   ``int(x)`` returns ``x.__int__()``.  If *x* defines :meth:`__trunc__`,
    it returns ``x.__trunc__()``.
    For floating point numbers, this truncates towards zero.
 
@@ -831,9 +774,6 @@ are always available.  They are listed here in alphabetical order.
 
    .. versionchanged:: 3.7
       *x* is now a positional-only parameter.
-
-   .. versionchanged:: 3.8
-      Falls back to :meth:`__index__` if :meth:`__int__` is not defined.
 
 
 .. function:: isinstance(object, classinfo)
@@ -903,8 +843,7 @@ are always available.  They are listed here in alphabetical order.
 
    Update and return a dictionary representing the current local symbol table.
    Free variables are returned by :func:`locals` when it is called in function
-   blocks, but not in class blocks. Note that at the module level, :func:`locals`
-   and :func:`globals` are the same dictionary.
+   blocks, but not in class blocks.
 
    .. note::
       The contents of this dictionary should not be modified; changes may not
@@ -945,9 +884,6 @@ are always available.  They are listed here in alphabetical order.
    .. versionadded:: 3.4
       The *default* keyword-only argument.
 
-   .. versionchanged:: 3.8
-      The *key* can be ``None``.
-
 
 .. _func-memoryview:
 .. function:: memoryview(obj)
@@ -981,9 +917,6 @@ are always available.  They are listed here in alphabetical order.
 
    .. versionadded:: 3.4
       The *default* keyword-only argument.
-
-   .. versionchanged:: 3.8
-      The *key* can be ``None``.
 
 
 .. function:: next(iterator[, default])
@@ -1068,12 +1001,12 @@ are always available.  They are listed here in alphabetical order.
    ``'a'``   open for writing, appending to the end of the file if it exists
    ``'b'``   binary mode
    ``'t'``   text mode (default)
-   ``'+'``   open for updating (reading and writing)
+   ``'+'``   open a disk file for updating (reading and writing)
    ========= ===============================================================
 
    The default mode is ``'r'`` (open for reading text, synonym of ``'rt'``).
-   Modes ``'w+'`` and ``'w+b'`` open and truncate the file.  Modes ``'r+'``
-   and ``'r+b'`` open the file with no truncation.
+   For binary read-write access, the mode ``'w+b'`` opens and truncates the file
+   to 0 bytes.  ``'r+b'`` opens the file without truncation.
 
    As mentioned in the :ref:`io-overview`, Python distinguishes between binary
    and text I/O.  Files opened in binary mode (including ``'b'`` in the *mode*
@@ -1226,11 +1159,6 @@ are always available.  They are listed here in alphabetical order.
    (where :func:`open` is declared), :mod:`os`, :mod:`os.path`, :mod:`tempfile`,
    and :mod:`shutil`.
 
-   .. audit-event:: open file,mode,flags open
-
-   The ``mode`` and ``flags`` arguments may have been modified or inferred from
-   the original call.
-
    .. versionchanged::
       3.3
 
@@ -1272,41 +1200,20 @@ are always available.  They are listed here in alphabetical order.
    returns ``8364``.  This is the inverse of :func:`chr`.
 
 
-.. function:: pow(base, exp[, mod])
+.. function:: pow(x, y[, z])
 
-   Return *base* to the power *exp*; if *mod* is present, return *base* to the
-   power *exp*, modulo *mod* (computed more efficiently than
-   ``pow(base, exp) % mod``). The two-argument form ``pow(base, exp)`` is
-   equivalent to using the power operator: ``base**exp``.
+   Return *x* to the power *y*; if *z* is present, return *x* to the power *y*,
+   modulo *z* (computed more efficiently than ``pow(x, y) % z``). The two-argument
+   form ``pow(x, y)`` is equivalent to using the power operator: ``x**y``.
 
    The arguments must have numeric types.  With mixed operand types, the
    coercion rules for binary arithmetic operators apply.  For :class:`int`
    operands, the result has the same type as the operands (after coercion)
    unless the second argument is negative; in that case, all arguments are
    converted to float and a float result is delivered.  For example, ``10**2``
-   returns ``100``, but ``10**-2`` returns ``0.01``.
-
-   For :class:`int` operands *base* and *exp*, if *mod* is present, *mod* must
-   also be of integer type and *mod* must be nonzero. If *mod* is present and
-   *exp* is negative, *base* must be relatively prime to *mod*. In that case,
-   ``pow(inv_base, -exp, mod)`` is returned, where *inv_base* is an inverse to
-   *base* modulo *mod*.
-
-   Here's an example of computing an inverse for ``38`` modulo ``97``::
-
-      >>> pow(38, -1, mod=97)
-      23
-      >>> 23 * 38 % 97 == 1
-      True
-
-   .. versionchanged:: 3.8
-      For :class:`int` operands, the three-argument form of ``pow`` now allows
-      the second argument to be negative, permitting computation of modular
-      inverses.
-
-   .. versionchanged:: 3.9
-      Allow keyword arguments.  Formerly, only positional arguments were
-      supported.
+   returns ``100``, but ``10**-2`` returns ``0.01``.  If the second argument is
+   negative, the third argument must be omitted.  If *z* is present, *x* and *y*
+   must be of integer types, and *y* must be non-negative.
 
 
 .. function:: print(*objects, sep=' ', end='\\n', file=sys.stdout, flush=False)
@@ -1538,11 +1445,11 @@ are always available.  They are listed here in alphabetical order.
           @staticmethod
           def f(arg1, arg2, ...): ...
 
-   The ``@staticmethod`` form is a function :term:`decorator` -- see
-   :ref:`function` for details.
+   The ``@staticmethod`` form is a function :term:`decorator` -- see the
+   description of function definitions in :ref:`function` for details.
 
-   A static method can be called either on the class (such as ``C.f()``) or on an instance (such
-   as ``C().f()``).
+   It can be called either on the class (such as ``C.f()``) or on an instance (such
+   as ``C().f()``).  The instance is ignored except for its class.
 
    Static methods in Python are similar to those found in Java or C++. Also see
    :func:`classmethod` for a variant that is useful for creating alternate class
@@ -1557,7 +1464,8 @@ are always available.  They are listed here in alphabetical order.
       class C:
           builtin_open = staticmethod(open)
 
-   For more information on static methods, see :ref:`types`.
+   For more information on static methods, consult the documentation on the
+   standard type hierarchy in :ref:`types`.
 
 
 .. index::
@@ -1574,11 +1482,11 @@ are always available.  They are listed here in alphabetical order.
    about strings, see :ref:`textseq`.
 
 
-.. function:: sum(iterable, /, start=0)
+.. function:: sum(iterable[, start])
 
    Sums *start* and the items of an *iterable* from left to right and returns the
-   total.  The *iterable*'s items are normally numbers, and the start value is not
-   allowed to be a string.
+   total.  *start* defaults to ``0``. The *iterable*'s items are normally numbers,
+   and the start value is not allowed to be a string.
 
    For some use cases, there are good alternatives to :func:`sum`.
    The preferred, fast way to concatenate a sequence of strings is by calling
@@ -1586,24 +1494,14 @@ are always available.  They are listed here in alphabetical order.
    see :func:`math.fsum`\.  To concatenate a series of iterables, consider using
    :func:`itertools.chain`.
 
-   .. versionchanged:: 3.8
-      The *start* parameter can be specified as a keyword argument.
-
 .. function:: super([type[, object-or-type]])
 
    Return a proxy object that delegates method calls to a parent or sibling
    class of *type*.  This is useful for accessing inherited methods that have
-   been overridden in a class.
+   been overridden in a class. The search order is same as that used by
+   :func:`getattr` except that the *type* itself is skipped.
 
-   The *object-or-type* determines the :term:`method resolution order`
-   to be searched.  The search starts from the class right after the
-   *type*.
-
-   For example, if :attr:`~class.__mro__` of *object-or-type* is
-   ``D -> B -> C -> A -> object`` and the value of *type* is ``B``,
-   then :func:`super` searches ``C -> A -> object``.
-
-   The :attr:`~class.__mro__` attribute of the *object-or-type* lists the method
+   The :attr:`~class.__mro__` attribute of the *type* lists the method
    resolution search order used by both :func:`getattr` and :func:`super`.  The
    attribute is dynamic and can change whenever the inheritance hierarchy is
    updated.
@@ -1634,10 +1532,6 @@ are always available.  They are listed here in alphabetical order.
           def method(self, arg):
               super().method(arg)    # This does the same thing as:
                                      # super(C, self).method(arg)
-
-   In addition to method lookups, :func:`super` also works for attribute
-   lookups.  One possible use case for this is calling :term:`descriptor`\s
-   in a parent or sibling class.
 
    Note that :func:`super` is implemented as part of the binding process for
    explicit dotted attribute lookups such as ``super().__getitem__(name)``.

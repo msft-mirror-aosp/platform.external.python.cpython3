@@ -1,4 +1,4 @@
-.. highlight:: c
+.. highlightlang:: c
 
 
 .. _building-on-windows:

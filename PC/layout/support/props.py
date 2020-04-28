@@ -6,7 +6,13 @@ import os
 
 from .constants import *
 
-__all__ = ["get_props_layout"]
+__all__ = ["PYTHON_PROPS_NAME"]
+
+
+def public(f):
+    __all__.append(f.__name__)
+    return f
+
 
 PYTHON_PROPS_NAME = "python.props"
 
@@ -91,8 +97,14 @@ PROPS_TEMPLATE = r"""<?xml version="1.0" encoding="utf-8"?>
 """
 
 
+@public
 def get_props_layout(ns):
     if ns.include_all or ns.include_props:
-        # TODO: Filter contents of props file according to included/excluded items
-        props = PROPS_TEMPLATE.format_map(PROPS_DATA)
-        yield "python.props", ("python.props", props.encode("utf-8"))
+        yield "python.props", ns.temp / "python.props"
+
+
+@public
+def get_props(ns):
+    # TODO: Filter contents of props file according to included/excluded items
+    props = PROPS_TEMPLATE.format_map(PROPS_DATA)
+    return props.encode("utf-8")

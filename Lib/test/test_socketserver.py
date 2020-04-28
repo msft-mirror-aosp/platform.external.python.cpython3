@@ -157,25 +157,27 @@ class SocketServerTest(unittest.TestCase):
         if verbose: print("done")
 
     def stream_examine(self, proto, addr):
-        with socket.socket(proto, socket.SOCK_STREAM) as s:
-            s.connect(addr)
-            s.sendall(TEST_STR)
-            buf = data = receive(s, 100)
-            while data and b'\n' not in buf:
-                data = receive(s, 100)
-                buf += data
-            self.assertEqual(buf, TEST_STR)
+        s = socket.socket(proto, socket.SOCK_STREAM)
+        s.connect(addr)
+        s.sendall(TEST_STR)
+        buf = data = receive(s, 100)
+        while data and b'\n' not in buf:
+            data = receive(s, 100)
+            buf += data
+        self.assertEqual(buf, TEST_STR)
+        s.close()
 
     def dgram_examine(self, proto, addr):
-        with socket.socket(proto, socket.SOCK_DGRAM) as s:
-            if HAVE_UNIX_SOCKETS and proto == socket.AF_UNIX:
-                s.bind(self.pickaddr(proto))
-            s.sendto(TEST_STR, addr)
-            buf = data = receive(s, 100)
-            while data and b'\n' not in buf:
-                data = receive(s, 100)
-                buf += data
-            self.assertEqual(buf, TEST_STR)
+        s = socket.socket(proto, socket.SOCK_DGRAM)
+        if HAVE_UNIX_SOCKETS and proto == socket.AF_UNIX:
+            s.bind(self.pickaddr(proto))
+        s.sendto(TEST_STR, addr)
+        buf = data = receive(s, 100)
+        while data and b'\n' not in buf:
+            data = receive(s, 100)
+            buf += data
+        self.assertEqual(buf, TEST_STR)
+        s.close()
 
     def test_TCPServer(self):
         self.run_server(socketserver.TCPServer,

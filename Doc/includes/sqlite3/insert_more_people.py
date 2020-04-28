@@ -14,5 +14,3 @@ for person in newPeople:
 
 # The changes will not be saved unless the transaction is committed explicitly:
 con.commit()
-
-con.close()

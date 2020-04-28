@@ -122,13 +122,15 @@ class ZipSupportTests(unittest.TestCase):
                                             test_src)
             zip_name, run_name = make_zip_script(d, 'test_zip',
                                                 script_name)
-            with zipfile.ZipFile(zip_name, 'a') as z:
-                for mod_name, src in sample_sources.items():
-                    z.writestr(mod_name + ".py", src)
+            z = zipfile.ZipFile(zip_name, 'a')
+            for mod_name, src in sample_sources.items():
+                z.writestr(mod_name + ".py", src)
+            z.close()
             if verbose:
-                with zipfile.ZipFile(zip_name, 'r') as zip_file:
-                    print ('Contents of %r:' % zip_name)
-                    zip_file.printdir()
+                zip_file = zipfile.ZipFile(zip_name, 'r')
+                print ('Contents of %r:' % zip_name)
+                zip_file.printdir()
+                zip_file.close()
             os.remove(script_name)
             sys.path.insert(0, zip_name)
             import test_zipped_doctest

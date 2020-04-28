@@ -383,7 +383,10 @@ def CollectObjectIDs(ids, obj):
     return len(ids)
 
 class InstancingTestCase(unittest.TestCase, HelperMixin):
-    keys = (123, 1.2345, 'abc', (123, 'abc'), frozenset({123, 'abc'}))
+    intobj = 123321
+    floatobj = 1.2345
+    strobj = "abcde"*3
+    dictobj = {"hello":floatobj, "goodbye":floatobj, floatobj:"hello"}
 
     def helper3(self, rsample, recursive=False, simple=False):
         #we have two instances
@@ -391,12 +394,11 @@ class InstancingTestCase(unittest.TestCase, HelperMixin):
 
         n0 = CollectObjectIDs(set(), sample)
 
-        for v in range(3, marshal.version + 1):
-            s3 = marshal.dumps(sample, v)
-            n3 = CollectObjectIDs(set(), marshal.loads(s3))
+        s3 = marshal.dumps(sample, 3)
+        n3 = CollectObjectIDs(set(), marshal.loads(s3))
 
-            #same number of instances generated
-            self.assertEqual(n3, n0)
+        #same number of instances generated
+        self.assertEqual(n3, n0)
 
         if not recursive:
             #can compare with version 2
@@ -412,54 +414,20 @@ class InstancingTestCase(unittest.TestCase, HelperMixin):
                 self.assertGreaterEqual(len(s2), len(s3))
 
     def testInt(self):
-        intobj = 123321
-        self.helper(intobj)
-        self.helper3(intobj, simple=True)
+        self.helper(self.intobj)
+        self.helper3(self.intobj, simple=True)
 
     def testFloat(self):
-        floatobj = 1.2345
-        self.helper(floatobj)
-        self.helper3(floatobj)
+        self.helper(self.floatobj)
+        self.helper3(self.floatobj)
 
     def testStr(self):
-        strobj = "abcde"*3
-        self.helper(strobj)
-        self.helper3(strobj)
-
-    def testBytes(self):
-        bytesobj = b"abcde"*3
-        self.helper(bytesobj)
-        self.helper3(bytesobj)
-
-    def testList(self):
-        for obj in self.keys:
-            listobj = [obj, obj]
-            self.helper(listobj)
-            self.helper3(listobj)
-
-    def testTuple(self):
-        for obj in self.keys:
-            tupleobj = (obj, obj)
-            self.helper(tupleobj)
-            self.helper3(tupleobj)
-
-    def testSet(self):
-        for obj in self.keys:
-            setobj = {(obj, 1), (obj, 2)}
-            self.helper(setobj)
-            self.helper3(setobj)
-
-    def testFrozenSet(self):
-        for obj in self.keys:
-            frozensetobj = frozenset({(obj, 1), (obj, 2)})
-            self.helper(frozensetobj)
-            self.helper3(frozensetobj)
+        self.helper(self.strobj)
+        self.helper3(self.strobj)
 
     def testDict(self):
-        for obj in self.keys:
-            dictobj = {"hello": obj, "goodbye": obj, obj: "hello"}
-            self.helper(dictobj)
-            self.helper3(dictobj)
+        self.helper(self.dictobj)
+        self.helper3(self.dictobj)
 
     def testModule(self):
         with open(__file__, "rb") as f:
@@ -470,11 +438,10 @@ class InstancingTestCase(unittest.TestCase, HelperMixin):
         self.helper3(code)
 
     def testRecursion(self):
-        obj = 1.2345
-        d = {"hello": obj, "goodbye": obj, obj: "hello"}
+        d = dict(self.dictobj)
         d["self"] = d
         self.helper3(d, recursive=True)
-        l = [obj, obj]
+        l = [self.dictobj]
         l.append(l)
         self.helper3(l, recursive=True)
 

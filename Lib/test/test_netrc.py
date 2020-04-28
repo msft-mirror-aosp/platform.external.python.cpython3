@@ -1,4 +1,5 @@
 import netrc, os, unittest, sys, tempfile, textwrap
+from unittest import mock
 from test import support
 
 
@@ -154,7 +155,6 @@ class NetrcTestCase(unittest.TestCase):
             called.append(s)
             with support.EnvironmentVarGuard() as environ:
                 environ.set('HOME', fake_home)
-                environ.set('USERPROFILE', fake_home)
                 result = orig_expanduser(s)
                 return result
 

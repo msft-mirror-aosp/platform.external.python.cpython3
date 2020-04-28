@@ -6,7 +6,6 @@ import tempfile
 import unittest
 import sysconfig
 from copy import deepcopy
-import test.support
 
 from distutils import log
 from distutils.log import DEBUG, INFO, WARN, ERROR, FATAL
@@ -65,8 +64,8 @@ class TempdirManager(object):
         os.chdir(self.old_cwd)
         super().tearDown()
         while self.tempdirs:
-            tmpdir = self.tempdirs.pop()
-            test.support.rmtree(tmpdir)
+            d = self.tempdirs.pop()
+            shutil.rmtree(d, os.name in ('nt', 'cygwin'))
 
     def mkdtemp(self):
         """Create a temporary directory that will be cleaned up.

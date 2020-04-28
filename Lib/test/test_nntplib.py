@@ -6,7 +6,6 @@ import unittest
 import functools
 import contextlib
 import os.path
-import re
 import threading
 
 from test import support
@@ -21,13 +20,6 @@ except ImportError:
 
 TIMEOUT = 30
 certfile = os.path.join(os.path.dirname(__file__), 'keycert3.pem')
-
-if ssl is not None:
-    SSLError = ssl.SSLError
-else:
-    class SSLError(Exception):
-        """Non-existent exception class when we lack SSL support."""
-        reason = "This will never be raised."
 
 # TODO:
 # - test the `file` arg to more commands
@@ -269,21 +261,14 @@ class NetworkedNNTPTestsMixin:
                 return False
             return True
 
-        try:
-            with self.NNTP_CLASS(self.NNTP_HOST, timeout=TIMEOUT, usenetrc=False) as server:
-                self.assertTrue(is_connected())
-                self.assertTrue(server.help())
-            self.assertFalse(is_connected())
+        with self.NNTP_CLASS(self.NNTP_HOST, timeout=TIMEOUT, usenetrc=False) as server:
+            self.assertTrue(is_connected())
+            self.assertTrue(server.help())
+        self.assertFalse(is_connected())
 
-            with self.NNTP_CLASS(self.NNTP_HOST, timeout=TIMEOUT, usenetrc=False) as server:
-                server.quit()
-            self.assertFalse(is_connected())
-        except SSLError as ssl_err:
-            # matches "[SSL: DH_KEY_TOO_SMALL] dh key too small"
-            if re.search(r'(?i)KEY.TOO.SMALL', ssl_err.reason):
-                raise unittest.SkipTest(f"Got {ssl_err} connecting "
-                                        f"to {self.NNTP_HOST!r}")
-            raise
+        with self.NNTP_CLASS(self.NNTP_HOST, timeout=TIMEOUT, usenetrc=False) as server:
+            server.quit()
+        self.assertFalse(is_connected())
 
 
 NetworkedNNTPTestsMixin.wrap_methods()
@@ -309,12 +294,6 @@ class NetworkedNNTPTests(NetworkedNNTPTestsMixin, unittest.TestCase):
             try:
                 cls.server = cls.NNTP_CLASS(cls.NNTP_HOST, timeout=TIMEOUT,
                                             usenetrc=False)
-            except SSLError as ssl_err:
-                # matches "[SSL: DH_KEY_TOO_SMALL] dh key too small"
-                if re.search(r'(?i)KEY.TOO.SMALL', ssl_err.reason):
-                    raise unittest.SkipTest(f"{cls} got {ssl_err} connecting "
-                                            f"to {cls.NNTP_HOST!r}")
-                raise
             except EOF_ERRORS:
                 raise unittest.SkipTest(f"{cls} got EOF error on connecting "
                                         f"to {cls.NNTP_HOST!r}")

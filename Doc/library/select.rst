@@ -356,7 +356,7 @@ Edge and Level Trigger Polling (epoll) Objects
    Remove a registered file descriptor from the epoll object.
 
 
-.. method:: epoll.poll(timeout=None, maxevents=-1)
+.. method:: epoll.poll(timeout=-1, maxevents=-1)
 
    Wait for events. timeout in seconds (float)
 
@@ -480,14 +480,13 @@ Kqueue Objects
    Create a kqueue object from a given file descriptor.
 
 
-.. method:: kqueue.control(changelist, max_events[, timeout]) -> eventlist
+.. method:: kqueue.control(changelist, max_events[, timeout=None]) -> eventlist
 
    Low level interface to kevent
 
-   - changelist must be an iterable of kevent objects or ``None``
+   - changelist must be an iterable of kevent object or ``None``
    - max_events must be 0 or a positive integer
-   - timeout in seconds (floats possible); the default is ``None``,
-     to wait forever
+   - timeout in seconds (floats possible)
 
    .. versionchanged:: 3.5
       The function is now retried with a recomputed timeout when interrupted by

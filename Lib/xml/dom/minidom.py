@@ -823,7 +823,6 @@ class Element(Node):
         # Restore this since the node is still useful and otherwise
         # unlinked
         node.ownerDocument = self.ownerDocument
-        return node
 
     removeAttributeNodeNS = removeAttributeNode
 
@@ -854,16 +853,16 @@ class Element(Node):
         writer.write(indent+"<" + self.tagName)
 
         attrs = self._get_attributes()
+        a_names = sorted(attrs.keys())
 
-        for a_name in attrs.keys():
+        for a_name in a_names:
             writer.write(" %s=\"" % a_name)
             _write_data(writer, attrs[a_name].value)
             writer.write("\"")
         if self.childNodes:
             writer.write(">")
             if (len(self.childNodes) == 1 and
-                self.childNodes[0].nodeType in (
-                        Node.TEXT_NODE, Node.CDATA_SECTION_NODE)):
+                self.childNodes[0].nodeType == Node.TEXT_NODE):
                 self.childNodes[0].writexml(writer, '', '', '')
             else:
                 writer.write(newl)

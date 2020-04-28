@@ -1,4 +1,4 @@
-.. highlight:: c
+.. highlightlang:: c
 
 .. _defining-new-types:
 
@@ -92,7 +92,6 @@ The second bit is the definition of the type object. ::
        .tp_doc = "Custom objects",
        .tp_basicsize = sizeof(CustomObject),
        .tp_itemsize = 0,
-       .tp_flags = Py_TPFLAGS_DEFAULT,
        .tp_new = PyType_GenericNew,
    };
 
@@ -179,12 +178,7 @@ This initializes the :class:`Custom` type, filling in a number of members
 to the appropriate default values, including :attr:`ob_type` that we initially
 set to *NULL*. ::
 
-   Py_INCREF(&CustomType);
-   if (PyModule_AddObject(m, "Custom", (PyObject *) &CustomType) < 0) {
-       Py_DECREF(&CustomType);
-       Py_DECREF(m);
-       return NULL;
-   }
+   PyModule_AddObject(m, "Custom", (PyObject *) &CustomType);
 
 This adds the type to the module dictionary.  This allows us to create
 :class:`Custom` instances by calling the :class:`Custom` class:
@@ -463,7 +457,7 @@ We define a single method, :meth:`Custom.name()`, that outputs the objects name 
 concatenation of the first and last names. ::
 
    static PyObject *
-   Custom_name(CustomObject *self, PyObject *Py_UNUSED(ignored))
+   Custom_name(CustomObject *self)
    {
        if (self->first == NULL) {
            PyErr_SetString(PyExc_AttributeError, "first");
@@ -869,12 +863,7 @@ function::
            return NULL;
 
        Py_INCREF(&SubListType);
-       if (PyModule_AddObject(m, "SubList", (PyObject *) &SubListType) < 0) {
-           Py_DECREF(&SubListType);
-           Py_DECREF(m);
-           return NULL;
-       }
-
+       PyModule_AddObject(m, "SubList", (PyObject *) &SubListType);
        return m;
    }
 

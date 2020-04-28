@@ -102,16 +102,10 @@ class DeclTypesTests(unittest.TestCase):
         def __str__(self):
             return "<%s>" % self.val
 
-    class BadConform:
-        def __init__(self, exc):
-            self.exc = exc
-        def __conform__(self, protocol):
-            raise self.exc
-
     def setUp(self):
         self.con = sqlite.connect(":memory:", detect_types=sqlite.PARSE_DECLTYPES)
         self.cur = self.con.cursor()
-        self.cur.execute("create table test(i int, s str, f float, b bool, u unicode, foo foo, bin blob, n1 number, n2 number(5), bad bad)")
+        self.cur.execute("create table test(i int, s str, f float, b bool, u unicode, foo foo, bin blob, n1 number, n2 number(5))")
 
         # override float, make them always return the same number
         sqlite.converters["FLOAT"] = lambda x: 47.2
@@ -119,7 +113,6 @@ class DeclTypesTests(unittest.TestCase):
         # and implement two custom ones
         sqlite.converters["BOOL"] = lambda x: bool(int(x))
         sqlite.converters["FOO"] = DeclTypesTests.Foo
-        sqlite.converters["BAD"] = DeclTypesTests.BadConform
         sqlite.converters["WRONG"] = lambda x: "WRONG"
         sqlite.converters["NUMBER"] = float
 
@@ -127,8 +120,6 @@ class DeclTypesTests(unittest.TestCase):
         del sqlite.converters["FLOAT"]
         del sqlite.converters["BOOL"]
         del sqlite.converters["FOO"]
-        del sqlite.converters["BAD"]
-        del sqlite.converters["WRONG"]
         del sqlite.converters["NUMBER"]
         self.cur.close()
         self.con.close()
@@ -168,13 +159,13 @@ class DeclTypesTests(unittest.TestCase):
         self.cur.execute("insert into test(b) values (?)", (False,))
         self.cur.execute("select b from test")
         row = self.cur.fetchone()
-        self.assertIs(row[0], False)
+        self.assertEqual(row[0], False)
 
         self.cur.execute("delete from test")
         self.cur.execute("insert into test(b) values (?)", (True,))
         self.cur.execute("select b from test")
         row = self.cur.fetchone()
-        self.assertIs(row[0], True)
+        self.assertEqual(row[0], True)
 
     def CheckUnicode(self):
         # default
@@ -190,19 +181,6 @@ class DeclTypesTests(unittest.TestCase):
         self.cur.execute("select foo from test")
         row = self.cur.fetchone()
         self.assertEqual(row[0], val)
-
-    def CheckErrorInConform(self):
-        val = DeclTypesTests.BadConform(TypeError)
-        with self.assertRaises(sqlite.InterfaceError):
-            self.cur.execute("insert into test(bad) values (?)", (val,))
-        with self.assertRaises(sqlite.InterfaceError):
-            self.cur.execute("insert into test(bad) values (:val)", {"val": val})
-
-        val = DeclTypesTests.BadConform(KeyboardInterrupt)
-        with self.assertRaises(KeyboardInterrupt):
-            self.cur.execute("insert into test(bad) values (?)", (val,))
-        with self.assertRaises(KeyboardInterrupt):
-            self.cur.execute("insert into test(bad) values (:val)", {"val": val})
 
     def CheckUnsupportedSeq(self):
         class Bar: pass

@@ -38,7 +38,7 @@ class Bdb:
         """Return canonical form of filename.
 
         For real filenames, the canonical form is a case-normalized (on
-        case insensitive filesystems) absolute path.  'Filenames' with
+        case insenstive filesystems) absolute path.  'Filenames' with
         angle brackets, such as "<stdin>", generated in interactive
         mode, are returned unchanged.
         """
@@ -190,8 +190,6 @@ class Bdb:
 
     def is_skipped_module(self, module_name):
         "Return True if module_name matches any skip pattern."
-        if module_name is None:  # some modules do not have names
-            return False
         for pattern in self.skip:
             if fnmatch.fnmatch(module_name, pattern):
                 return True
@@ -384,7 +382,7 @@ class Bdb:
         return None
 
     def _prune_breaks(self, filename, lineno):
-        """Prune breakpoints for filename:lineno.
+        """Prune breakpoints for filname:lineno.
 
         A list of breakpoints is maintained in the Bdb instance and in
         the Breakpoint class.  If a breakpoint in the Bdb instance no
@@ -618,26 +616,11 @@ class Bdb:
 
     # This method is more useful to debug a single function call.
 
-    def runcall(*args, **kwds):
+    def runcall(self, func, *args, **kwds):
         """Debug a single function call.
 
         Return the result of the function call.
         """
-        if len(args) >= 2:
-            self, func, *args = args
-        elif not args:
-            raise TypeError("descriptor 'runcall' of 'Bdb' object "
-                            "needs an argument")
-        elif 'func' in kwds:
-            func = kwds.pop('func')
-            self, *args = args
-            import warnings
-            warnings.warn("Passing 'func' as keyword argument is deprecated",
-                          DeprecationWarning, stacklevel=2)
-        else:
-            raise TypeError('runcall expected at least 1 positional argument, '
-                            'got %d' % (len(args)-1))
-
         self.reset()
         sys.settrace(self.trace_dispatch)
         res = None
@@ -649,7 +632,6 @@ class Bdb:
             self.quitting = True
             sys.settrace(None)
         return res
-    runcall.__text_signature__ = '($self, func, /, *args, **kwds)'
 
 
 def set_trace():

@@ -16,7 +16,6 @@ Based on the J. Myers POP3 draft, Jan. 96
 import errno
 import re
 import socket
-import sys
 
 try:
     import ssl
@@ -100,7 +99,6 @@ class POP3:
         self.host = host
         self.port = port
         self._tls_established = False
-        sys.audit("poplib.connect", self, host, port)
         self.sock = self._create_socket(timeout)
         self.file = self.sock.makefile('rb')
         self._debugging = 0
@@ -111,7 +109,6 @@ class POP3:
 
     def _putline(self, line):
         if self._debugging > 1: print('*put*', repr(line))
-        sys.audit("poplib.putline", self, line)
         self.sock.sendall(line + CRLF)
 
 

@@ -67,6 +67,7 @@ installunixtools:
 			pydoc3 \
 			python3 \
 			python3-config \
+			pyvenv \
 			; \
 	do \
 		rm -f $${fn} ; \
@@ -117,6 +118,7 @@ altinstallunixtools:
 			pydoc$(VERSION) \
 			python$(VERSION) \
 			python$(LDVERSION)-config \
+			pyvenv-$(VERSION) \
 			; \
 	do \
 		rm -f $${fn} ;\

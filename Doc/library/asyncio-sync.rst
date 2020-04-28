@@ -6,10 +6,6 @@
 Synchronization Primitives
 ==========================
 
-**Source code:** :source:`Lib/asyncio/locks.py`
-
------------------------------------------------
-
 asyncio synchronization primitives are designed to be similar to
 those of the :mod:`threading` module with two important caveats:
 
@@ -21,7 +17,7 @@ those of the :mod:`threading` module with two important caveats:
   argument; use the :func:`asyncio.wait_for` function to perform
   operations with timeouts.
 
-asyncio has the following basic synchronization primitives:
+asyncio has the following basic sychronization primitives:
 
 * :class:`Lock`
 * :class:`Event`
@@ -63,22 +59,12 @@ Lock
        finally:
            lock.release()
 
-   .. deprecated-removed:: 3.8 3.10
-      The *loop* parameter.
-
    .. coroutinemethod:: acquire()
 
       Acquire the lock.
 
       This method waits until the lock is *unlocked*, sets it to
       *locked* and returns ``True``.
-
-      When more than one coroutine is blocked in :meth:`acquire`
-      waiting for the lock to be unlocked, only one coroutine
-      eventually proceeds.
-
-      Acquiring a lock is *fair*: the coroutine that proceeds will be
-      the first coroutine that started waiting on the lock.
 
    .. method:: release()
 
@@ -107,10 +93,6 @@ Event
    with the :meth:`set` method and reset to *false* with the
    :meth:`clear` method.  The :meth:`wait` method blocks until the
    flag is set to *true*.  The flag is set to *false* initially.
-
-
-   .. deprecated-removed:: 3.8 3.10
-      The *loop* parameter.
 
    .. _asyncio_example_sync_event:
 
@@ -184,10 +166,6 @@ Condition
    ``None``.  In the latter case a new Lock object is created
    automatically.
 
-
-   .. deprecated-removed:: 3.8 3.10
-      The *loop* parameter.
-
    The preferred way to use a Condition is an :keyword:`async with`
    statement::
 
@@ -202,11 +180,11 @@ Condition
        cond = asyncio.Condition()
 
        # ... later
-       await cond.acquire()
+       await lock.acquire()
        try:
            await cond.wait()
        finally:
-           cond.release()
+           lock.release()
 
    .. coroutinemethod:: acquire()
 
@@ -284,10 +262,6 @@ Semaphore
    internal counter (``1`` by default). If the given value is
    less than ``0`` a :exc:`ValueError` is raised.
 
-
-   .. deprecated-removed:: 3.8 3.10
-      The *loop* parameter.
-
    The preferred way to use a Semaphore is an :keyword:`async with`
    statement::
 
@@ -340,9 +314,6 @@ BoundedSemaphore
    a :exc:`ValueError` in :meth:`~Semaphore.release` if it
    increases the internal counter above the initial *value*.
 
-
-   .. deprecated-removed:: 3.8 3.10
-      The *loop* parameter.
 
 ---------
 

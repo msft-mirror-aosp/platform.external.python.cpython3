@@ -169,9 +169,6 @@ attributes:
 |           |                   | variables (referenced via |
 |           |                   | a function's closure)     |
 +-----------+-------------------+---------------------------+
-|           | co_posonlyargcount| number of positional only |
-|           |                   | arguments                 |
-+-----------+-------------------+---------------------------+
 |           | co_kwonlyargcount | number of keyword only    |
 |           |                   | arguments (not including  |
 |           |                   | \*\* arg)                 |
@@ -247,10 +244,9 @@ attributes:
 
 .. function:: getmembers(object[, predicate])
 
-   Return all the members of an object in a list of ``(name, value)``
-   pairs sorted by name. If the optional *predicate* argument—which will be
-   called with the ``value`` object of each member—is supplied, only members
-   for which the predicate returns a true value are included.
+   Return all the members of an object in a list of (name, value) pairs sorted by
+   name.  If the optional *predicate* argument is supplied, only members for which
+   the predicate returns a true value are included.
 
    .. note::
 
@@ -301,10 +297,6 @@ attributes:
 
    Return true if the object is a Python generator function.
 
-   .. versionchanged:: 3.8
-      Functions wrapped in :func:`functools.partial` now return true if the
-      wrapped function is a Python generator function.
-
 
 .. function:: isgenerator(object)
 
@@ -317,10 +309,6 @@ attributes:
    (a function defined with an :keyword:`async def` syntax).
 
    .. versionadded:: 3.5
-
-   .. versionchanged:: 3.8
-      Functions wrapped in :func:`functools.partial` now return true if the
-      wrapped function is a :term:`coroutine function`.
 
 
 .. function:: iscoroutine(object)
@@ -362,10 +350,6 @@ attributes:
     True
 
    .. versionadded:: 3.6
-
-   .. versionchanged:: 3.8
-      Functions wrapped in :func:`functools.partial` now return true if the
-      wrapped function is a :term:`asynchronous generator` function.
 
 
 .. function:: isasyncgen(object)
@@ -727,9 +711,13 @@ function.
       |    Name                | Meaning                                      |
       +========================+==============================================+
       | *POSITIONAL_ONLY*      | Value must be supplied as a positional       |
-      |                        | argument. Positional only parameters are     |
-      |                        | those which appear before a ``/`` entry (if  |
-      |                        | present) in a Python function definition.    |
+      |                        | argument.                                    |
+      |                        |                                              |
+      |                        | Python has no explicit syntax for defining   |
+      |                        | positional-only parameters, but many built-in|
+      |                        | and extension module functions (especially   |
+      |                        | those that accept only one or two parameters)|
+      |                        | accept them.                                 |
       +------------------------+----------------------------------------------+
       | *POSITIONAL_OR_KEYWORD*| Value may be supplied as either a keyword or |
       |                        | positional argument (this is the standard    |
@@ -763,25 +751,6 @@ function.
          ...                        param.default is param.empty):
          ...         print('Parameter:', param)
          Parameter: c
-
-   .. attribute:: Parameter.kind.description
-
-      Describes a enum value of Parameter.kind.
-
-      .. versionadded:: 3.8
-
-      Example: print all descriptions of arguments::
-
-         >>> def foo(a, b, *, c, d=10):
-         ...     pass
-
-         >>> sig = signature(foo)
-         >>> for param in sig.parameters.values():
-         ...     print(param.kind.description)
-         positional or keyword
-         positional or keyword
-         keyword-only
-         keyword-only
 
    .. method:: Parameter.replace(*[, name][, kind][, default][, annotation])
 
@@ -1022,7 +991,7 @@ Classes and functions
    metatype is in use, cls will be the first element of the tuple.
 
 
-.. function:: getcallargs(func, /, *args, **kwds)
+.. function:: getcallargs(func, *args, **kwds)
 
    Bind the *args* and *kwds* to the argument names of the Python function or
    method *func*, as if it was called with them. For bound methods, bind also the

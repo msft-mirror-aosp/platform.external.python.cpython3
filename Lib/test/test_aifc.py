@@ -7,6 +7,8 @@ import io
 import sys
 import struct
 import aifc
+import warnings
+
 
 class AifcTest(audiotests.AudioWriteTests,
                audiotests.AudioTestsWithSourceFile):

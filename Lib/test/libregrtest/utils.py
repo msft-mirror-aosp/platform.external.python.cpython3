@@ -1,6 +1,5 @@
-import math
 import os.path
-import sys
+import math
 import textwrap
 
 
@@ -16,14 +15,11 @@ def format_duration(seconds):
     if minutes:
         parts.append('%s min' % minutes)
     if seconds:
-        if parts:
-            # 2 min 1 sec
-            parts.append('%s sec' % seconds)
-        else:
-            # 1.0 sec
-            parts.append('%.1f sec' % (seconds + ms / 1000))
+        parts.append('%s sec' % seconds)
+    if ms:
+        parts.append('%s ms' % ms)
     if not parts:
-        return '%s ms' % ms
+        return '0 ms'
 
     parts = parts[:2]
     return ' '.join(parts)
@@ -58,7 +54,3 @@ def printlist(x, width=70, indent=4, file=None):
     print(textwrap.fill(' '.join(str(elt) for elt in sorted(x)), width,
                         initial_indent=blanks, subsequent_indent=blanks),
           file=file)
-
-
-def print_warning(msg):
-    print(f"Warning -- {msg}", file=sys.stderr, flush=True)

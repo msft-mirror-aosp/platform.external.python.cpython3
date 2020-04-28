@@ -1,4 +1,3 @@
-#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 typedef struct {
@@ -59,11 +58,6 @@ PyInit_sublist(void)
         return NULL;
 
     Py_INCREF(&SubListType);
-    if (PyModule_AddObject(m, "SubList", (PyObject *) &SubListType) < 0) {
-        Py_DECREF(&SubListType);
-        Py_DECREF(m);
-        return NULL;
-    }
-
+    PyModule_AddObject(m, "SubList", (PyObject *) &SubListType);
     return m;
 }

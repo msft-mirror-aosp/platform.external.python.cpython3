@@ -7,9 +7,6 @@
 Exceptions
 ==========
 
-**Source code:** :source:`Lib/asyncio/exceptions.py`
-
-----------------------------------------------------
 
 .. exception:: TimeoutError
 
@@ -28,9 +25,26 @@ Exceptions
    when asyncio Tasks are cancelled.  In almost all situations the
    exception must be re-raised.
 
-   .. versionchanged:: 3.8
+   .. important::
 
-      :exc:`CancelledError` is now a subclass of :class:`BaseException`.
+      This exception is a subclass of :exc:`Exception`, so it can be
+      accidentally suppressed by an overly broad ``try..except`` block::
+
+        try:
+            await operation
+        except Exception:
+            # The cancellation is broken because the *except* block
+            # suppresses the CancelledError exception.
+            log.log('an error has occurred')
+
+      Instead, the following pattern should be used::
+
+        try:
+            await operation
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.log('an error has occurred')
 
 
 .. exception:: InvalidStateError

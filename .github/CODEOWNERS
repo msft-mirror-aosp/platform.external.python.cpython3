@@ -11,37 +11,24 @@
 **/*context*                  @1st1
 **/*genobject*                @1st1
 **/*hamt*                     @1st1
-Objects/dict*                 @methane
 
 # Hashing
-**/*hashlib*                  @python/crypto-team @tiran
-**/*pyhash*                   @python/crypto-team @tiran
-**/*sha*                      @python/crypto-team @tiran
-**/*md5*                      @python/crypto-team @tiran
-**/*blake*                    @python/crypto-team @tiran
-/Modules/_blake2/**           @python/crypto-team @tiran
-/Modules/_sha3/**             @python/crypto-team @tiran
-
-
-# HTML
-/Lib/html/                    @ezio-melotti
-/Lib/_markupbase.py           @ezio-melotti
-/Lib/test/test_html*.py       @ezio-melotti
+**/*hashlib*                  @python/crypto-team
+**/*pyhash*                   @python/crypto-team
 
 # Import (including importlib).
 # Ignoring importlib.h so as to not get flagged on
 # all pull requests that change the emitted
 # bytecode.
-**/*import*.c                 @brettcannon @encukou @ericsnowcurrently @ncoghlan @warsaw
-**/*import*.py                @brettcannon @encukou @ericsnowcurrently @ncoghlan @warsaw
+**/*import*.c                 @python/import-team
+**/*import*.py                @python/import-team
 
 
 # SSL
-**/*ssl*                      @python/crypto-team @tiran
-**/*.pem                      @python/crypto-team @tiran
+**/*ssl*                      @python/crypto-team
 
 # CSPRNG
-Python/bootstrap_hash.c       @python/crypto-team @tiran
+Python/bootstrap_hash.c       @python/crypto-team
 
 # Email and related
 **/*mail*                     @python/email-team
@@ -50,21 +37,12 @@ Python/bootstrap_hash.c       @python/crypto-team @tiran
 **/*imap*                     @python/email-team
 **/*poplib*                   @python/email-team
 
-# Parser/Pgen
-/Parser/pgen/                 @pablogsal
-
-# SQLite 3
-**/*sqlite*                   @berkerpeksag
-
 # subprocess
 **/*subprocess*               @gpshead
 
 # Windows
 /PC/                          @python/windows-team
 /PCbuild/                     @python/windows-team
-
-# Urllib
-**/*robotparser*              @berkerpeksag
 
 # Windows installer packages
 /Tools/msi/                   @python/windows-team
@@ -76,7 +54,7 @@ Python/bootstrap_hash.c       @python/crypto-team @tiran
 **/*queue*                    @rhettinger
 **/*bisect*                   @rhettinger
 **/*heapq*                    @rhettinger
-**/*functools*                @rhettinger
+**/*functools*                @ncoghlan @rhettinger
 **/*decimal*                  @rhettinger @skrah
 
 **/*dataclasses*              @ericvsmith
@@ -84,7 +62,3 @@ Python/bootstrap_hash.c       @python/crypto-team @tiran
 **/*idlelib*                  @terryjreedy
 
 **/*typing*                   @gvanrossum @ilevkivskyi
-
-# macOS
-/Mac/                         @python/macos-team
-**/*osx_support*              @python/macos-team

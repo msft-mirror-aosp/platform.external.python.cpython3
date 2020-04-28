@@ -48,13 +48,13 @@ class Test_Csv(unittest.TestCase):
         obj = ctor(*args)
         # Check defaults
         self.assertEqual(obj.dialect.delimiter, ',')
-        self.assertIs(obj.dialect.doublequote, True)
+        self.assertEqual(obj.dialect.doublequote, True)
         self.assertEqual(obj.dialect.escapechar, None)
         self.assertEqual(obj.dialect.lineterminator, "\r\n")
         self.assertEqual(obj.dialect.quotechar, '"')
         self.assertEqual(obj.dialect.quoting, csv.QUOTE_MINIMAL)
-        self.assertIs(obj.dialect.skipinitialspace, False)
-        self.assertIs(obj.dialect.strict, False)
+        self.assertEqual(obj.dialect.skipinitialspace, False)
+        self.assertEqual(obj.dialect.strict, False)
         # Try deleting or changing attributes (they are read-only)
         self.assertRaises(AttributeError, delattr, obj.dialect, 'delimiter')
         self.assertRaises(AttributeError, setattr, obj.dialect, 'delimiter', ':')
@@ -76,13 +76,13 @@ class Test_Csv(unittest.TestCase):
                       strict=True)
         obj = ctor(*args, **kwargs)
         self.assertEqual(obj.dialect.delimiter, ':')
-        self.assertIs(obj.dialect.doublequote, False)
+        self.assertEqual(obj.dialect.doublequote, False)
         self.assertEqual(obj.dialect.escapechar, '\\')
         self.assertEqual(obj.dialect.lineterminator, "\r")
         self.assertEqual(obj.dialect.quotechar, '*')
         self.assertEqual(obj.dialect.quoting, csv.QUOTE_NONE)
-        self.assertIs(obj.dialect.skipinitialspace, True)
-        self.assertIs(obj.dialect.strict, True)
+        self.assertEqual(obj.dialect.skipinitialspace, True)
+        self.assertEqual(obj.dialect.strict, True)
 
     def test_reader_kw_attrs(self):
         self._test_kw_attrs(csv.reader, [])
@@ -104,13 +104,13 @@ class Test_Csv(unittest.TestCase):
         args = args + (dialect,)
         obj = ctor(*args)
         self.assertEqual(obj.dialect.delimiter, '-')
-        self.assertIs(obj.dialect.doublequote, False)
+        self.assertEqual(obj.dialect.doublequote, False)
         self.assertEqual(obj.dialect.escapechar, '^')
         self.assertEqual(obj.dialect.lineterminator, "$")
         self.assertEqual(obj.dialect.quotechar, '#')
         self.assertEqual(obj.dialect.quoting, csv.QUOTE_ALL)
-        self.assertIs(obj.dialect.skipinitialspace, True)
-        self.assertIs(obj.dialect.strict, False)
+        self.assertEqual(obj.dialect.skipinitialspace, True)
+        self.assertEqual(obj.dialect.strict, False)
 
     def test_reader_dialect_attrs(self):
         self._test_dialect_attrs(csv.reader, [])
@@ -608,12 +608,6 @@ class TestQuotedEscapedExcel(TestCsvBase):
 class TestDictFields(unittest.TestCase):
     ### "long" means the row is longer than the number of fieldnames
     ### "short" means there are fewer elements in the row than fieldnames
-    def test_writeheader_return_value(self):
-        with TemporaryFile("w+", newline='') as fileobj:
-            writer = csv.DictWriter(fileobj, fieldnames = ["f1", "f2", "f3"])
-            writeheader_return_value = writer.writeheader()
-            self.assertEqual(writeheader_return_value, 10)
-
     def test_write_simple_dict(self):
         with TemporaryFile("w+", newline='') as fileobj:
             writer = csv.DictWriter(fileobj, fieldnames = ["f1", "f2", "f3"])
@@ -982,13 +976,15 @@ Stonecutters Seafood and Chop House+ Lemont+ IL+ 12/19/02+ Week Back
 
     def test_has_header(self):
         sniffer = csv.Sniffer()
-        self.assertIs(sniffer.has_header(self.sample1), False)
-        self.assertIs(sniffer.has_header(self.header1 + self.sample1), True)
+        self.assertEqual(sniffer.has_header(self.sample1), False)
+        self.assertEqual(sniffer.has_header(self.header1 + self.sample1),
+                         True)
 
     def test_has_header_regex_special_delimiter(self):
         sniffer = csv.Sniffer()
-        self.assertIs(sniffer.has_header(self.sample8), False)
-        self.assertIs(sniffer.has_header(self.header2 + self.sample8), True)
+        self.assertEqual(sniffer.has_header(self.sample8), False)
+        self.assertEqual(sniffer.has_header(self.header2 + self.sample8),
+                         True)
 
     def test_guess_quote_and_delimiter(self):
         sniffer = csv.Sniffer()
@@ -1005,12 +1001,12 @@ Stonecutters Seafood and Chop House+ Lemont+ IL+ 12/19/02+ Week Back
         dialect = sniffer.sniff(self.sample1)
         self.assertEqual(dialect.delimiter, ",")
         self.assertEqual(dialect.quotechar, '"')
-        self.assertIs(dialect.skipinitialspace, True)
+        self.assertEqual(dialect.skipinitialspace, True)
 
         dialect = sniffer.sniff(self.sample2)
         self.assertEqual(dialect.delimiter, ":")
         self.assertEqual(dialect.quotechar, "'")
-        self.assertIs(dialect.skipinitialspace, False)
+        self.assertEqual(dialect.skipinitialspace, False)
 
     def test_delimiters(self):
         sniffer = csv.Sniffer()
@@ -1072,7 +1068,7 @@ class TestLeaks(unittest.TestCase):
             delta = rc-lastrc
             lastrc = rc
         # if csv.reader() leaks, last delta should be 3 or more
-        self.assertLess(delta, 3)
+        self.assertEqual(delta < 3, True)
 
     def test_create_write(self):
         delta = 0
@@ -1088,7 +1084,7 @@ class TestLeaks(unittest.TestCase):
             delta = rc-lastrc
             lastrc = rc
         # if csv.writer() leaks, last delta should be 3 or more
-        self.assertLess(delta, 3)
+        self.assertEqual(delta < 3, True)
 
     def test_read(self):
         delta = 0
@@ -1104,7 +1100,7 @@ class TestLeaks(unittest.TestCase):
             delta = rc-lastrc
             lastrc = rc
         # if reader leaks during read, delta should be 5 or more
-        self.assertLess(delta, 5)
+        self.assertEqual(delta < 5, True)
 
     def test_write(self):
         delta = 0
@@ -1121,7 +1117,7 @@ class TestLeaks(unittest.TestCase):
             delta = rc-lastrc
             lastrc = rc
         # if writer leaks during write, last delta should be 5 or more
-        self.assertLess(delta, 5)
+        self.assertEqual(delta < 5, True)
 
 class TestUnicode(unittest.TestCase):
 

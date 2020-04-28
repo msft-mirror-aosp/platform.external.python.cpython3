@@ -15,7 +15,7 @@ class FunctionalTestCaseMixin:
         return asyncio.new_event_loop()
 
     def run_loop_briefly(self, *, delay=0.01):
-        self.loop.run_until_complete(asyncio.sleep(delay))
+        self.loop.run_until_complete(asyncio.sleep(delay, loop=self.loop))
 
     def loop_exception_handler(self, loop, context):
         self.__unhandled_exceptions.append(context)
@@ -60,12 +60,20 @@ class FunctionalTestCaseMixin:
             else:
                 addr = ('127.0.0.1', 0)
 
-        sock = socket.create_server(addr, family=family, backlog=backlog)
+        sock = socket.socket(family, socket.SOCK_STREAM)
+
         if timeout is None:
             raise RuntimeError('timeout is required')
         if timeout <= 0:
             raise RuntimeError('only blocking sockets are supported')
         sock.settimeout(timeout)
+
+        try:
+            sock.bind(addr)
+            sock.listen(backlog)
+        except OSError as ex:
+            sock.close()
+            raise ex
 
         return TestThreadedServer(
             self, sock, server_prog, timeout, max_clients)

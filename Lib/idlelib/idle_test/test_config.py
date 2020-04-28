@@ -159,6 +159,19 @@ class IdleUserConfParserTest(unittest.TestCase):
         self.assertFalse(parser.IsEmpty())
         self.assertCountEqual(parser.sections(), ['Foo'])
 
+    def test_remove_file(self):
+        with tempfile.TemporaryDirectory() as tdir:
+            path = os.path.join(tdir, 'test.cfg')
+            parser = self.new_parser(path)
+            parser.RemoveFile()  # Should not raise exception.
+
+            parser.AddSection('Foo')
+            parser.SetOption('Foo', 'bar', 'true')
+            parser.Save()
+            self.assertTrue(os.path.exists(path))
+            parser.RemoveFile()
+            self.assertFalse(os.path.exists(path))
+
     def test_save(self):
         with tempfile.TemporaryDirectory() as tdir:
             path = os.path.join(tdir, 'test.cfg')
@@ -220,7 +233,7 @@ class IdleConfTest(unittest.TestCase):
 
     @unittest.skipIf(sys.platform.startswith('win'), 'this is test for unix system')
     def test_get_user_cfg_dir_unix(self):
-        # Test to get user config directory under unix.
+        "Test to get user config directory under unix"
         conf = self.new_config(_utest=True)
 
         # Check normal way should success
@@ -243,7 +256,7 @@ class IdleConfTest(unittest.TestCase):
 
     @unittest.skipIf(not sys.platform.startswith('win'), 'this is test for Windows system')
     def test_get_user_cfg_dir_windows(self):
-        # Test to get user config directory under Windows.
+        "Test to get user config directory under Windows"
         conf = self.new_config(_utest=True)
 
         # Check normal way should success
@@ -284,12 +297,12 @@ class IdleConfTest(unittest.TestCase):
             self.assertIsInstance(user_parser, config.IdleUserConfParser)
 
         # Check config path are correct
-        for cfg_type, parser in conf.defaultCfg.items():
+        for config_type, parser in conf.defaultCfg.items():
             self.assertEqual(parser.file,
-                             os.path.join(idle_dir, f'config-{cfg_type}.def'))
-        for cfg_type, parser in conf.userCfg.items():
+                             os.path.join(idle_dir, 'config-%s.def' % config_type))
+        for config_type, parser in conf.userCfg.items():
             self.assertEqual(parser.file,
-                             os.path.join(conf.userdir or '#', f'config-{cfg_type}.cfg'))
+                             os.path.join(conf.userdir, 'config-%s.cfg' % config_type))
 
     def test_load_cfg_files(self):
         conf = self.new_config(_utest=True)
@@ -360,6 +373,10 @@ class IdleConfTest(unittest.TestCase):
         eq = self.assertEqual
         eq(conf.GetHighlight('IDLE Classic', 'normal'), {'foreground': '#000000',
                                                          'background': '#ffffff'})
+        eq(conf.GetHighlight('IDLE Classic', 'normal', 'fg'), '#000000')
+        eq(conf.GetHighlight('IDLE Classic', 'normal', 'bg'), '#ffffff')
+        with self.assertRaises(config.InvalidFgBg):
+            conf.GetHighlight('IDLE Classic', 'normal', 'fb')
 
         # Test cursor (this background should be normal-background)
         eq(conf.GetHighlight('IDLE Classic', 'cursor'), {'foreground': 'black',
@@ -373,7 +390,7 @@ class IdleConfTest(unittest.TestCase):
                                                        'background': '#171717'})
 
     def test_get_theme_dict(self):
-        # TODO: finish.
+        "XXX: NOT YET DONE"
         conf = self.mock_config()
 
         # These two should be the same
@@ -508,7 +525,7 @@ class IdleConfTest(unittest.TestCase):
     def test_get_keyset(self):
         conf = self.mock_config()
 
-        # Conflict with key set, should be disable to ''
+        # Conflic with key set, should be disable to ''
         conf.defaultCfg['extensions'].add_section('Foobar')
         conf.defaultCfg['extensions'].add_section('Foobar_cfgBindings')
         conf.defaultCfg['extensions'].set('Foobar', 'enable', 'True')

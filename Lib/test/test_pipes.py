@@ -23,8 +23,9 @@ class SimplePipeTests(unittest.TestCase):
             self.skipTest('tr is not available')
         t = pipes.Template()
         t.append(s_command, pipes.STDIN_STDOUT)
-        with t.open(TESTFN, 'w') as f:
-            f.write('hello world #1')
+        f = t.open(TESTFN, 'w')
+        f.write('hello world #1')
+        f.close()
         with open(TESTFN) as f:
             self.assertEqual(f.read(), 'HELLO WORLD #1')
 

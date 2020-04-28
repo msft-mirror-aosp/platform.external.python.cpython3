@@ -78,8 +78,7 @@ class Queue(object):
         self._poll = self._reader.poll
 
     def put(self, obj, block=True, timeout=None):
-        if self._closed:
-            raise ValueError(f"Queue {self!r} is closed")
+        assert not self._closed, "Queue {0!r} has been closed".format(self)
         if not self._sem.acquire(block, timeout):
             raise Full
 
@@ -90,8 +89,6 @@ class Queue(object):
             self._notempty.notify()
 
     def get(self, block=True, timeout=None):
-        if self._closed:
-            raise ValueError(f"Queue {self!r} is closed")
         if block and timeout is None:
             with self._rlock:
                 res = self._recv_bytes()
@@ -301,8 +298,7 @@ class JoinableQueue(Queue):
         self._cond, self._unfinished_tasks = state[-2:]
 
     def put(self, obj, block=True, timeout=None):
-        if self._closed:
-            raise ValueError(f"Queue {self!r} is closed")
+        assert not self._closed, "Queue {0!r} is closed".format(self)
         if not self._sem.acquire(block, timeout):
             raise Full
 

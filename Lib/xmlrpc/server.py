@@ -108,7 +108,6 @@ from xmlrpc.client import Fault, dumps, loads, gzip_encode, gzip_decode
 from http.server import BaseHTTPRequestHandler
 from functools import partial
 from inspect import signature
-import html
 import http.server
 import socketserver
 import sys
@@ -895,7 +894,7 @@ class XMLRPCDocGenerator:
                                 methods
                             )
 
-        return documenter.page(html.escape(self.server_title), documentation)
+        return documenter.page(self.server_title, documentation)
 
 class DocXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
     """XML-RPC and documentation request handler class.

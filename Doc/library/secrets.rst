@@ -145,9 +145,8 @@ Generate an eight-character alphanumeric password:
 .. testcode::
 
    import string
-   import secrets
    alphabet = string.ascii_letters + string.digits
-   password = ''.join(secrets.choice(alphabet) for i in range(8))
+   password = ''.join(choice(alphabet) for i in range(8))
 
 
 .. note::
@@ -165,10 +164,9 @@ three digits:
 .. testcode::
 
    import string
-   import secrets
    alphabet = string.ascii_letters + string.digits
    while True:
-       password = ''.join(secrets.choice(alphabet) for i in range(10))
+       password = ''.join(choice(alphabet) for i in range(10))
        if (any(c.islower() for c in password)
                and any(c.isupper() for c in password)
                and sum(c.isdigit() for c in password) >= 3):
@@ -179,12 +177,11 @@ Generate an `XKCD-style passphrase <https://xkcd.com/936/>`_:
 
 .. testcode::
 
-   import secrets
    # On standard Linux systems, use a convenient dictionary file.
    # Other platforms may need to provide their own word-list.
    with open('/usr/share/dict/words') as f:
        words = [word.strip() for word in f]
-       password = ' '.join(secrets.choice(words) for i in range(4))
+       password = ' '.join(choice(words) for i in range(4))
 
 
 Generate a hard-to-guess temporary URL containing a security token
@@ -192,8 +189,7 @@ suitable for password recovery applications:
 
 .. testcode::
 
-   import secrets
-   url = 'https://mydomain.com/reset=' + secrets.token_urlsafe()
+   url = 'https://mydomain.com/reset=' + token_urlsafe()
 
 
 

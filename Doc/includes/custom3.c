@@ -1,4 +1,3 @@
-#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include "structmember.h"
 
@@ -179,11 +178,6 @@ PyInit_custom3(void)
         return NULL;
 
     Py_INCREF(&CustomType);
-    if (PyModule_AddObject(m, "Custom", (PyObject *) &CustomType) < 0) {
-        Py_DECREF(&CustomType);
-        Py_DECREF(m);
-        return NULL;
-    }
-
+    PyModule_AddObject(m, "Custom", (PyObject *) &CustomType);
     return m;
 }

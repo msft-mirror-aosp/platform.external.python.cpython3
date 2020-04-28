@@ -3,7 +3,7 @@
 __all__ = (
     'AbstractEventLoopPolicy',
     'AbstractEventLoop', 'AbstractServer',
-    'Handle', 'TimerHandle',
+    'Handle', 'TimerHandle', 'SendfileNotAvailableError',
     'get_event_loop_policy', 'set_event_loop_policy',
     'get_event_loop', 'set_event_loop', 'new_event_loop',
     'get_child_watcher', 'set_child_watcher',
@@ -19,7 +19,14 @@ import sys
 import threading
 
 from . import format_helpers
-from . import exceptions
+
+
+class SendfileNotAvailableError(RuntimeError):
+    """Sendfile syscall is not available.
+
+    Raised if OS does not support sendfile syscall for given socket or
+    file type.
+    """
 
 
 class Handle:
@@ -79,9 +86,7 @@ class Handle:
     def _run(self):
         try:
             self._context.run(self._callback, *self._args)
-        except (SystemExit, KeyboardInterrupt):
-            raise
-        except BaseException as exc:
+        except Exception as exc:
             cb = format_helpers._format_callback_source(
                 self._callback, self._args)
             msg = f'Exception in callback {cb}'
@@ -272,7 +277,7 @@ class AbstractEventLoop:
 
     # Method scheduling a coroutine object: create a task.
 
-    def create_task(self, coro, *, name=None):
+    def create_task(self, coro):
         raise NotImplementedError
 
     # Methods for interacting with threads.
@@ -300,8 +305,7 @@ class AbstractEventLoop:
             *, ssl=None, family=0, proto=0,
             flags=0, sock=None, local_addr=None,
             server_hostname=None,
-            ssl_handshake_timeout=None,
-            happy_eyeballs_delay=None, interleave=None):
+            ssl_handshake_timeout=None):
         raise NotImplementedError
 
     async def create_server(
@@ -626,9 +630,9 @@ class BaseDefaultEventLoopPolicy(AbstractEventLoopPolicy):
         self._local = self._Local()
 
     def get_event_loop(self):
-        """Get the event loop for the current context.
+        """Get the event loop.
 
-        Returns an instance of EventLoop or raises an exception.
+        This may be None or an instance of EventLoop.
         """
         if (self._local._loop is None and
                 not self._local._set_called and

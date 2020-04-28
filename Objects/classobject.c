@@ -1,9 +1,8 @@
 /* Class object implementation (dead now except for methods) */
 
 #include "Python.h"
-#include "pycore_object.h"
-#include "pycore_pymem.h"
-#include "pycore_pystate.h"
+#include "internal/mem.h"
+#include "internal/pystate.h"
 #include "structmember.h"
 
 #define TP_DESCR_GET(t) ((t)->tp_descr_get)
@@ -40,61 +39,6 @@ PyMethod_Self(PyObject *im)
     return ((PyMethodObject *)im)->im_self;
 }
 
-
-static PyObject *
-method_vectorcall(PyObject *method, PyObject *const *args,
-                  size_t nargsf, PyObject *kwnames)
-{
-    assert(Py_TYPE(method) == &PyMethod_Type);
-    PyObject *self, *func, *result;
-    self = PyMethod_GET_SELF(method);
-    func = PyMethod_GET_FUNCTION(method);
-    Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
-
-    if (nargsf & PY_VECTORCALL_ARGUMENTS_OFFSET) {
-        /* PY_VECTORCALL_ARGUMENTS_OFFSET is set, so we are allowed to mutate the vector */
-        PyObject **newargs = (PyObject**)args - 1;
-        nargs += 1;
-        PyObject *tmp = newargs[0];
-        newargs[0] = self;
-        result = _PyObject_Vectorcall(func, newargs, nargs, kwnames);
-        newargs[0] = tmp;
-    }
-    else {
-        Py_ssize_t nkwargs = (kwnames == NULL) ? 0 : PyTuple_GET_SIZE(kwnames);
-        Py_ssize_t totalargs = nargs + nkwargs;
-        if (totalargs == 0) {
-            return _PyObject_Vectorcall(func, &self, 1, NULL);
-        }
-
-        PyObject *newargs_stack[_PY_FASTCALL_SMALL_STACK];
-        PyObject **newargs;
-        if (totalargs <= (Py_ssize_t)Py_ARRAY_LENGTH(newargs_stack) - 1) {
-            newargs = newargs_stack;
-        }
-        else {
-            newargs = PyMem_Malloc((totalargs+1) * sizeof(PyObject *));
-            if (newargs == NULL) {
-                PyErr_NoMemory();
-                return NULL;
-            }
-        }
-        /* use borrowed references */
-        newargs[0] = self;
-        /* bpo-37138: since totalargs > 0, it's impossible that args is NULL.
-         * We need this, since calling memcpy() with a NULL pointer is
-         * undefined behaviour. */
-        assert(args != NULL);
-        memcpy(newargs + 1, args, totalargs * sizeof(PyObject *));
-        result = _PyObject_Vectorcall(func, newargs, nargs+1, kwnames);
-        if (newargs != newargs_stack) {
-            PyMem_Free(newargs);
-        }
-    }
-    return result;
-}
-
-
 /* Method objects are used for bound instance methods returned by
    instancename.methodname. ClassName.methodname returns an ordinary
    function.
@@ -124,13 +68,12 @@ PyMethod_New(PyObject *func, PyObject *self)
     im->im_func = func;
     Py_XINCREF(self);
     im->im_self = self;
-    im->vectorcall = method_vectorcall;
     _PyObject_GC_TRACK(im);
     return (PyObject *)im;
 }
 
 static PyObject *
-method_reduce(PyMethodObject *im, PyObject *Py_UNUSED(ignored))
+method_reduce(PyMethodObject *im)
 {
     PyObject *self = PyMethod_GET_SELF(im);
     PyObject *func = PyMethod_GET_FUNCTION(im);
@@ -279,9 +222,13 @@ method_richcompare(PyObject *self, PyObject *other, int op)
     b = (PyMethodObject *)other;
     eq = PyObject_RichCompareBool(a->im_func, b->im_func, Py_EQ);
     if (eq == 1) {
-        eq = (a->im_self == b->im_self);
+        if (a->im_self == NULL || b->im_self == NULL)
+            eq = a->im_self == b->im_self;
+        else
+            eq = PyObject_RichCompareBool(a->im_self, b->im_self,
+                                          Py_EQ);
     }
-    else if (eq < 0)
+    if (eq < 0)
         return NULL;
     if (op == Py_EQ)
         res = eq ? Py_True : Py_False;
@@ -323,7 +270,12 @@ static Py_hash_t
 method_hash(PyMethodObject *a)
 {
     Py_hash_t x, y;
-    x = _Py_HashPointer(a->im_self);
+    if (a->im_self == NULL)
+        x = PyObject_Hash(Py_None);
+    else
+        x = PyObject_Hash(a->im_self);
+    if (x == -1)
+        return -1;
     y = PyObject_Hash(a->im_func);
     if (y == -1)
         return -1;
@@ -347,6 +299,11 @@ method_call(PyObject *method, PyObject *args, PyObject *kwargs)
     PyObject *self, *func;
 
     self = PyMethod_GET_SELF(method);
+    if (self == NULL) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+
     func = PyMethod_GET_FUNCTION(method);
 
     return _PyObject_Call_Prepend(func, self, args, kwargs);
@@ -355,8 +312,15 @@ method_call(PyObject *method, PyObject *args, PyObject *kwargs)
 static PyObject *
 method_descr_get(PyObject *meth, PyObject *obj, PyObject *cls)
 {
-    Py_INCREF(meth);
-    return meth;
+    /* Don't rebind an already bound method of a class that's not a base
+       class of cls. */
+    if (PyMethod_GET_SELF(meth) != NULL) {
+        /* Already bound */
+        Py_INCREF(meth);
+        return meth;
+    }
+    /* Bind it to obj */
+    return PyMethod_New(PyMethod_GET_FUNCTION(meth), obj);
 }
 
 PyTypeObject PyMethod_Type = {
@@ -365,10 +329,10 @@ PyTypeObject PyMethod_Type = {
     sizeof(PyMethodObject),
     0,
     (destructor)method_dealloc,                 /* tp_dealloc */
-    offsetof(PyMethodObject, vectorcall),       /* tp_vectorcall_offset */
+    0,                                          /* tp_print */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
-    0,                                          /* tp_as_async */
+    0,                                          /* tp_reserved */
     (reprfunc)method_repr,                      /* tp_repr */
     0,                                          /* tp_as_number */
     0,                                          /* tp_as_sequence */
@@ -379,8 +343,7 @@ PyTypeObject PyMethod_Type = {
     method_getattro,                            /* tp_getattro */
     PyObject_GenericSetAttr,                    /* tp_setattro */
     0,                                          /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC |
-    _Py_TPFLAGS_HAVE_VECTORCALL,                /* tp_flags */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, /* tp_flags */
     method_doc,                                 /* tp_doc */
     (traverseproc)method_traverse,              /* tp_traverse */
     0,                                          /* tp_clear */
@@ -637,10 +600,10 @@ PyTypeObject PyInstanceMethod_Type = {
     sizeof(PyInstanceMethodObject),             /* tp_basicsize */
     0,                                          /* tp_itemsize */
     instancemethod_dealloc,                     /* tp_dealloc */
-    0,                                          /* tp_vectorcall_offset */
+    0,                                          /* tp_print */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
-    0,                                          /* tp_as_async */
+    0,                                          /* tp_reserved */
     (reprfunc)instancemethod_repr,              /* tp_repr */
     0,                                          /* tp_as_number */
     0,                                          /* tp_as_sequence */

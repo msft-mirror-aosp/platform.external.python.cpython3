@@ -17,7 +17,6 @@ def public(f):
 OPTIONS = {
     "stable": {"help": "stable ABI stub"},
     "pip": {"help": "pip"},
-    "pip-user": {"help": "pip.ini file for default --user"},
     "distutils": {"help": "distutils"},
     "tcltk": {"help": "Tcl, Tk and tkinter"},
     "idle": {"help": "Idle"},
@@ -31,7 +30,6 @@ OPTIONS = {
     "launchers": {"help": "specific launchers"},
     "appxmanifest": {"help": "an appxmanifest"},
     "props": {"help": "a python.props file"},
-    "nuspec": {"help": "a python.nuspec file"},
     "chm": {"help": "the CHM documentation"},
     "html-doc": {"help": "the HTML documentation"},
 }
@@ -43,7 +41,6 @@ PRESETS = {
         "options": [
             "stable",
             "pip",
-            "pip-user",
             "distutils",
             "tcltk",
             "idle",
@@ -56,18 +53,8 @@ PRESETS = {
     },
     "nuget": {
         "help": "nuget package",
-        "options": [
-            "dev",
-            "tools",
-            "pip",
-            "stable",
-            "distutils",
-            "venv",
-            "props",
-            "nuspec",
-        ],
+        "options": ["stable", "pip", "distutils", "dev", "props"],
     },
-    "iot": {"help": "Windows IoT Core", "options": ["stable", "pip"]},
     "default": {
         "help": "development kit package",
         "options": [

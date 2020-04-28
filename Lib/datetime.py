@@ -379,34 +379,19 @@ def _check_utc_offset(name, offset):
 def _check_int_field(value):
     if isinstance(value, int):
         return value
-    if isinstance(value, float):
-        raise TypeError('integer argument expected, got float')
-    try:
-        value = value.__index__()
-    except AttributeError:
-        pass
-    else:
-        if not isinstance(value, int):
-            raise TypeError('__index__ returned non-int (type %s)' %
-                            type(value).__name__)
-        return value
-    orig = value
-    try:
-        value = value.__int__()
-    except AttributeError:
-        pass
-    else:
-        if not isinstance(value, int):
+    if not isinstance(value, float):
+        try:
+            value = value.__int__()
+        except AttributeError:
+            pass
+        else:
+            if isinstance(value, int):
+                return value
             raise TypeError('__int__ returned non-int (type %s)' %
                             type(value).__name__)
-        import warnings
-        warnings.warn("an integer is required (got type %s)"  %
-                      type(orig).__name__,
-                      DeprecationWarning,
-                      stacklevel=2)
-        return value
-    raise TypeError('an integer is required (got type %s)' %
-                    type(value).__name__)
+        raise TypeError('an integer is required (got type %s)' %
+                        type(value).__name__)
+    raise TypeError('integer argument expected, got float')
 
 def _check_date_fields(year, month, day):
     year = _check_int_field(year)
@@ -733,31 +718,31 @@ class timedelta:
         if isinstance(other, timedelta):
             return self._cmp(other) == 0
         else:
-            return NotImplemented
+            return False
 
     def __le__(self, other):
         if isinstance(other, timedelta):
             return self._cmp(other) <= 0
         else:
-            return NotImplemented
+            _cmperror(self, other)
 
     def __lt__(self, other):
         if isinstance(other, timedelta):
             return self._cmp(other) < 0
         else:
-            return NotImplemented
+            _cmperror(self, other)
 
     def __ge__(self, other):
         if isinstance(other, timedelta):
             return self._cmp(other) >= 0
         else:
-            return NotImplemented
+            _cmperror(self, other)
 
     def __gt__(self, other):
         if isinstance(other, timedelta):
             return self._cmp(other) > 0
         else:
-            return NotImplemented
+            _cmperror(self, other)
 
     def _cmp(self, other):
         assert isinstance(other, timedelta)
@@ -884,40 +869,6 @@ class date:
         except Exception:
             raise ValueError(f'Invalid isoformat string: {date_string!r}')
 
-    @classmethod
-    def fromisocalendar(cls, year, week, day):
-        """Construct a date from the ISO year, week number and weekday.
-
-        This is the inverse of the date.isocalendar() function"""
-        # Year is bounded this way because 9999-12-31 is (9999, 52, 5)
-        if not MINYEAR <= year <= MAXYEAR:
-            raise ValueError(f"Year is out of range: {year}")
-
-        if not 0 < week < 53:
-            out_of_range = True
-
-            if week == 53:
-                # ISO years have 53 weeks in them on years starting with a
-                # Thursday and leap years starting on a Wednesday
-                first_weekday = _ymd2ord(year, 1, 1) % 7
-                if (first_weekday == 4 or (first_weekday == 3 and
-                                           _is_leap(year))):
-                    out_of_range = False
-
-            if out_of_range:
-                raise ValueError(f"Invalid week: {week}")
-
-        if not 0 < day < 8:
-            raise ValueError(f"Invalid weekday: {day} (range is [1, 7])")
-
-        # Now compute the offset from (Y, 1, 1) in days:
-        day_offset = (week - 1) * 7 + (day - 1)
-
-        # Calculate the ordinal day for monday, week 1
-        day_1 = _isoweek1monday(year)
-        ord_day = day_1 + day_offset
-
-        return cls(*_ord2ymd(ord_day))
 
     # Conversions to string
 
@@ -1063,7 +1014,7 @@ class date:
         if isinstance(other, timedelta):
             o = self.toordinal() + other.days
             if 0 < o <= _MAXORDINAL:
-                return type(self).fromordinal(o)
+                return date.fromordinal(o)
             raise OverflowError("result out of range")
         return NotImplemented
 
@@ -1310,31 +1261,31 @@ class time:
         if isinstance(other, time):
             return self._cmp(other, allow_mixed=True) == 0
         else:
-            return NotImplemented
+            return False
 
     def __le__(self, other):
         if isinstance(other, time):
             return self._cmp(other) <= 0
         else:
-            return NotImplemented
+            _cmperror(self, other)
 
     def __lt__(self, other):
         if isinstance(other, time):
             return self._cmp(other) < 0
         else:
-            return NotImplemented
+            _cmperror(self, other)
 
     def __ge__(self, other):
         if isinstance(other, time):
             return self._cmp(other) >= 0
         else:
-            return NotImplemented
+            _cmperror(self, other)
 
     def __gt__(self, other):
         if isinstance(other, time):
             return self._cmp(other) > 0
         else:
-            return NotImplemented
+            _cmperror(self, other)
 
     def _cmp(self, other, allow_mixed=False):
         assert isinstance(other, time)
@@ -1847,10 +1798,17 @@ class datetime(date):
             ts = (self - _EPOCH) // timedelta(seconds=1)
         localtm = _time.localtime(ts)
         local = datetime(*localtm[:6])
-        # Extract TZ data
-        gmtoff = localtm.tm_gmtoff
-        zone = localtm.tm_zone
-        return timezone(timedelta(seconds=gmtoff), zone)
+        try:
+            # Extract TZ data if available
+            gmtoff = localtm.tm_gmtoff
+            zone = localtm.tm_zone
+        except AttributeError:
+            delta = local - datetime(*_time.gmtime(ts)[:6])
+            zone = _time.strftime('%Z', localtm)
+            tz = timezone(delta, zone)
+        else:
+            tz = timezone(timedelta(seconds=gmtoff), zone)
+        return tz
 
     def astimezone(self, tz=None):
         if tz is None:
@@ -2073,10 +2031,10 @@ class datetime(date):
         hour, rem = divmod(delta.seconds, 3600)
         minute, second = divmod(rem, 60)
         if 0 < delta.days <= _MAXORDINAL:
-            return type(self).combine(date.fromordinal(delta.days),
-                                      time(hour, minute, second,
-                                           delta.microseconds,
-                                           tzinfo=self._tzinfo))
+            return datetime.combine(date.fromordinal(delta.days),
+                                    time(hour, minute, second,
+                                         delta.microseconds,
+                                         tzinfo=self._tzinfo))
         raise OverflowError("result out of range")
 
     __radd__ = __add__
@@ -2175,7 +2133,6 @@ def _isoweek1monday(year):
         week1monday += 7
     return week1monday
 
-
 class timezone(tzinfo):
     __slots__ = '_offset', '_name'
 
@@ -2210,9 +2167,9 @@ class timezone(tzinfo):
         return (self._offset, self._name)
 
     def __eq__(self, other):
-        if isinstance(other, timezone):
-            return self._offset == other._offset
-        return NotImplemented
+        if type(other) != timezone:
+            return False
+        return self._offset == other._offset
 
     def __hash__(self):
         return hash(self._offset)
@@ -2269,7 +2226,7 @@ class timezone(tzinfo):
         raise TypeError("fromutc() argument must be a datetime instance"
                         " or None")
 
-    _maxoffset = timedelta(hours=24, microseconds=-1)
+    _maxoffset = timedelta(hours=23, minutes=59)
     _minoffset = -_maxoffset
 
     @staticmethod
@@ -2293,11 +2250,8 @@ class timezone(tzinfo):
         return f'UTC{sign}{hours:02d}:{minutes:02d}'
 
 timezone.utc = timezone._create(timedelta(0))
-# bpo-37642: These attributes are rounded to the nearest minute for backwards
-# compatibility, even though the constructor will accept a wider range of
-# values. This may change in the future.
-timezone.min = timezone._create(-timedelta(hours=23, minutes=59))
-timezone.max = timezone._create(timedelta(hours=23, minutes=59))
+timezone.min = timezone._create(timezone._minoffset)
+timezone.max = timezone._create(timezone._maxoffset)
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 # Some time zone algebra.  For a datetime x, let

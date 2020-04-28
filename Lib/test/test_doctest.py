@@ -665,21 +665,17 @@ plain ol' Python and is guaranteed to be available.
     True
     >>> real_tests = [t for t in tests if len(t.examples) > 0]
     >>> len(real_tests) # objects that actually have doctests
-    12
+    8
     >>> for t in real_tests:
     ...     print('{}  {}'.format(len(t.examples), t.name))
     ...
     1  builtins.bin
-    5  builtins.bytearray.hex
-    5  builtins.bytes.hex
     3  builtins.float.as_integer_ratio
     2  builtins.float.fromhex
     2  builtins.float.hex
     1  builtins.hex
     1  builtins.int
-    3  builtins.int.as_integer_ratio
     2  builtins.int.bit_length
-    5  builtins.memoryview.hex
     1  builtins.oct
 
 Note here that 'bin', 'oct', and 'hex' are functions; 'float.as_integer_ratio',
@@ -2726,7 +2722,7 @@ Check doctest with a non-ascii filename:
     Exception raised:
         Traceback (most recent call last):
           File ...
-            exec(compile(example.source, filename, "single",
+            compileflags, 1), test.globs)
           File "<doctest foo-bär@baz[0]>", line 1, in <module>
             raise Exception('clé')
         Exception: clé

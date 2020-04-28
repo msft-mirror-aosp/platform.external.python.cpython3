@@ -77,6 +77,15 @@ class LocaleTime(object):
         if time.tzname != self.tzname or time.daylight != self.daylight:
             raise ValueError("timezone changed during initialization")
 
+    def __pad(self, seq, front):
+        # Add '' to seq to either the front (is True), else the back.
+        seq = list(seq)
+        if front:
+            seq.insert(0, '')
+        else:
+            seq.append('')
+        return seq
+
     def __calc_weekday(self):
         # Set self.a_weekday and self.f_weekday using the calendar
         # module.

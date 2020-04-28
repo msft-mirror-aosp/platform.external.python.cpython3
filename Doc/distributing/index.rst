@@ -113,17 +113,11 @@ recommended tools`_.
 
 .. _currently recommended tools: https://packaging.python.org/guides/tool-recommendations/#packaging-tool-recommendations
 
-.. index::
-   single: Python Package Index (PyPI)
-   single: PyPI; (see Python Package Index (PyPI))
-
-.. _publishing-python-packages:
-
-Reading the Python Packaging User Guide
-=======================================
+Reading the guide
+=================
 
 The Python Packaging User Guide covers the various key steps and elements
-involved in creating and publishing a project:
+involved in creating a project:
 
 * `Project structure`_
 * `Building and packaging the project`_

@@ -12,18 +12,6 @@
 #endif
 #include <signal.h>
 
-#if defined(__linux__)
-#   include <sys/syscall.h>     /* syscall(SYS_gettid) */
-#elif defined(__FreeBSD__)
-#   include <pthread_np.h>      /* pthread_getthreadid_np() */
-#elif defined(__OpenBSD__)
-#   include <unistd.h>          /* getthrid() */
-#elif defined(_AIX)
-#   include <sys/thread.h>      /* thread_self() */
-#elif defined(__NetBSD__)
-#   include <lwp.h>             /* _lwp_self() */
-#endif
-
 /* The POSIX spec requires that use of pthread_attr_setstacksize
    be conditional on _POSIX_THREAD_ATTR_STACKSIZE being defined. */
 #ifdef _POSIX_THREAD_ATTR_STACKSIZE
@@ -40,16 +28,11 @@
  */
 #if defined(__APPLE__) && defined(THREAD_STACK_SIZE) && THREAD_STACK_SIZE == 0
 #undef  THREAD_STACK_SIZE
-/* Note: This matches the value of -Wl,-stack_size in configure.ac */
-#define THREAD_STACK_SIZE       0x1000000
+#define THREAD_STACK_SIZE       0x500000
 #endif
 #if defined(__FreeBSD__) && defined(THREAD_STACK_SIZE) && THREAD_STACK_SIZE == 0
 #undef  THREAD_STACK_SIZE
 #define THREAD_STACK_SIZE       0x400000
-#endif
-#if defined(_AIX) && defined(THREAD_STACK_SIZE) && THREAD_STACK_SIZE == 0
-#undef  THREAD_STACK_SIZE
-#define THREAD_STACK_SIZE       0x200000
 #endif
 /* for safety, ensure a viable minimum stacksize */
 #define THREAD_STACK_MIN        0x8000  /* 32 KiB */
@@ -71,6 +54,16 @@
 #include <semaphore.h>
 #include <errno.h>
 #endif
+#endif
+
+#if !defined(pthread_attr_default)
+#  define pthread_attr_default ((pthread_attr_t *)NULL)
+#endif
+#if !defined(pthread_mutexattr_default)
+#  define pthread_mutexattr_default ((pthread_mutexattr_t *)NULL)
+#endif
+#if !defined(pthread_condattr_default)
+#  define pthread_condattr_default ((pthread_condattr_t *)NULL)
 #endif
 
 
@@ -117,56 +110,6 @@ do { \
 } while(0)
 
 
-/*
- * pthread_cond support
- */
-
-#if defined(HAVE_PTHREAD_CONDATTR_SETCLOCK) && defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
-// monotonic is supported statically.  It doesn't mean it works on runtime.
-#define CONDATTR_MONOTONIC
-#endif
-
-// NULL when pthread_condattr_setclock(CLOCK_MONOTONIC) is not supported.
-static pthread_condattr_t *condattr_monotonic = NULL;
-
-static void
-init_condattr()
-{
-#ifdef CONDATTR_MONOTONIC
-    static pthread_condattr_t ca;
-    pthread_condattr_init(&ca);
-    if (pthread_condattr_setclock(&ca, CLOCK_MONOTONIC) == 0) {
-        condattr_monotonic = &ca;  // Use monotonic clock
-    }
-#endif
-}
-
-int
-_PyThread_cond_init(PyCOND_T *cond)
-{
-    return pthread_cond_init(cond, condattr_monotonic);
-}
-
-void
-_PyThread_cond_after(long long us, struct timespec *abs)
-{
-#ifdef CONDATTR_MONOTONIC
-    if (condattr_monotonic) {
-        clock_gettime(CLOCK_MONOTONIC, abs);
-        abs->tv_sec  += us / 1000000;
-        abs->tv_nsec += (us % 1000000) * 1000;
-        abs->tv_sec  += abs->tv_nsec / 1000000000;
-        abs->tv_nsec %= 1000000000;
-        return;
-    }
-#endif
-
-    struct timespec ts;
-    MICROSECONDS_TO_TIMESPEC(us, ts);
-    *abs = ts;
-}
-
-
 /* A pthread mutex isn't sufficient to model the Python lock type
  * because, according to Draft 5 of the docs (P1003.4a/D5), both of the
  * following are undefined:
@@ -203,7 +146,6 @@ PyThread__init_thread(void)
     extern void pthread_init(void);
     pthread_init();
 #endif
-    init_condattr();
 }
 
 /*
@@ -254,7 +196,7 @@ PyThread_start_new_thread(void (*func)(void *), void *arg)
         return PYTHREAD_INVALID_THREAD_ID;
 #endif
 #if defined(THREAD_STACK_SIZE)
-    PyThreadState *tstate = _PyThreadState_GET();
+    PyThreadState *tstate = PyThreadState_GET();
     size_t stacksize = tstate ? tstate->interp->pythread_stacksize : 0;
     tss = (stacksize != 0) ? stacksize : THREAD_STACK_SIZE;
     if (tss != 0) {
@@ -319,36 +261,7 @@ PyThread_get_thread_ident(void)
     return (unsigned long) threadid;
 }
 
-#ifdef PY_HAVE_THREAD_NATIVE_ID
-unsigned long
-PyThread_get_thread_native_id(void)
-{
-    if (!initialized)
-        PyThread_init_thread();
-#ifdef __APPLE__
-    uint64_t native_id;
-    (void) pthread_threadid_np(NULL, &native_id);
-#elif defined(__linux__)
-    pid_t native_id;
-    native_id = syscall(SYS_gettid);
-#elif defined(__FreeBSD__)
-    int native_id;
-    native_id = pthread_getthreadid_np();
-#elif defined(__OpenBSD__)
-    pid_t native_id;
-    native_id = getthrid();
-#elif defined(_AIX)
-    tid_t native_id;
-    native_id = thread_self();
-#elif defined(__NetBSD__)
-    lwpid_t native_id;
-    native_id = _lwp_self();
-#endif
-    return (unsigned long) native_id;
-}
-#endif
-
-void _Py_NO_RETURN
+void
 PyThread_exit_thread(void)
 {
     dprintf(("PyThread_exit_thread called\n"));
@@ -385,7 +298,7 @@ PyThread_allocate_lock(void)
         }
     }
 
-    dprintf(("PyThread_allocate_lock() -> %p\n", (void *)lock));
+    dprintf(("PyThread_allocate_lock() -> %p\n", lock));
     return (PyThread_type_lock)lock;
 }
 
@@ -549,7 +462,8 @@ PyThread_allocate_lock(void)
         memset((void *)lock, '\0', sizeof(pthread_lock));
         lock->locked = 0;
 
-        status = pthread_mutex_init(&lock->mut, NULL);
+        status = pthread_mutex_init(&lock->mut,
+                                    pthread_mutexattr_default);
         CHECK_STATUS_PTHREAD("pthread_mutex_init");
         /* Mark the pthread mutex underlying a Python mutex as
            pure happens-before.  We can't simply mark the
@@ -558,7 +472,8 @@ PyThread_allocate_lock(void)
            will cause errors. */
         _Py_ANNOTATE_PURE_HAPPENS_BEFORE_MUTEX(&lock->mut);
 
-        status = _PyThread_cond_init(&lock->lock_released);
+        status = pthread_cond_init(&lock->lock_released,
+                                   pthread_condattr_default);
         CHECK_STATUS_PTHREAD("pthread_cond_init");
 
         if (error) {
@@ -567,7 +482,7 @@ PyThread_allocate_lock(void)
         }
     }
 
-    dprintf(("PyThread_allocate_lock() -> %p\n", (void *)lock));
+    dprintf(("PyThread_allocate_lock() -> %p\n", lock));
     return (PyThread_type_lock) lock;
 }
 
@@ -617,10 +532,9 @@ PyThread_acquire_lock_timed(PyThread_type_lock lock, PY_TIMEOUT_T microseconds,
             success = PY_LOCK_ACQUIRED;
         }
         else if (microseconds != 0) {
-            struct timespec abs;
-            if (microseconds > 0) {
-                _PyThread_cond_after(microseconds, &abs);
-            }
+            struct timespec ts;
+            if (microseconds > 0)
+                MICROSECONDS_TO_TIMESPEC(microseconds, ts);
             /* continue trying until we get the lock */
 
             /* mut must be locked by me -- part of the condition
@@ -629,13 +543,10 @@ PyThread_acquire_lock_timed(PyThread_type_lock lock, PY_TIMEOUT_T microseconds,
                 if (microseconds > 0) {
                     status = pthread_cond_timedwait(
                         &thelock->lock_released,
-                        &thelock->mut, &abs);
-                    if (status == 1) {
-                        break;
-                    }
+                        &thelock->mut, &ts);
                     if (status == ETIMEDOUT)
                         break;
-                    CHECK_STATUS_PTHREAD("pthread_cond_timedwait");
+                    CHECK_STATUS_PTHREAD("pthread_cond_timed_wait");
                 }
                 else {
                     status = pthread_cond_wait(
@@ -712,7 +623,7 @@ _pythread_pthread_set_stacksize(size_t size)
 
     /* set to default */
     if (size == 0) {
-        _PyInterpreterState_GET_UNSAFE()->pythread_stacksize = 0;
+        PyThreadState_GET()->interp->pythread_stacksize = 0;
         return 0;
     }
 
@@ -729,7 +640,7 @@ _pythread_pthread_set_stacksize(size_t size)
             rc = pthread_attr_setstacksize(&attrs, size);
             pthread_attr_destroy(&attrs);
             if (rc == 0) {
-                _PyInterpreterState_GET_UNSAFE()->pythread_stacksize = size;
+                PyThreadState_GET()->interp->pythread_stacksize = size;
                 return 0;
             }
         }

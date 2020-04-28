@@ -38,14 +38,16 @@ import os
 import urllib.parse
 from email.parser import FeedParser
 from email.message import Message
+from warnings import warn
 import html
 import locale
 import tempfile
 
-__all__ = ["MiniFieldStorage", "FieldStorage", "parse", "parse_multipart",
+__all__ = ["MiniFieldStorage", "FieldStorage",
+           "parse", "parse_qs", "parse_qsl", "parse_multipart",
            "parse_header", "test", "print_exception", "print_environ",
            "print_form", "print_directory", "print_arguments",
-           "print_environ_usage"]
+           "print_environ_usage", "escape"]
 
 # Logging support
 # ===============
@@ -180,6 +182,21 @@ def parse(fp=None, environ=os.environ, keep_blank_values=0, strict_parsing=0):
     return urllib.parse.parse_qs(qs, keep_blank_values, strict_parsing,
                                  encoding=encoding)
 
+
+# parse query string function called from urlparse,
+# this is done in order to maintain backward compatibility.
+
+def parse_qs(qs, keep_blank_values=0, strict_parsing=0):
+    """Parse a query given as a string argument."""
+    warn("cgi.parse_qs is deprecated, use urllib.parse.parse_qs instead",
+         DeprecationWarning, 2)
+    return urllib.parse.parse_qs(qs, keep_blank_values, strict_parsing)
+
+def parse_qsl(qs, keep_blank_values=0, strict_parsing=0):
+    """Parse a query given as a string argument."""
+    warn("cgi.parse_qsl is deprecated, use urllib.parse.parse_qsl instead",
+         DeprecationWarning, 2)
+    return urllib.parse.parse_qsl(qs, keep_blank_values, strict_parsing)
 
 def parse_multipart(fp, pdict, encoding="utf-8", errors="replace"):
     """Parse multipart input.
@@ -461,7 +478,7 @@ class FieldStorage:
             if maxlen and clen > maxlen:
                 raise ValueError('Maximum content length exceeded')
         self.length = clen
-        if self.limit is None and clen >= 0:
+        if self.limit is None and clen:
             self.limit = clen
 
         self.list = self.file = None
@@ -642,10 +659,8 @@ class FieldStorage:
             if 'content-length' in headers:
                 del headers['content-length']
 
-            limit = None if self.limit is None \
-                else self.limit - self.bytes_read
             part = klass(self.fp, headers, ib, environ, keep_blank_values,
-                         strict_parsing, limit,
+                         strict_parsing,self.limit-self.bytes_read,
                          self.encoding, self.errors, max_num_fields)
 
             if max_num_fields is not None:
@@ -736,7 +751,7 @@ class FieldStorage:
         last_line_lfend = True
         _read = 0
         while 1:
-            if self.limit is not None and _read >= self.limit:
+            if _read >= self.limit:
                 break
             line = self.fp.readline(1<<16) # bytes
             self.bytes_read += len(line)
@@ -975,6 +990,18 @@ environment as well.  Here are some common variable names:
 
 # Utilities
 # =========
+
+def escape(s, quote=None):
+    """Deprecated API."""
+    warn("cgi.escape is deprecated, use html.escape instead",
+         DeprecationWarning, stacklevel=2)
+    s = s.replace("&", "&amp;") # Must be done first!
+    s = s.replace("<", "&lt;")
+    s = s.replace(">", "&gt;")
+    if quote:
+        s = s.replace('"', "&quot;")
+    return s
+
 
 def valid_boundary(s):
     import re

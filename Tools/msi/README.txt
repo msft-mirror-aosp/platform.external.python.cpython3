@@ -159,7 +159,9 @@ The following properties may be passed when building these projects.
 
   /p:BuildForRelease=(true|false)
     When true, adds extra verification to ensure a complete installer is
-    produced. Defaults to false.
+    produced. For example, binutils is required when building for a release
+    to generate MinGW-compatible libraries, and the build will be aborted if
+    this fails. Defaults to false.
 
   /p:ReleaseUri=(any URI)
     Used to generate unique IDs for the installers to allow side-by-side

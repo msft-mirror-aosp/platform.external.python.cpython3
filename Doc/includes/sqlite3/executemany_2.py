@@ -13,5 +13,3 @@ cur.executemany("insert into characters(c) values (?)", char_generator())
 
 cur.execute("select c from characters")
 print(cur.fetchall())
-
-con.close()

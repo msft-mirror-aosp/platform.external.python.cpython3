@@ -89,13 +89,6 @@ static PyTypeObject Random_Type;
 
 #define RandomObject_Check(v)      (Py_TYPE(v) == &Random_Type)
 
-#include "clinic/_randommodule.c.h"
-
-/*[clinic input]
-module _random
-class _random.Random "RandomObject *" "&Random_Type"
-[clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=f79898ae7847c321]*/
 
 /* Random methods */
 
@@ -144,18 +137,8 @@ genrand_int32(RandomObject *self)
  * lower 26 bits of the 53-bit numerator.
  * The original code credited Isaku Wada for this algorithm, 2002/01/09.
  */
-
-/*[clinic input]
-_random.Random.random
-
-  self: self(type="RandomObject *")
-
-random() -> x in the interval [0, 1).
-[clinic start generated code]*/
-
 static PyObject *
-_random_Random_random_impl(RandomObject *self)
-/*[clinic end generated code: output=117ff99ee53d755c input=afb2a59cbbb00349]*/
+random_random(RandomObject *self)
 {
     uint32_t a=genrand_int32(self)>>5, b=genrand_int32(self)>>6;
     return PyFloat_FromDouble((a*67108864.0+b)*(1.0/9007199254740992.0));
@@ -249,16 +232,20 @@ random_seed_time_pid(RandomObject *self)
 }
 
 static PyObject *
-random_seed(RandomObject *self, PyObject *arg)
+random_seed(RandomObject *self, PyObject *args)
 {
     PyObject *result = NULL;            /* guilty until proved innocent */
     PyObject *n = NULL;
     uint32_t *key = NULL;
     size_t bits, keyused;
     int res;
+    PyObject *arg = NULL;
 
-    if (arg == NULL || arg == Py_None) {
-       if (random_seed_urandom(self) < 0) {
+    if (!PyArg_UnpackTuple(args, "seed", 0, 1, &arg))
+        return NULL;
+
+     if (arg == NULL || arg == Py_None) {
+        if (random_seed_urandom(self) < 0) {
             PyErr_Clear();
 
             /* Reading system entropy failed, fall back on the worst entropy:
@@ -330,37 +317,8 @@ Done:
     return result;
 }
 
-/*[clinic input]
-_random.Random.seed
-
-  self: self(type="RandomObject *")
-  n: object = None
-  /
-
-seed([n]) -> None.
-
-Defaults to use urandom and falls back to a combination
-of the current time and the process identifier.
-[clinic start generated code]*/
-
 static PyObject *
-_random_Random_seed_impl(RandomObject *self, PyObject *n)
-/*[clinic end generated code: output=0fad1e16ba883681 input=78d6ef0d52532a54]*/
-{
-    return random_seed(self, n);
-}
-
-/*[clinic input]
-_random.Random.getstate
-
-  self: self(type="RandomObject *")
-
-getstate() -> tuple containing the current state.
-[clinic start generated code]*/
-
-static PyObject *
-_random_Random_getstate_impl(RandomObject *self)
-/*[clinic end generated code: output=bf6cef0c092c7180 input=b937a487928c0e89]*/
+random_getstate(RandomObject *self)
 {
     PyObject *state;
     PyObject *element;
@@ -386,20 +344,8 @@ Fail:
     return NULL;
 }
 
-
-/*[clinic input]
-_random.Random.setstate
-
-  self: self(type="RandomObject *")
-  state: object
-  /
-
-setstate(state) -> None.  Restores generator state.
-[clinic start generated code]*/
-
 static PyObject *
-_random_Random_setstate(RandomObject *self, PyObject *state)
-/*[clinic end generated code: output=fd1c3cd0037b6681 input=b3b4efbb1bc66af8]*/
+random_setstate(RandomObject *self, PyObject *state)
 {
     int i;
     unsigned long element;
@@ -438,25 +384,16 @@ _random_Random_setstate(RandomObject *self, PyObject *state)
     Py_RETURN_NONE;
 }
 
-/*[clinic input]
-
-_random.Random.getrandbits
-
-  self: self(type="RandomObject *")
-  k: int
-  /
-
-getrandbits(k) -> x.  Generates an int with k random bits.
-[clinic start generated code]*/
-
 static PyObject *
-_random_Random_getrandbits_impl(RandomObject *self, int k)
-/*[clinic end generated code: output=b402f82a2158887f input=8c0e6396dd176fc0]*/
+random_getrandbits(RandomObject *self, PyObject *args)
 {
-    int i, words;
+    int k, i, words;
     uint32_t r;
     uint32_t *wordarray;
     PyObject *result;
+
+    if (!PyArg_ParseTuple(args, "i:getrandbits", &k))
+        return NULL;
 
     if (k <= 0) {
         PyErr_SetString(PyExc_ValueError,
@@ -516,11 +453,17 @@ random_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static PyMethodDef random_methods[] = {
-    _RANDOM_RANDOM_RANDOM_METHODDEF
-    _RANDOM_RANDOM_SEED_METHODDEF
-    _RANDOM_RANDOM_GETSTATE_METHODDEF
-    _RANDOM_RANDOM_SETSTATE_METHODDEF
-    _RANDOM_RANDOM_GETRANDBITS_METHODDEF
+    {"random",          (PyCFunction)random_random,  METH_NOARGS,
+        PyDoc_STR("random() -> x in the interval [0, 1).")},
+    {"seed",            (PyCFunction)random_seed,  METH_VARARGS,
+        PyDoc_STR("seed([n]) -> None.  Defaults to current time.")},
+    {"getstate",        (PyCFunction)random_getstate,  METH_NOARGS,
+        PyDoc_STR("getstate() -> tuple containing the current state.")},
+    {"setstate",          (PyCFunction)random_setstate,  METH_O,
+        PyDoc_STR("setstate(state) -> None.  Restores generator state.")},
+    {"getrandbits",     (PyCFunction)random_getrandbits,  METH_VARARGS,
+        PyDoc_STR("getrandbits(k) -> x.  Generates an int with "
+                  "k random bits.")},
     {NULL,              NULL}           /* sentinel */
 };
 
@@ -534,10 +477,10 @@ static PyTypeObject Random_Type = {
     0,                                  /*tp_itemsize*/
     /* methods */
     0,                                  /*tp_dealloc*/
-    0,                                  /*tp_vectorcall_offset*/
+    0,                                  /*tp_print*/
     0,                                  /*tp_getattr*/
     0,                                  /*tp_setattr*/
-    0,                                  /*tp_as_async*/
+    0,                                  /*tp_reserved*/
     0,                                  /*tp_repr*/
     0,                                  /*tp_as_number*/
     0,                                  /*tp_as_sequence*/

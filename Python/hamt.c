@@ -1,9 +1,8 @@
 #include "Python.h"
 
-#include "pycore_hamt.h"
-#include "pycore_object.h"
-#include "pycore_pystate.h"
 #include "structmember.h"
+#include "internal/pystate.h"
+#include "internal/hamt.h"
 
 /*
 This file provides an implemention of an immutable mapping using the
@@ -373,11 +372,10 @@ hamt_node_collision_count(PyHamtNode_Collision *node);
 
 #ifdef Py_DEBUG
 static void
-_hamt_node_array_validate(void *obj_raw)
+_hamt_node_array_validate(void *o)
 {
-    PyObject *obj = _PyObject_CAST(obj_raw);
-    assert(IS_ARRAY_NODE(obj));
-    PyHamtNode_Array *node = (PyHamtNode_Array*)obj;
+    assert(IS_ARRAY_NODE(o));
+    PyHamtNode_Array *node = (PyHamtNode_Array*)(o);
     Py_ssize_t i = 0, count = 0;
     for (; i < HAMT_ARRAY_NODE_SIZE; i++) {
         if (node->a_array[i] != NULL) {
@@ -1176,7 +1174,7 @@ hamt_node_bitmap_dealloc(PyHamtNode_Bitmap *self)
     Py_ssize_t i;
 
     PyObject_GC_UnTrack(self);
-    Py_TRASHCAN_BEGIN(self, hamt_node_bitmap_dealloc)
+    Py_TRASHCAN_SAFE_BEGIN(self)
 
     if (len > 0) {
         i = len;
@@ -1186,7 +1184,7 @@ hamt_node_bitmap_dealloc(PyHamtNode_Bitmap *self)
     }
 
     Py_TYPE(self)->tp_free((PyObject *)self);
-    Py_TRASHCAN_END
+    Py_TRASHCAN_SAFE_END(self)
 }
 
 #ifdef Py_DEBUG
@@ -1584,7 +1582,7 @@ hamt_node_collision_dealloc(PyHamtNode_Collision *self)
     Py_ssize_t len = Py_SIZE(self);
 
     PyObject_GC_UnTrack(self);
-    Py_TRASHCAN_BEGIN(self, hamt_node_collision_dealloc)
+    Py_TRASHCAN_SAFE_BEGIN(self)
 
     if (len > 0) {
 
@@ -1594,7 +1592,7 @@ hamt_node_collision_dealloc(PyHamtNode_Collision *self)
     }
 
     Py_TYPE(self)->tp_free((PyObject *)self);
-    Py_TRASHCAN_END
+    Py_TRASHCAN_SAFE_END(self)
 }
 
 #ifdef Py_DEBUG
@@ -1969,14 +1967,14 @@ hamt_node_array_dealloc(PyHamtNode_Array *self)
     Py_ssize_t i;
 
     PyObject_GC_UnTrack(self);
-    Py_TRASHCAN_BEGIN(self, hamt_node_array_dealloc)
+    Py_TRASHCAN_SAFE_BEGIN(self)
 
     for (i = 0; i < HAMT_ARRAY_NODE_SIZE; i++) {
         Py_XDECREF(self->a_array[i]);
     }
 
     Py_TYPE(self)->tp_free((PyObject *)self);
-    Py_TRASHCAN_END
+    Py_TRASHCAN_SAFE_END(self)
 }
 
 #ifdef Py_DEBUG
@@ -2005,7 +2003,7 @@ hamt_node_array_dump(PyHamtNode_Array *node,
             goto error;
         }
 
-        if (_hamt_dump_format(writer, "%zd::\n", i)) {
+        if (_hamt_dump_format(writer, "%d::\n", i)) {
             goto error;
         }
 

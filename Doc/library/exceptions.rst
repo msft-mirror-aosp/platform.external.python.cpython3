@@ -691,13 +691,8 @@ The following exceptions are used as warning categories; see the
 
 .. exception:: PendingDeprecationWarning
 
-   Base class for warnings about features which are obsolete and
-   expected to be deprecated in the future, but are not deprecated
-   at the moment.
-
-   This class is rarely used as emitting a warning about a possible
-   upcoming deprecation is unusual, and :exc:`DeprecationWarning`
-   is preferred for already active deprecations.
+   Base class for warnings about features which will be deprecated in the
+   future.
 
 
 .. exception:: SyntaxWarning

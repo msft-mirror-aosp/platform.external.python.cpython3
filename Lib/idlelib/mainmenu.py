@@ -60,7 +60,6 @@ menudefs = [
    ]),
 
  ('format', [
-   ('F_ormat Paragraph', '<<format-paragraph>>'),
    ('_Indent Region', '<<indent-region>>'),
    ('_Dedent Region', '<<dedent-region>>'),
    ('Comment _Out Region', '<<comment-region>>'),
@@ -69,14 +68,14 @@ menudefs = [
    ('Untabify Region', '<<untabify-region>>'),
    ('Toggle Tabs', '<<toggle-tabs>>'),
    ('New Indent Width', '<<change-indentwidth>>'),
+   ('F_ormat Paragraph', '<<format-paragraph>>'),
    ('S_trip Trailing Whitespace', '<<do-rstrip>>'),
    ]),
 
  ('run', [
-   ('R_un Module', '<<run-module>>'),
-   ('Run... _Customized', '<<run-custom>>'),
-   ('C_heck Module', '<<check-module>>'),
    ('Python Shell', '<<open-python-shell>>'),
+   ('C_heck Module', '<<check-module>>'),
+   ('R_un Module', '<<run-module>>'),
    ]),
 
  ('shell', [
@@ -100,8 +99,7 @@ menudefs = [
    ('Configure _IDLE', '<<open-config-dialog>>'),
    None,
    ('Show _Code Context', '<<toggle-code-context>>'),
-   ('Show _Line Numbers', '<<toggle-line-numbers>>'),
-   ('_Zoom Height', '<<zoom-height>>'),
+   ('Zoom Height', '<<zoom-height>>'),
    ]),
 
  ('window', [

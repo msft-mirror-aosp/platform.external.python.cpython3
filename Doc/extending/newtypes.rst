@@ -1,6 +1,4 @@
-.. highlight:: c
-
-.. _new-types-topics:
+.. highlightlang:: c
 
 *****************************************
 Defining Extension Types: Assorted Topics

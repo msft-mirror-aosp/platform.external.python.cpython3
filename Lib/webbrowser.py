@@ -154,7 +154,6 @@ class GenericBrowser(BaseBrowser):
         self.basename = os.path.basename(self.name)
 
     def open(self, url, new=0, autoraise=True):
-        sys.audit("webbrowser.open", url)
         cmdline = [self.name] + [arg.replace("%s", url)
                                  for arg in self.args]
         try:
@@ -174,7 +173,6 @@ class BackgroundBrowser(GenericBrowser):
     def open(self, url, new=0, autoraise=True):
         cmdline = [self.name] + [arg.replace("%s", url)
                                  for arg in self.args]
-        sys.audit("webbrowser.open", url)
         try:
             if sys.platform[:3] == 'win':
                 p = subprocess.Popen(cmdline)
@@ -203,7 +201,7 @@ class UnixBrowser(BaseBrowser):
     remote_action_newwin = None
     remote_action_newtab = None
 
-    def _invoke(self, args, remote, autoraise, url=None):
+    def _invoke(self, args, remote, autoraise):
         raise_opt = []
         if remote and self.raise_opts:
             # use autoraise argument only for remote invocation
@@ -239,7 +237,6 @@ class UnixBrowser(BaseBrowser):
             return not p.wait()
 
     def open(self, url, new=0, autoraise=True):
-        sys.audit("webbrowser.open", url)
         if new == 0:
             action = self.remote_action
         elif new == 1:
@@ -256,7 +253,7 @@ class UnixBrowser(BaseBrowser):
         args = [arg.replace("%s", url).replace("%action", action)
                 for arg in self.remote_args]
         args = [arg for arg in args if arg]
-        success = self._invoke(args, True, autoraise, url)
+        success = self._invoke(args, True, autoraise)
         if not success:
             # remote invocation failed, try straight way
             args = [arg.replace("%s", url) for arg in self.args]
@@ -340,7 +337,6 @@ class Konqueror(BaseBrowser):
     """
 
     def open(self, url, new=0, autoraise=True):
-        sys.audit("webbrowser.open", url)
         # XXX Currently I know no way to prevent KFM from opening a new win.
         if new == 2:
             action = "newTab"
@@ -424,7 +420,6 @@ class Grail(BaseBrowser):
         return 1
 
     def open(self, url, new=0, autoraise=True):
-        sys.audit("webbrowser.open", url)
         if new:
             ok = self._remote("LOADNEW " + url)
         else:
@@ -582,7 +577,6 @@ def register_standard_browsers():
 if sys.platform[:3] == "win":
     class WindowsDefault(BaseBrowser):
         def open(self, url, new=0, autoraise=True):
-            sys.audit("webbrowser.open", url)
             try:
                 os.startfile(url)
             except OSError:
@@ -612,7 +606,6 @@ if sys.platform == 'darwin':
             self.name = name
 
         def open(self, url, new=0, autoraise=True):
-            sys.audit("webbrowser.open", url)
             assert "'" not in url
             # hack for local urls
             if not ':' in url:

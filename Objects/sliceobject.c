@@ -14,9 +14,8 @@ this type and there is exactly one in existence.
 */
 
 #include "Python.h"
-#include "pycore_object.h"
-#include "pycore_pymem.h"
-#include "pycore_pystate.h"
+#include "internal/mem.h"
+#include "internal/pystate.h"
 #include "structmember.h"
 
 static PyObject *
@@ -37,13 +36,13 @@ ellipsis_repr(PyObject *op)
 }
 
 static PyObject *
-ellipsis_reduce(PyObject *op, PyObject *Py_UNUSED(ignored))
+ellipsis_reduce(PyObject *op)
 {
     return PyUnicode_FromString("Ellipsis");
 }
 
 static PyMethodDef ellipsis_methods[] = {
-    {"__reduce__", ellipsis_reduce, METH_NOARGS, NULL},
+    {"__reduce__", (PyCFunction)ellipsis_reduce, METH_NOARGS, NULL},
     {NULL, NULL}
 };
 
@@ -53,10 +52,10 @@ PyTypeObject PyEllipsis_Type = {
     0,                                  /* tp_basicsize */
     0,                                  /* tp_itemsize */
     0, /*never called*/                 /* tp_dealloc */
-    0,                                  /* tp_vectorcall_offset */
+    0,                                  /* tp_print */
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */
-    0,                                  /* tp_as_async */
+    0,                                  /* tp_reserved */
     ellipsis_repr,                      /* tp_repr */
     0,                                  /* tp_as_number */
     0,                                  /* tp_as_sequence */
@@ -547,7 +546,7 @@ S. Out of bounds indices are clipped in a manner consistent with the\n\
 handling of normal slices.");
 
 static PyObject *
-slice_reduce(PySliceObject* self, PyObject *Py_UNUSED(ignored))
+slice_reduce(PySliceObject* self)
 {
     return Py_BuildValue("O(OOO)", Py_TYPE(self), self->start, self->stop, self->step);
 }
@@ -625,10 +624,10 @@ PyTypeObject PySlice_Type = {
     sizeof(PySliceObject),      /* Basic object size */
     0,                          /* Item size for varobject */
     (destructor)slice_dealloc,                  /* tp_dealloc */
-    0,                                          /* tp_vectorcall_offset */
+    0,                                          /* tp_print */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
-    0,                                          /* tp_as_async */
+    0,                                          /* tp_reserved */
     (reprfunc)slice_repr,                       /* tp_repr */
     0,                                          /* tp_as_number */
     0,                                          /* tp_as_sequence */

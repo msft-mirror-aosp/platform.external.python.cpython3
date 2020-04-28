@@ -69,15 +69,11 @@ This documentation page contains the following sections:
 Transports
 ==========
 
-**Source code:** :source:`Lib/asyncio/transports.py`
-
-----------------------------------------------------
-
 Transports are classes provided by :mod:`asyncio` in order to abstract
 various kinds of communication channels.
 
 Transport objects are always instantiated by an
-:ref:`asyncio event loop <asyncio-event-loop>`.
+ref:`asyncio event loop <asyncio-event-loop>`.
 
 asyncio implements transports for TCP, UDP, SSL, and subprocess pipes.
 The methods available on a transport depend on the transport's kind.
@@ -435,10 +431,6 @@ Subprocess Transports
 Protocols
 =========
 
-**Source code:** :source:`Lib/asyncio/protocols.py`
-
----------------------------------------------------
-
 asyncio provides a set of abstract base classes that should be used
 to implement network protocols.  Those classes are meant to be used
 together with :ref:`transports <asyncio-transport>`.
@@ -775,8 +767,9 @@ data, and waits until the connection is closed::
 
 
     class EchoClientProtocol(asyncio.Protocol):
-        def __init__(self, message, on_con_lost):
+        def __init__(self, message, on_con_lost, loop):
             self.message = message
+            self.loop = loop
             self.on_con_lost = on_con_lost
 
         def connection_made(self, transport):
@@ -800,7 +793,7 @@ data, and waits until the connection is closed::
         message = 'Hello World!'
 
         transport, protocol = await loop.create_connection(
-            lambda: EchoClientProtocol(message, on_con_lost),
+            lambda: EchoClientProtocol(message, on_con_lost, loop),
             '127.0.0.1', 8888)
 
         # Wait until the protocol signals that the connection
@@ -876,10 +869,11 @@ method, sends data and closes the transport when it receives the answer::
 
 
     class EchoClientProtocol:
-        def __init__(self, message, on_con_lost):
+        def __init__(self, message, loop):
             self.message = message
-            self.on_con_lost = on_con_lost
+            self.loop = loop
             self.transport = None
+            self.on_con_lost = loop.create_future()
 
         def connection_made(self, transport):
             self.transport = transport
@@ -905,15 +899,13 @@ method, sends data and closes the transport when it receives the answer::
         # low-level APIs.
         loop = asyncio.get_running_loop()
 
-        on_con_lost = loop.create_future()
         message = "Hello World!"
-
         transport, protocol = await loop.create_datagram_endpoint(
-            lambda: EchoClientProtocol(message, on_con_lost),
+            lambda: EchoClientProtocol(message, loop),
             remote_addr=('127.0.0.1', 9999))
 
         try:
-            await on_con_lost
+            await protocol.on_con_lost
         finally:
             transport.close()
 
@@ -935,9 +927,9 @@ Wait until a socket receives data using the
 
     class MyProtocol(asyncio.Protocol):
 
-        def __init__(self, on_con_lost):
+        def __init__(self, loop):
             self.transport = None
-            self.on_con_lost = on_con_lost
+            self.on_con_lost = loop.create_future()
 
         def connection_made(self, transport):
             self.transport = transport
@@ -958,14 +950,13 @@ Wait until a socket receives data using the
         # Get a reference to the event loop as we plan to use
         # low-level APIs.
         loop = asyncio.get_running_loop()
-        on_con_lost = loop.create_future()
 
         # Create a pair of connected sockets
         rsock, wsock = socket.socketpair()
 
         # Register the socket to wait for data.
         transport, protocol = await loop.create_connection(
-            lambda: MyProtocol(on_con_lost), sock=rsock)
+            lambda: MyProtocol(loop), sock=rsock)
 
         # Simulate the reception of data from the network.
         loop.call_soon(wsock.send, 'abc'.encode())
@@ -1038,6 +1029,10 @@ The subprocess is created by th :meth:`loop.subprocess_exec` method::
         # pipe_data_received() method of the protocol.
         data = bytes(protocol.output)
         return data.decode('ascii').rstrip()
+
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(
+            asyncio.WindowsProactorEventLoopPolicy())
 
     date = asyncio.run(get_date())
     print(f"Current date: {date}")

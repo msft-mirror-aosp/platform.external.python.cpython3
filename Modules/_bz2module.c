@@ -264,6 +264,14 @@ _bz2_BZ2Compressor_flush_impl(BZ2Compressor *self)
     return result;
 }
 
+static PyObject *
+BZ2Compressor_getstate(BZ2Compressor *self, PyObject *noargs)
+{
+    PyErr_Format(PyExc_TypeError, "cannot serialize '%s' object",
+                 Py_TYPE(self)->tp_name);
+    return NULL;
+}
+
 static void*
 BZ2_Malloc(void* ctx, int items, int size)
 {
@@ -339,6 +347,7 @@ BZ2Compressor_dealloc(BZ2Compressor *self)
 static PyMethodDef BZ2Compressor_methods[] = {
     _BZ2_BZ2COMPRESSOR_COMPRESS_METHODDEF
     _BZ2_BZ2COMPRESSOR_FLUSH_METHODDEF
+    {"__getstate__", (PyCFunction)BZ2Compressor_getstate, METH_NOARGS},
     {NULL}
 };
 
@@ -349,10 +358,10 @@ static PyTypeObject BZ2Compressor_Type = {
     sizeof(BZ2Compressor),              /* tp_basicsize */
     0,                                  /* tp_itemsize */
     (destructor)BZ2Compressor_dealloc,  /* tp_dealloc */
-    0,                                  /* tp_vectorcall_offset */
+    0,                                  /* tp_print */
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */
-    0,                                  /* tp_as_async */
+    0,                                  /* tp_reserved */
     0,                                  /* tp_repr */
     0,                                  /* tp_as_number */
     0,                                  /* tp_as_sequence */
@@ -603,6 +612,14 @@ _bz2_BZ2Decompressor_decompress_impl(BZ2Decompressor *self, Py_buffer *data,
     return result;
 }
 
+static PyObject *
+BZ2Decompressor_getstate(BZ2Decompressor *self, PyObject *noargs)
+{
+    PyErr_Format(PyExc_TypeError, "cannot serialize '%s' object",
+                 Py_TYPE(self)->tp_name);
+    return NULL;
+}
+
 /*[clinic input]
 _bz2.BZ2Decompressor.__init__
 
@@ -662,6 +679,7 @@ BZ2Decompressor_dealloc(BZ2Decompressor *self)
 
 static PyMethodDef BZ2Decompressor_methods[] = {
     _BZ2_BZ2DECOMPRESSOR_DECOMPRESS_METHODDEF
+    {"__getstate__", (PyCFunction)BZ2Decompressor_getstate, METH_NOARGS},
     {NULL}
 };
 
@@ -690,10 +708,10 @@ static PyTypeObject BZ2Decompressor_Type = {
     sizeof(BZ2Decompressor),            /* tp_basicsize */
     0,                                  /* tp_itemsize */
     (destructor)BZ2Decompressor_dealloc,/* tp_dealloc */
-    0,                                  /* tp_vectorcall_offset */
+    0,                                  /* tp_print */
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */
-    0,                                  /* tp_as_async */
+    0,                                  /* tp_reserved */
     0,                                  /* tp_repr */
     0,                                  /* tp_as_number */
     0,                                  /* tp_as_sequence */

@@ -415,7 +415,7 @@ Some other actions supported by :mod:`optparse` are:
 ``"callback"``
    call a specified function
 
-These are covered in section :ref:`optparse-reference-guide`,
+These are covered in section :ref:`optparse-reference-guide`, Reference Guide
 and section :ref:`optparse-option-callbacks`.
 
 

@@ -6,7 +6,6 @@
 
 #include "Python.h"
 #include "importdl.h"
-#include "pycore_pystate.h"
 
 #if defined(__hp9000s300)
 #define FUNCNAME_PATTERN "_%.20s_%.200s"
@@ -20,47 +19,48 @@ dl_funcptr _PyImport_FindSharedFuncptr(const char *prefix,
                                        const char *shortname,
                                        const char *pathname, FILE *fp)
 {
-    int flags = BIND_FIRST | BIND_DEFERRED;
-    int verbose = _PyInterpreterState_GET_UNSAFE()->config.verbose;
-    if (verbose) {
+    dl_funcptr p;
+    shl_t lib;
+    int flags;
+    char funcname[258];
+
+    flags = BIND_FIRST | BIND_DEFERRED;
+    if (Py_VerboseFlag) {
         flags = BIND_FIRST | BIND_IMMEDIATE |
             BIND_NONFATAL | BIND_VERBOSE;
         printf("shl_load %s\n",pathname);
     }
-
-    shl_t lib = shl_load(pathname, flags, 0);
+    lib = shl_load(pathname, flags, 0);
     /* XXX Chuck Blake once wrote that 0 should be BIND_NOSTART? */
     if (lib == NULL) {
-        if (verbose) {
-            perror(pathname);
-        }
         char buf[256];
+        PyObject *pathname_ob = NULL;
+        PyObject *buf_ob = NULL;
+        PyObject *shortname_ob = NULL;
+
+        if (Py_VerboseFlag)
+            perror(pathname);
         PyOS_snprintf(buf, sizeof(buf), "Failed to load %.200s",
                       pathname);
-        PyObject *buf_ob = PyUnicode_FromString(buf);
-        PyObject *shortname_ob = PyUnicode_FromString(shortname);
-        PyObject *pathname_ob = PyUnicode_FromString(pathname);
+        buf_ob = PyUnicode_FromString(buf);
+        shortname_ob = PyUnicode_FromString(shortname);
+        pathname_ob = PyUnicode_FromString(pathname);
         PyErr_SetImportError(buf_ob, shortname_ob, pathname_ob);
         Py_DECREF(buf_ob);
         Py_DECREF(shortname_ob);
         Py_DECREF(pathname_ob);
         return NULL;
     }
-
-    char funcname[258];
     PyOS_snprintf(funcname, sizeof(funcname), FUNCNAME_PATTERN,
                   prefix, shortname);
-    if (verbose) {
+    if (Py_VerboseFlag)
         printf("shl_findsym %s\n", funcname);
-    }
-
-    dl_funcptr p;
     if (shl_findsym(&lib, funcname, TYPE_UNDEFINED, (void *) &p) == -1) {
         shl_unload(lib);
         p = NULL;
     }
-    if (p == NULL && verbose) {
+    if (p == NULL && Py_VerboseFlag)
         perror(funcname);
-    }
+
     return p;
 }

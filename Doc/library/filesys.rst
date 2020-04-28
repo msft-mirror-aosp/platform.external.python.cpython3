@@ -22,6 +22,7 @@ in this chapter is:
    fnmatch.rst
    linecache.rst
    shutil.rst
+   macpath.rst
 
 
 .. seealso::

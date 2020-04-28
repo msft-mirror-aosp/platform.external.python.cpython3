@@ -6,7 +6,6 @@ from io import BytesIO, DEFAULT_BUFFER_SIZE
 import os
 import pickle
 import glob
-import tempfile
 import pathlib
 import random
 import shutil
@@ -77,11 +76,11 @@ class BaseTest(unittest.TestCase):
     BIG_DATA = bz2.compress(BIG_TEXT, compresslevel=1)
 
     def setUp(self):
-        fd, self.filename = tempfile.mkstemp()
-        os.close(fd)
+        self.filename = support.TESTFN
 
     def tearDown(self):
-        unlink(self.filename)
+        if os.path.isfile(self.filename):
+            os.unlink(self.filename)
 
 
 class BZ2FileTest(BaseTest):
@@ -643,7 +642,6 @@ class BZ2CompressorTest(BaseTest):
         data += bz2c.flush()
         self.assertEqual(ext_decompress(data), self.TEXT)
 
-    @support.skip_if_pgo_task
     @bigmemtest(size=_4G + 100, memuse=2)
     def testCompress4G(self, size):
         # "Test BZ2Compressor.compress()/flush() with >4GiB input"
@@ -702,7 +700,6 @@ class BZ2DecompressorTest(BaseTest):
         self.assertRaises(EOFError, bz2d.decompress, b"anything")
         self.assertRaises(EOFError, bz2d.decompress, b"")
 
-    @support.skip_if_pgo_task
     @bigmemtest(size=_4G + 100, memuse=3.3)
     def testDecompress4G(self, size):
         # "Test BZ2Decompressor.decompress() with >4GiB input"

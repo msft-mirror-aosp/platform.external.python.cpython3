@@ -137,7 +137,7 @@ nis_foreach (int instatus, char *inkey, int inkeylen, char *inval,
 }
 
 static PyObject *
-nis_get_default_domain (PyObject *self, PyObject *Py_UNUSED(ignored))
+nis_get_default_domain (PyObject *self)
 {
     char *domain;
     int err;
@@ -424,16 +424,16 @@ nis_maps (PyObject *self, PyObject *args, PyObject *kwdict)
 }
 
 static PyMethodDef nis_methods[] = {
-    {"match",                   (PyCFunction)(void(*)(void))nis_match,
+    {"match",                   (PyCFunction)nis_match,
                                     METH_VARARGS | METH_KEYWORDS,
                                     match__doc__},
-    {"cat",                     (PyCFunction)(void(*)(void))nis_cat,
+    {"cat",                     (PyCFunction)nis_cat,
                                     METH_VARARGS | METH_KEYWORDS,
                                     cat__doc__},
-    {"maps",                    (PyCFunction)(void(*)(void))nis_maps,
+    {"maps",                    (PyCFunction)nis_maps,
                                     METH_VARARGS | METH_KEYWORDS,
                                     maps__doc__},
-    {"get_default_domain",      nis_get_default_domain,
+    {"get_default_domain",      (PyCFunction)nis_get_default_domain,
                                     METH_NOARGS,
                                     get_default_domain__doc__},
     {NULL,                      NULL}            /* Sentinel */

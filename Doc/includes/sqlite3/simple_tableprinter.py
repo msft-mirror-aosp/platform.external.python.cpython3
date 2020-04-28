@@ -24,5 +24,3 @@ for row in cur:
         print(fieldValue.ljust(FIELD_MAX_WIDTH), end=' ')
 
     print() # Finish the row with a newline.
-
-con.close()

@@ -61,8 +61,7 @@ def gencodecs(prefix):
                                        encoding=enc.lower(),
                                        owner=loc)
             codecpath = os.path.join(prefix, enc + '.py')
-            with open(codecpath, 'w') as f:
-                f.write(code)
+            open(codecpath, 'w').write(code)
 
 if __name__ == '__main__':
     import sys

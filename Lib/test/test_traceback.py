@@ -110,7 +110,7 @@ class TracebackCases(unittest.TestCase):
         # Test that tracebacks are correctly printed for encoded source files:
         # - correct line number (Issue2384)
         # - respect file encoding (Issue3975)
-        import sys, subprocess
+        import tempfile, sys, subprocess, os
 
         # The spawned subprocess has its stdout redirected to a PIPE, and its
         # encoding may be different from the current interpreter, on Windows
@@ -868,7 +868,6 @@ class MiscTracebackCases(unittest.TestCase):
             (__file__, lineno+2, 'test_extract_stack', 'result = extract()'),
             (__file__, lineno+1, 'extract', 'return traceback.extract_stack()'),
             ])
-        self.assertEqual(len(result[0]), 4)
 
 
 class TestFrame(unittest.TestCase):
@@ -900,10 +899,6 @@ class TestFrame(unittest.TestCase):
     def test_explicit_line(self):
         f = traceback.FrameSummary("f", 1, "dummy", line="line")
         self.assertEqual("line", f.line)
-
-    def test_len(self):
-        f = traceback.FrameSummary("f", 1, "dummy", line="line")
-        self.assertEqual(len(f), 4)
 
 
 class TestStack(unittest.TestCase):
@@ -995,11 +990,11 @@ class TestStack(unittest.TestCase):
         s = some_inner(3, 4)
         self.assertEqual(
             ['  File "%s", line %d, in some_inner\n'
-             '    return traceback.StackSummary.extract(\n'
+             '    traceback.walk_stack(None), capture_locals=True, limit=1)\n'
              '    a = 1\n'
              '    b = 2\n'
              '    k = 3\n'
-             '    v = 4\n' % (__file__, some_inner.__code__.co_firstlineno + 3)
+             '    v = 4\n' % (__file__, some_inner.__code__.co_firstlineno + 4)
             ], s.format())
 
 class TestTracebackException(unittest.TestCase):

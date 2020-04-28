@@ -16,7 +16,7 @@
 #>
 param(
     [Parameter(Mandatory=$true)][string]$root,
-    [string[]]$patterns=@("*.exe", "*.dll", "*.pyd", "*.cat"),
+    [string[]]$patterns=@("*.exe", "*.dll", "*.pyd"),
     [string]$description,
     [string]$certname,
     [string]$certsha1,

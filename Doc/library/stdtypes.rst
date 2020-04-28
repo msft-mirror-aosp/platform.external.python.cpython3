@@ -20,10 +20,10 @@ rearrange their members in place, and don't return a specific item, never return
 the collection instance itself but ``None``.
 
 Some operations are supported by several object types; in particular,
-practically all objects can be compared for equality, tested for truth
-value, and converted to a string (with the :func:`repr` function or the
-slightly different :func:`str` function).  The latter function is implicitly
-used when an object is written by the :func:`print` function.
+practically all objects can be compared, tested for truth value, and converted
+to a string (with the :func:`repr` function or the slightly different
+:func:`str` function).  The latter function is implicitly used when an object is
+written by the :func:`print` function.
 
 
 .. _truth:
@@ -164,10 +164,12 @@ This table summarizes the comparison operations:
    pair: objects; comparing
 
 Objects of different types, except different numeric types, never compare equal.
-The ``==`` operator is always defined but for some object types (for example,
-class objects) is equivalent to :keyword:`is`. The ``<``, ``<=``, ``>`` and ``>=``
-operators are only defined where they make sense; for example, they raise a
-:exc:`TypeError` exception when one of the arguments is a complex number.
+Furthermore, some types (for example, function objects) support only a degenerate
+notion of comparison where any two objects of that type are unequal.  The ``<``,
+``<=``, ``>`` and ``>=`` operators will raise a :exc:`TypeError` exception when
+comparing a complex number with another built-in numeric type, when the objects
+are of different types that cannot be compared, or in other cases where there is
+no defined ordering.
 
 .. index::
    single: __eq__() (instance method)
@@ -220,8 +222,8 @@ numbers for the machine on which your program is running is available
 in :data:`sys.float_info`.  Complex numbers have a real and imaginary
 part, which are each a floating point number.  To extract these parts
 from a complex number *z*, use ``z.real`` and ``z.imag``. (The standard
-library includes the additional numeric types :mod:`fractions.Fraction`, for
-rationals, and :mod:`decimal.Decimal`, for floating-point numbers with
+library includes additional numeric types, :mod:`fractions` that hold
+rationals, and :mod:`decimal` that hold floating-point numbers with
 user-definable precision.)
 
 .. index::
@@ -265,8 +267,9 @@ which is narrower than complex.  Comparisons between numbers of mixed type use
 the same rule. [2]_ The constructors :func:`int`, :func:`float`, and
 :func:`complex` can be used to produce numbers of a specific type.
 
-All numeric types (except complex) support the following operations (for priorities of
-the operations, see :ref:`operator-summary`):
+All numeric types (except complex) support the following operations, sorted by
+ascending priority (all numeric operations have a higher priority than
+comparison operations):
 
 +---------------------+---------------------------------+---------+--------------------+
 | Operation           | Result                          | Notes   | Full documentation |
@@ -350,7 +353,7 @@ Notes:
    The numeric literals accepted include the digits ``0`` to ``9`` or any
    Unicode equivalent (code points with the ``Nd`` property).
 
-   See http://www.unicode.org/Public/12.1.0/ucd/extracted/DerivedNumericType.txt
+   See http://www.unicode.org/Public/10.0.0/ucd/extracted/DerivedNumericType.txt
    for a complete list of code points with the ``Nd`` property.
 
 
@@ -540,14 +543,6 @@ class`. In addition, it provides a few more methods:
 
     .. versionadded:: 3.2
 
-.. method:: int.as_integer_ratio()
-
-   Return a pair of integers whose ratio is exactly equal to the original
-   integer and with a positive denominator. The integer ratio of integers
-   (whole numbers) is always the integer as the numerator and ``1`` as the
-   denominator.
-
-   .. versionadded:: 3.8
 
 Additional Methods on Float
 ---------------------------
@@ -1113,7 +1108,7 @@ Notes:
    item is removed and returned.
 
 (3)
-   :meth:`remove` raises :exc:`ValueError` when *x* is not found in *s*.
+   ``remove`` raises :exc:`ValueError` when *x* is not found in *s*.
 
 (4)
    The :meth:`reverse` method modifies the sequence in place for economy of
@@ -1123,9 +1118,7 @@ Notes:
 (5)
    :meth:`clear` and :meth:`!copy` are included for consistency with the
    interfaces of mutable containers that don't support slicing operations
-   (such as :class:`dict` and :class:`set`). :meth:`!copy` is not part of the
-   :class:`collections.abc.MutableSequence` ABC, but most concrete
-   mutable sequence classes provide it.
+   (such as :class:`dict` and :class:`set`)
 
    .. versionadded:: 3.3
       :meth:`clear` and :meth:`!copy` methods.
@@ -1205,8 +1198,6 @@ application).
       guarantees not to change the relative order of elements that compare equal
       --- this is helpful for sorting in multiple passes (for example, sort by
       department, then by salary grade).
-
-      For sorting examples and a brief sorting tutorial, see :ref:`sortinghowto`.
 
       .. impl-detail::
 
@@ -1510,10 +1501,6 @@ expression support in the :mod:`re` module).
    Return a copy of the string with its first character capitalized and the
    rest lowercased.
 
-   .. versionchanged:: 3.8
-      The first character is now put into titlecase rather than uppercase.
-      This means that characters like digraphs will only have their first
-      letter capitalized, instead of the full character.
 
 .. method:: str.casefold()
 
@@ -1711,19 +1698,8 @@ expression support in the :mod:`re` module).
    Return true if the string is a valid identifier according to the language
    definition, section :ref:`identifiers`.
 
-   Call :func:`keyword.iskeyword` to test whether string ``s`` is a reserved
-   identifier, such as :keyword:`def` and :keyword:`class`.
-
-   Example:
-   ::
-
-      >>> from keyword import iskeyword
-
-      >>> 'hello'.isidentifier(), iskeyword('hello')
-      True, False
-      >>> 'def'.isidentifier(), iskeyword('def')
-      True, True
-
+   Use :func:`keyword.iskeyword` to test for reserved identifiers such as
+   :keyword:`def` and :keyword:`class`.
 
 .. method:: str.islower()
 
@@ -1755,13 +1731,9 @@ expression support in the :mod:`re` module).
 .. method:: str.isspace()
 
    Return true if there are only whitespace characters in the string and there is
-   at least one character, false otherwise.
-
-   A character is *whitespace* if in the Unicode character database
-   (see :mod:`unicodedata`), either its general category is ``Zs``
-   ("Separator, space"), or its bidirectional class is one of ``WS``,
-   ``B``, or ``S``.
-
+   at least one character, false otherwise.  Whitespace characters  are those
+   characters defined in the Unicode character database as "Other" or "Separator"
+   and those with bidirectional property being one of "WS", "B", or "S".
 
 .. method:: str.istitle()
 
@@ -2061,7 +2033,8 @@ expression support in the :mod:`re` module).
         >>> import re
         >>> def titlecase(s):
         ...     return re.sub(r"[A-Za-z]+('[A-Za-z]+)?",
-        ...                   lambda mo: mo.group(0).capitalize(),
+        ...                   lambda mo: mo.group(0)[0].upper() +
+        ...                              mo.group(0)[1:].lower(),
         ...                   s)
         ...
         >>> titlecase("they're bill's friends.")
@@ -2407,25 +2380,7 @@ data and are closely related to string objects in a variety of other ways.
       >>> b'\xf0\xf1\xf2'.hex()
       'f0f1f2'
 
-      If you want to make the hex string easier to read, you can specify a
-      single character separator *sep* parameter to include in the output.
-      By default between each byte.  A second optional *bytes_per_sep*
-      parameter controls the spacing.  Positive values calculate the
-      separator position from the right, negative values from the left.
-
-      >>> value = b'\xf0\xf1\xf2'
-      >>> value.hex('-')
-      'f0-f1-f2'
-      >>> value.hex('_', 2)
-      'f0_f1f2'
-      >>> b'UUDDLRLRAB'.hex(' ', -4)
-      '55554444 4c524c52 4142'
-
       .. versionadded:: 3.5
-
-      .. versionchanged:: 3.8
-         :meth:`bytes.hex` now supports optional *sep* and *bytes_per_sep*
-         parameters to insert separators between bytes in the hex output.
 
 Since bytes objects are sequences of integers (akin to a tuple), for a bytes
 object *b*, ``b[0]`` will be an integer, while ``b[0:1]`` will be a bytes
@@ -2722,8 +2677,8 @@ arbitrary binary data.
    containing the part before the separator, the separator itself or its
    bytearray copy, and the part after the separator.
    If the separator is not found, return a 3-tuple
-   containing two empty bytes or bytearray objects, followed by a copy of the
-   original sequence.
+   containing a copy of the original sequence, followed by two empty bytes or
+   bytearray objects.
 
    The separator to search for may be any :term:`bytes-like object`.
 
@@ -2739,8 +2694,8 @@ arbitrary binary data.
    The prefix(es) to search for may be any :term:`bytes-like object`.
 
 
-.. method:: bytes.translate(table, /, delete=b'')
-            bytearray.translate(table, /, delete=b'')
+.. method:: bytes.translate(table, delete=b'')
+            bytearray.translate(table, delete=b'')
 
    Return a copy of the bytes or bytearray object where all bytes occurring in
    the optional argument *delete* are removed, and the remaining bytes have
@@ -3626,7 +3581,7 @@ copying.
          Previous versions compared the raw memory disregarding the item format
          and the logical array structure.
 
-   .. method:: tobytes(order=None)
+   .. method:: tobytes()
 
       Return the data in the buffer as a bytestring.  This is equivalent to
       calling the :class:`bytes` constructor on the memoryview. ::
@@ -3641,13 +3596,6 @@ copying.
       representation with all elements converted to bytes. :meth:`tobytes`
       supports all format strings, including those that are not in
       :mod:`struct` module syntax.
-
-      .. versionadded:: 3.8
-         *Order* can be {'C', 'F', 'A'}.  When *order* is 'C' or 'F', the data
-         of the original array is converted to C or Fortran order. For contiguous
-         views, 'A' returns an exact copy of the physical memory. In particular,
-         in-memory Fortran order is preserved. For non-contiguous views, the
-         data is converted to C first. *order=None* is the same as *order='C'*.
 
    .. method:: hex()
 
@@ -3676,25 +3624,6 @@ copying.
          :meth:`tolist` now supports all single character native formats in
          :mod:`struct` module syntax as well as multi-dimensional
          representations.
-
-   .. method:: toreadonly()
-
-      Return a readonly version of the memoryview object.  The original
-      memoryview object is unchanged. ::
-
-         >>> m = memoryview(bytearray(b'abc'))
-         >>> mm = m.toreadonly()
-         >>> mm.tolist()
-         [89, 98, 99]
-         >>> mm[0] = 42
-         Traceback (most recent call last):
-           File "<stdin>", line 1, in <module>
-         TypeError: cannot modify read-only memory
-         >>> m[0] = 43
-         >>> mm.tolist()
-         [43, 98, 99]
-
-      .. versionadded:: 3.8
 
    .. method:: release()
 
@@ -3804,7 +3733,7 @@ copying.
          >>> z.nbytes
          48
 
-      Cast 1D/unsigned long to 2D/unsigned long::
+      Cast 1D/unsigned char to 2D/unsigned long::
 
          >>> buf = struct.pack("L"*6, *list(range(6)))
          >>> x = memoryview(buf)
@@ -4209,10 +4138,6 @@ pairs within braces, for example: ``{'jack': 4098, 'sjoerd': 4127}`` or ``{4098:
    These are the operations that dictionaries support (and therefore, custom
    mapping types should support too):
 
-   .. describe:: list(d)
-
-      Return a list of all the keys used in the dictionary *d*.
-
    .. describe:: len(d)
 
       Return the number of items in the dictionary *d*.
@@ -4281,10 +4206,7 @@ pairs within braces, for example: ``{'jack': 4098, 'sjoerd': 4127}`` or ``{4098:
       Create a new dictionary with keys from *iterable* and values set to *value*.
 
       :meth:`fromkeys` is a class method that returns a new dictionary. *value*
-      defaults to ``None``.  All of the values refer to just a single instance,
-      so it generally doesn't make sense for *value* to be a mutable object
-      such as an empty list.  To get distinct values, use a :ref:`dict
-      comprehension <dict>` instead.
+      defaults to ``None``.
 
    .. method:: get(key[, default])
 
@@ -4321,11 +4243,6 @@ pairs within braces, for example: ``{'jack': 4098, 'sjoerd': 4127}`` or ``{4098:
          LIFO order is now guaranteed. In prior versions, :meth:`popitem` would
          return an arbitrary key/value pair.
 
-   .. describe:: reversed(d)
-
-      Return a reverse iterator over the keys of the dictionary. This is a
-      shortcut for ``reversed(d.keys())``.
-
    .. method:: setdefault(key[, default])
 
       If *key* is in the dictionary, return its value.  If not, insert *key*
@@ -4347,16 +4264,8 @@ pairs within braces, for example: ``{'jack': 4098, 'sjoerd': 4127}`` or ``{4098:
       Return a new view of the dictionary's values.  See the
       :ref:`documentation of view objects <dict-views>`.
 
-      An equality comparison between one ``dict.values()`` view and another
-      will always return ``False``. This also applies when comparing
-      ``dict.values()`` to itself::
-
-         >>> d = {'a': 1}
-         >>> d.values() == d.values()
-         False
-
    Dictionaries compare equal if and only if they have the same ``(key,
-   value)`` pairs (regardless of ordering). Order comparisons ('<', '<=', '>=', '>') raise
+   value)`` pairs. Order comparisons ('<', '<=', '>=', '>') raise
    :exc:`TypeError`.
 
    Dictionaries preserve insertion order.  Note that updating a key does not
@@ -4380,22 +4289,6 @@ pairs within braces, for example: ``{'jack': 4098, 'sjoerd': 4127}`` or ``{4098:
    .. versionchanged:: 3.7
       Dictionary order is guaranteed to be insertion order.  This behavior was
       an implementation detail of CPython from 3.6.
-
-   Dictionaries and dictionary views are reversible. ::
-
-      >>> d = {"one": 1, "two": 2, "three": 3, "four": 4}
-      >>> d
-      {'one': 1, 'two': 2, 'three': 3, 'four': 4}
-      >>> list(reversed(d))
-      ['four', 'three', 'two', 'one']
-      >>> list(reversed(d.values()))
-      [4, 3, 2, 1]
-      >>> list(reversed(d.items()))
-      [('four', 4), ('three', 3), ('two', 2), ('one', 1)]
-
-   .. versionchanged:: 3.8
-      Dictionaries are now reversible.
-
 
 .. seealso::
    :class:`types.MappingProxyType` can be used to create a read-only view
@@ -4439,14 +4332,6 @@ support membership tests:
 
    Return ``True`` if *x* is in the underlying dictionary's keys, values or
    items (in the latter case, *x* should be a ``(key, value)`` tuple).
-
-.. describe:: reversed(dictview)
-
-   Return a reverse iterator over the keys, values or items of the dictionary.
-   The view will be iterated in reverse order of the insertion.
-
-   .. versionchanged:: 3.8
-      Dictionary views are now reversible.
 
 
 Keys views are set-like since their entries are unique and hashable.  If all
@@ -4856,3 +4741,4 @@ types, where they are relevant.  Some of these are not reported by the
 
 .. [5] To format only a tuple you should therefore provide a singleton tuple whose only
    element is the tuple to be formatted.
+

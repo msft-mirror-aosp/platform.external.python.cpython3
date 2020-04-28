@@ -21,7 +21,6 @@ document the API functions in detail.
    abstract.rst
    concrete.rst
    init.rst
-   init_config.rst
    memory.rst
    objimpl.rst
    apiabiversion.rst

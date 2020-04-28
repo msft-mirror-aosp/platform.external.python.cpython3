@@ -158,7 +158,7 @@ class TestClassGetitem(unittest.TestCase):
         self.assertEqual(getitem_args[0], (C, (int, str)))
         self.assertEqual(getitem_args[1], {})
 
-    def test_class_getitem_format(self):
+    def test_class_getitem(self):
         class C:
             def __class_getitem__(cls, item):
                 return f'C[{item.__name__}]'

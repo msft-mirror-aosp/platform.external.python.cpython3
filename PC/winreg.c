@@ -12,7 +12,6 @@
 
 */
 
-#define PY_SSIZE_T_CLEAN
 #include "Python.h"
 #include "structmember.h"
 #include "windows.h"
@@ -84,7 +83,7 @@ PyDoc_STRVAR(PyHKEY_doc,
 "the object is destroyed.  To guarantee cleanup, you can call either\n"
 "the Close() method on the PyHKEY, or the CloseKey() method.\n"
 "\n"
-"All functions which accept a handle object also accept an integer --\n"
+"All functions which accept a handle object also accept an integer - \n"
 "however, use of the handle object is encouraged.\n"
 "\n"
 "Functions:\n"
@@ -355,10 +354,10 @@ PyTypeObject PyHKEY_Type =
     sizeof(PyHKEYObject),
     0,
     PyHKEY_deallocFunc,                 /* tp_dealloc */
-    0,                                  /* tp_vectorcall_offset */
+    0,                                  /* tp_print */
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */
-    0,                                  /* tp_as_async */
+    0,                                  /* tp_reserved */
     0,                                  /* tp_repr */
     &PyHKEY_NumberMethods,              /* tp_as_number */
     0,                                  /* tp_as_sequence */
@@ -518,18 +517,11 @@ fixupMultiSZ(wchar_t **str, wchar_t *data, int len)
     int i;
     wchar_t *Q;
 
-    if (len > 0 && data[len - 1] == '\0') {
-        Q = data + len - 1;
-    }
-    else {
-        Q = data + len;
-    }
-
-    for (P = data, i = 0; P < Q; P++, i++) {
+    Q = data + len;
+    for (P = data, i = 0; P < Q && *P != '\0'; P++, i++) {
         str[i] = P;
-        for (; P < Q && *P != '\0'; P++) {
+        for(; *P != '\0'; P++)
             ;
-        }
     }
 }
 
@@ -537,20 +529,12 @@ static int
 countStrings(wchar_t *data, int len)
 {
     int strings;
-    wchar_t *P, *Q;
+    wchar_t *P;
+    wchar_t *Q = data + len;
 
-    if (len > 0 && data[len - 1] == '\0') {
-        Q = data + len - 1;
-    }
-    else {
-        Q = data + len;
-    }
-
-    for (P = data, strings = 0; P < Q; P++, strings++) {
-        for (; P < Q && *P != '\0'; P++) {
+    for (P = data, strings = 0; P < Q && *P != '\0'; P++, strings++)
+        for (; P < Q && *P != '\0'; P++)
             ;
-        }
-    }
     return strings;
 }
 
@@ -667,7 +651,8 @@ Py2Reg(PyObject *value, DWORD typ, BYTE **retDataBuf, DWORD *retDataSize)
 
                     t = PyList_GET_ITEM(value, j);
                     wstr = PyUnicode_AsUnicodeAndSize(t, &len);
-                    assert(wstr);
+                    if (wstr == NULL)
+                        return FALSE;
                     wcscpy(P, wstr);
                     P += (len + 1);
                 }
@@ -764,15 +749,21 @@ Reg2Py(BYTE *retDataBuf, DWORD retDataSize, DWORD typ)
                 }
                 for (index = 0; index < s; index++)
                 {
-                    size_t slen = wcsnlen(str[index], len);
-                    PyObject *uni = PyUnicode_FromWideChar(str[index], slen);
+                    size_t len = wcslen(str[index]);
+                    if (len > INT_MAX) {
+                        PyErr_SetString(PyExc_OverflowError,
+                            "registry string is too long for a Python string");
+                        Py_DECREF(obData);
+                        PyMem_Free(str);
+                        return NULL;
+                    }
+                    PyObject *uni = PyUnicode_FromWideChar(str[index], len);
                     if (uni == NULL) {
                         Py_DECREF(obData);
                         PyMem_Free(str);
                         return NULL;
                     }
                     PyList_SET_ITEM(obData, index, uni);
-                    len -= Py_SAFE_DOWNCAST(slen + 1, size_t, int);
                 }
                 PyMem_Free(str);
 
@@ -994,12 +985,10 @@ winreg_DeleteKeyEx_impl(PyObject *module, HKEY key,
 
     /* Only available on 64bit platforms, so we must load it
        dynamically. */
-    Py_BEGIN_ALLOW_THREADS
     hMod = GetModuleHandleW(L"advapi32.dll");
     if (hMod)
         pfn = (RDKEFunc)GetProcAddress(hMod,
                                                                    "RegDeleteKeyExW");
-    Py_END_ALLOW_THREADS
     if (!pfn) {
         PyErr_SetString(PyExc_NotImplementedError,
                                         "not implemented on this platform");
@@ -1614,16 +1603,13 @@ winreg_SetValue_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key,
     long rc;
 
     if (type != REG_SZ) {
-        PyErr_SetString(PyExc_TypeError, "type must be winreg.REG_SZ");
-        return NULL;
-    }
-    if ((size_t)value_length >= PY_DWORD_MAX) {
-        PyErr_SetString(PyExc_OverflowError, "value is too long");
+        PyErr_SetString(PyExc_TypeError,
+                        "Type must be winreg.REG_SZ");
         return NULL;
     }
 
     Py_BEGIN_ALLOW_THREADS
-    rc = RegSetValueW(key, sub_key, REG_SZ, value, (DWORD)(value_length + 1));
+    rc = RegSetValueW(key, sub_key, REG_SZ, value, value_length+1);
     Py_END_ALLOW_THREADS
     if (rc != ERROR_SUCCESS)
         return PyErr_SetFromWindowsErrWithFunction(rc, "RegSetValue");
@@ -1711,7 +1697,7 @@ winreg.DisableReflectionKey
 
 Disables registry reflection for 32bit processes running on a 64bit OS.
 
-Will generally raise NotImplementedError if executed on a 32bit OS.
+Will generally raise NotImplemented if executed on a 32bit OS.
 
 If the key is not on the reflection list, the function succeeds but has
 no effect.  Disabling reflection for a key does not affect reflection
@@ -1720,7 +1706,7 @@ of any subkeys.
 
 static PyObject *
 winreg_DisableReflectionKey_impl(PyObject *module, HKEY key)
-/*[clinic end generated code: output=830cce504cc764b4 input=70bece2dee02e073]*/
+/*[clinic end generated code: output=830cce504cc764b4 input=a6c9e5ca5410193c]*/
 {
     HMODULE hMod;
     typedef LONG (WINAPI *RDRKFunc)(HKEY);
@@ -1729,12 +1715,10 @@ winreg_DisableReflectionKey_impl(PyObject *module, HKEY key)
 
     /* Only available on 64bit platforms, so we must load it
        dynamically.*/
-    Py_BEGIN_ALLOW_THREADS
     hMod = GetModuleHandleW(L"advapi32.dll");
     if (hMod)
         pfn = (RDRKFunc)GetProcAddress(hMod,
                                        "RegDisableReflectionKey");
-    Py_END_ALLOW_THREADS
     if (!pfn) {
         PyErr_SetString(PyExc_NotImplementedError,
                         "not implemented on this platform");
@@ -1758,14 +1742,14 @@ winreg.EnableReflectionKey
 
 Restores registry reflection for the specified disabled key.
 
-Will generally raise NotImplementedError if executed on a 32bit OS.
+Will generally raise NotImplemented if executed on a 32bit OS.
 Restoring reflection for a key does not affect reflection of any
 subkeys.
 [clinic start generated code]*/
 
 static PyObject *
 winreg_EnableReflectionKey_impl(PyObject *module, HKEY key)
-/*[clinic end generated code: output=86fa1385fdd9ce57 input=eeae770c6eb9f559]*/
+/*[clinic end generated code: output=86fa1385fdd9ce57 input=7748abbacd1e166a]*/
 {
     HMODULE hMod;
     typedef LONG (WINAPI *RERKFunc)(HKEY);
@@ -1774,12 +1758,10 @@ winreg_EnableReflectionKey_impl(PyObject *module, HKEY key)
 
     /* Only available on 64bit platforms, so we must load it
        dynamically.*/
-    Py_BEGIN_ALLOW_THREADS
     hMod = GetModuleHandleW(L"advapi32.dll");
     if (hMod)
         pfn = (RERKFunc)GetProcAddress(hMod,
                                        "RegEnableReflectionKey");
-    Py_END_ALLOW_THREADS
     if (!pfn) {
         PyErr_SetString(PyExc_NotImplementedError,
                         "not implemented on this platform");
@@ -1803,12 +1785,12 @@ winreg.QueryReflectionKey
 
 Returns the reflection state for the specified key as a bool.
 
-Will generally raise NotImplementedError if executed on a 32bit OS.
+Will generally raise NotImplemented if executed on a 32bit OS.
 [clinic start generated code]*/
 
 static PyObject *
 winreg_QueryReflectionKey_impl(PyObject *module, HKEY key)
-/*[clinic end generated code: output=4e774af288c3ebb9 input=a98fa51d55ade186]*/
+/*[clinic end generated code: output=4e774af288c3ebb9 input=9f325eacb5a65d88]*/
 {
     HMODULE hMod;
     typedef LONG (WINAPI *RQRKFunc)(HKEY, BOOL *);
@@ -1818,12 +1800,10 @@ winreg_QueryReflectionKey_impl(PyObject *module, HKEY key)
 
     /* Only available on 64bit platforms, so we must load it
        dynamically.*/
-    Py_BEGIN_ALLOW_THREADS
     hMod = GetModuleHandleW(L"advapi32.dll");
     if (hMod)
         pfn = (RQRKFunc)GetProcAddress(hMod,
                                        "RegQueryReflectionKey");
-    Py_END_ALLOW_THREADS
     if (!pfn) {
         PyErr_SetString(PyExc_NotImplementedError,
                         "not implemented on this platform");

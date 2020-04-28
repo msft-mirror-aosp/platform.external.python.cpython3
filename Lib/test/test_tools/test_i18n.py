@@ -211,7 +211,7 @@ class Test_pygettext(unittest.TestCase):
         self.assertIn('doc3', msgids)
 
     def test_classdocstring_early_colon(self):
-        """ Test docstring extraction for a class with colons occurring within
+        """ Test docstring extraction for a class with colons occuring within
         the parentheses.
         """
         msgids = self.extract_docstrings_from_str(dedent('''\

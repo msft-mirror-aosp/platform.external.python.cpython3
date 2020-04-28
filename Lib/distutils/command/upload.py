@@ -121,13 +121,18 @@ class upload(PyPIRCCommand):
             'requires': meta.get_requires(),
             'obsoletes': meta.get_obsoletes(),
             }
-
-        data['comment'] = ''
+        comment = ''
+        if command == 'bdist_rpm':
+            dist, version, id = platform.dist()
+            if dist:
+                comment = 'built for %s %s' % (dist, version)
+        elif command == 'bdist_dumb':
+            comment = 'built for %s' % platform.platform(terse=1)
+        data['comment'] = comment
 
         if self.sign:
-            with open(filename + ".asc", "rb") as f:
-                data['gpg_signature'] = (os.path.basename(filename) + ".asc",
-                                         f.read())
+            data['gpg_signature'] = (os.path.basename(filename) + ".asc",
+                                     open(filename+".asc", "rb").read())
 
         # set up the authentication
         user_pass = (self.username + ":" + self.password).encode('ascii')

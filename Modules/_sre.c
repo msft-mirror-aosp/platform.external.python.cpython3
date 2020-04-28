@@ -87,17 +87,24 @@ static const char copyright[] =
 /* search engine state */
 
 #define SRE_IS_DIGIT(ch)\
-    ((ch) <= '9' && Py_ISDIGIT(ch))
+    ((ch) < 128 && Py_ISDIGIT(ch))
 #define SRE_IS_SPACE(ch)\
-    ((ch) <= ' ' && Py_ISSPACE(ch))
+    ((ch) < 128 && Py_ISSPACE(ch))
 #define SRE_IS_LINEBREAK(ch)\
     ((ch) == '\n')
+#define SRE_IS_ALNUM(ch)\
+    ((ch) < 128 && Py_ISALNUM(ch))
 #define SRE_IS_WORD(ch)\
-    ((ch) <= 'z' && (Py_ISALNUM(ch) || (ch) == '_'))
+    ((ch) < 128 && (Py_ISALNUM(ch) || (ch) == '_'))
 
 static unsigned int sre_lower_ascii(unsigned int ch)
 {
     return ((ch) < 128 ? Py_TOLOWER(ch) : ch);
+}
+
+static unsigned int sre_upper_ascii(unsigned int ch)
+{
+    return ((ch) < 128 ? Py_TOUPPER(ch) : ch);
 }
 
 /* locale-specific character predicates */
@@ -288,7 +295,7 @@ _sre_ascii_iscased_impl(PyObject *module, int character)
 /*[clinic end generated code: output=4f454b630fbd19a2 input=9f0bd952812c7ed3]*/
 {
     unsigned int ch = (unsigned int)character;
-    return ch < 128 && Py_ISALPHA(ch);
+    return ch != sre_lower_ascii(ch) || ch != sre_upper_ascii(ch);
 }
 
 /*[clinic input]
@@ -1899,7 +1906,15 @@ match_getslice_by_index(MatchObject* self, Py_ssize_t index, PyObject* def)
     void* ptr;
     Py_ssize_t i, j;
 
-    assert(0 <= index && index < self->groups);
+    if (index < 0 || index >= self->groups) {
+        /* raise IndexError if we were given a bad group number */
+        PyErr_SetString(
+            PyExc_IndexError,
+            "no such group"
+            );
+        return NULL;
+    }
+
     index *= 2;
 
     if (self->string == Py_None || self->mark[index] < 0) {
@@ -1932,24 +1947,16 @@ match_getindex(MatchObject* self, PyObject* index)
         return 0;
 
     if (PyIndex_Check(index)) {
-        i = PyNumber_AsSsize_t(index, NULL);
+        return PyNumber_AsSsize_t(index, NULL);
     }
-    else {
-        i = -1;
 
-        if (self->pattern->groupindex) {
-            index = PyDict_GetItemWithError(self->pattern->groupindex, index);
-            if (index && PyLong_Check(index)) {
-                i = PyLong_AsSsize_t(index);
-            }
+    i = -1;
+
+    if (self->pattern->groupindex) {
+        index = PyDict_GetItem(self->pattern->groupindex, index);
+        if (index && PyLong_Check(index)) {
+            i = PyLong_AsSsize_t(index);
         }
-    }
-    if (i < 0 || i >= self->groups) {
-        /* raise IndexError if we were given a bad group number */
-        if (!PyErr_Occurred()) {
-            PyErr_SetString(PyExc_IndexError, "no such group");
-        }
-        return -1;
     }
 
     return i;
@@ -1958,13 +1965,7 @@ match_getindex(MatchObject* self, PyObject* index)
 static PyObject*
 match_getslice(MatchObject* self, PyObject* index, PyObject* def)
 {
-    Py_ssize_t i = match_getindex(self, index);
-
-    if (i < 0) {
-        return NULL;
-    }
-
-    return match_getslice_by_index(self, i, def);
+    return match_getslice_by_index(self, match_getindex(self, index), def);
 }
 
 /*[clinic input]
@@ -2120,7 +2121,11 @@ _sre_SRE_Match_start_impl(MatchObject *self, PyObject *group)
 {
     Py_ssize_t index = match_getindex(self, group);
 
-    if (index < 0) {
+    if (index < 0 || index >= self->groups) {
+        PyErr_SetString(
+            PyExc_IndexError,
+            "no such group"
+            );
         return -1;
     }
 
@@ -2143,7 +2148,11 @@ _sre_SRE_Match_end_impl(MatchObject *self, PyObject *group)
 {
     Py_ssize_t index = match_getindex(self, group);
 
-    if (index < 0) {
+    if (index < 0 || index >= self->groups) {
+        PyErr_SetString(
+            PyExc_IndexError,
+            "no such group"
+            );
         return -1;
     }
 
@@ -2193,7 +2202,11 @@ _sre_SRE_Match_span_impl(MatchObject *self, PyObject *group)
 {
     Py_ssize_t index = match_getindex(self, group);
 
-    if (index < 0) {
+    if (index < 0 || index >= self->groups) {
+        PyErr_SetString(
+            PyExc_IndexError,
+            "no such group"
+            );
         return NULL;
     }
 
@@ -2594,10 +2607,10 @@ static PyTypeObject Pattern_Type = {
     "re.Pattern",
     sizeof(PatternObject), sizeof(SRE_CODE),
     (destructor)pattern_dealloc,        /* tp_dealloc */
-    0,                                  /* tp_vectorcall_offset */
+    0,                                  /* tp_print */
     0,                                  /* tp_getattr */
     0,                                  /* tp_setattr */
-    0,                                  /* tp_as_async */
+    0,                                  /* tp_reserved */
     (reprfunc)pattern_repr,             /* tp_repr */
     0,                                  /* tp_as_number */
     0,                                  /* tp_as_sequence */
@@ -2672,10 +2685,10 @@ static PyTypeObject Match_Type = {
     "re.Match",
     sizeof(MatchObject), sizeof(Py_ssize_t),
     (destructor)match_dealloc,  /* tp_dealloc */
-    0,                          /* tp_vectorcall_offset */
+    0,                          /* tp_print */
     0,                          /* tp_getattr */
     0,                          /* tp_setattr */
-    0,                          /* tp_as_async */
+    0,                          /* tp_reserved */
     (reprfunc)match_repr,       /* tp_repr */
     0,                          /* tp_as_number */
     0,                          /* tp_as_sequence */
@@ -2716,10 +2729,10 @@ static PyTypeObject Scanner_Type = {
     "_" SRE_MODULE ".SRE_Scanner",
     sizeof(ScannerObject), 0,
     (destructor)scanner_dealloc,/* tp_dealloc */
-    0,                          /* tp_vectorcall_offset */
+    0,                          /* tp_print */
     0,                          /* tp_getattr */
     0,                          /* tp_setattr */
-    0,                          /* tp_as_async */
+    0,                          /* tp_reserved */
     0,                          /* tp_repr */
     0,                          /* tp_as_number */
     0,                          /* tp_as_sequence */

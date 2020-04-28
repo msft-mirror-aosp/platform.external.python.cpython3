@@ -124,7 +124,7 @@ def main():
 
     # default the exclude list for each platform
     if win: exclude = exclude + [
-        'dos', 'dospath', 'mac', 'macfs', 'MACFS', 'posix', ]
+        'dos', 'dospath', 'mac', 'macpath', 'macfs', 'MACFS', 'posix', ]
 
     fail_import = exclude[:]
 
@@ -142,8 +142,7 @@ def main():
         # last option can not be "-i", so this ensures "pos+1" is in range!
         if sys.argv[pos] == '-i':
             try:
-                with open(sys.argv[pos+1]) as infp:
-                    options = infp.read().split()
+                options = open(sys.argv[pos+1]).read().split()
             except IOError as why:
                 usage("File name '%s' specified with the -i option "
                       "can not be read - %s" % (sys.argv[pos+1], why) )
@@ -218,10 +217,7 @@ def main():
 
     # locations derived from options
     version = '%d.%d' % sys.version_info[:2]
-    if hasattr(sys, 'abiflags'):
-        flagged_version = version + sys.abiflags
-    else:
-        flagged_version = version
+    flagged_version = version + sys.abiflags
     if win:
         extensions_c = 'frozen_extensions.c'
     if ishome:

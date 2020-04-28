@@ -23,16 +23,6 @@ All Platforms
 Windows
 =======
 
-**Source code:** :source:`Lib/asyncio/proactor_events.py`,
-:source:`Lib/asyncio/windows_events.py`,
-:source:`Lib/asyncio/windows_utils.py`
-
---------------------------------------
-
-.. versionchanged:: 3.8
-
-   On Windows, :class:`ProactorEventLoop` is now the default event loop.
-
 All event loops on Windows do not support the following methods:
 
 * :meth:`loop.create_unix_connection` and
@@ -59,6 +49,9 @@ All event loops on Windows do not support the following methods:
 
 :class:`ProactorEventLoop` has the following limitations:
 
+* The :meth:`loop.create_datagram_endpoint` method
+  is not supported.
+
 * The :meth:`loop.add_reader` and :meth:`loop.add_writer`
   methods are not supported.
 
@@ -74,8 +67,16 @@ Windows configuration.
 Subprocess Support on Windows
 -----------------------------
 
-On Windows, the default event loop :class:`ProactorEventLoop` supports
-subprocesses, whereas :class:`SelectorEventLoop` does not.
+:class:`SelectorEventLoop` on Windows does not support subproceses.
+On Windows, :class:`ProactorEventLoop` should be used instead::
+
+  import asyncio
+
+  asyncio.set_event_loop_policy(
+      asyncio.WindowsProactorEventLoopPolicy())
+
+  asyncio.run(your_code())
+
 
 The :meth:`policy.set_child_watcher()
 <AbstractEventLoopPolicy.set_child_watcher>` function is also

@@ -10,8 +10,6 @@ something  = sentinel.Something
 something_else  = sentinel.SomethingElse
 
 
-class SampleException(Exception): pass
-
 
 class WithTest(unittest.TestCase):
 
@@ -22,10 +20,14 @@ class WithTest(unittest.TestCase):
 
 
     def test_with_statement_exception(self):
-        with self.assertRaises(SampleException):
+        try:
             with patch('%s.something' % __name__, sentinel.Something2):
                 self.assertEqual(something, sentinel.Something2, "unpatched")
-                raise SampleException()
+                raise Exception('pow')
+        except Exception:
+            pass
+        else:
+            self.fail("patch swallowed exception")
         self.assertEqual(something, sentinel.Something)
 
 
@@ -126,7 +128,8 @@ class WithTest(unittest.TestCase):
 
     def test_double_patch_instance_method(self):
         class C:
-            def f(self): pass
+            def f(self):
+                pass
 
         c = C()
 
@@ -230,22 +233,7 @@ class TestMockOpen(unittest.TestCase):
         self.assertEqual(lines[1], 'bar\n')
         self.assertEqual(lines[2], 'baz\n')
         self.assertEqual(h.readline(), '')
-        with self.assertRaises(StopIteration):
-            next(h)
 
-    def test_next_data(self):
-        # Check that next will correctly return the next available
-        # line and plays well with the dunder_iter part.
-        mock = mock_open(read_data='foo\nbar\nbaz\n')
-        with patch('%s.open' % __name__, mock, create=True):
-            h = open('bar')
-            line1 = next(h)
-            line2 = next(h)
-            lines = [l for l in h]
-        self.assertEqual(line1, 'foo\n')
-        self.assertEqual(line2, 'bar\n')
-        self.assertEqual(lines[0], 'baz\n')
-        self.assertEqual(h.readline(), '')
 
     def test_readlines_data(self):
         # Test that emulating a file that ends in a newline character works
@@ -298,12 +286,7 @@ class TestMockOpen(unittest.TestCase):
         # for mocks returned by mock_open
         some_data = 'foo\nbar\nbaz'
         mock = mock_open(read_data=some_data)
-        self.assertEqual(mock().read(10), some_data[:10])
-        self.assertEqual(mock().read(10), some_data[:10])
-
-        f = mock()
-        self.assertEqual(f.read(10), some_data[:10])
-        self.assertEqual(f.read(10), some_data[10:])
+        self.assertEqual(mock().read(10), some_data)
 
 
     def test_interleaved_reads(self):

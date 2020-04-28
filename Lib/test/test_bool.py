@@ -20,11 +20,13 @@ class BoolTest(unittest.TestCase):
 
     def test_print(self):
         try:
-            with open(support.TESTFN, "w") as fo:
-                print(False, True, file=fo)
-            with open(support.TESTFN, "r") as fi:
-                self.assertEqual(fi.read(), 'False True\n')
+            fo = open(support.TESTFN, "w")
+            print(False, True, file=fo)
+            fo.close()
+            fo = open(support.TESTFN, "r")
+            self.assertEqual(fo.read(), 'False True\n')
         finally:
+            fo.close()
             os.remove(support.TESTFN)
 
     def test_repr(self):
@@ -243,8 +245,9 @@ class BoolTest(unittest.TestCase):
 
     def test_fileclosed(self):
         try:
-            with open(support.TESTFN, "w") as f:
-                self.assertIs(f.closed, False)
+            f = open(support.TESTFN, "w")
+            self.assertIs(f.closed, False)
+            f.close()
             self.assertIs(f.closed, True)
         finally:
             os.remove(support.TESTFN)

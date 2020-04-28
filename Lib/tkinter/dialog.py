@@ -19,9 +19,7 @@ class Dialog(Widget):
                       *cnf['strings']))
         try: Widget.destroy(self)
         except TclError: pass
-
     def destroy(self): pass
-
 
 def _test():
     d = Dialog(None, {'title': 'File Modified',

@@ -266,32 +266,6 @@ w_PyLong(const PyLongObject *ob, char flag, WFILE *p)
     } while (d != 0);
 }
 
-static void
-w_float_bin(double v, WFILE *p)
-{
-    unsigned char buf[8];
-    if (_PyFloat_Pack8(v, buf, 1) < 0) {
-        p->error = WFERR_UNMARSHALLABLE;
-        return;
-    }
-    w_string((const char *)buf, 8, p);
-}
-
-static void
-w_float_str(double v, WFILE *p)
-{
-    int n;
-    char *buf = PyOS_double_to_string(v, 'g', 17, 0, NULL);
-    if (!buf) {
-        p->error = WFERR_NOMEMORY;
-        return;
-    }
-    n = (int)strlen(buf);
-    w_byte(n, p);
-    w_string(buf, n, p);
-    PyMem_Free(buf);
-}
-
 static int
 w_ref(PyObject *v, char *flag, WFILE *p)
 {
@@ -401,24 +375,69 @@ w_complex_object(PyObject *v, char flag, WFILE *p)
     }
     else if (PyFloat_CheckExact(v)) {
         if (p->version > 1) {
+            unsigned char buf[8];
+            if (_PyFloat_Pack8(PyFloat_AsDouble(v),
+                               buf, 1) < 0) {
+                p->error = WFERR_UNMARSHALLABLE;
+                return;
+            }
             W_TYPE(TYPE_BINARY_FLOAT, p);
-            w_float_bin(PyFloat_AS_DOUBLE(v), p);
+            w_string((char*)buf, 8, p);
         }
         else {
+            char *buf = PyOS_double_to_string(PyFloat_AS_DOUBLE(v),
+                                              'g', 17, 0, NULL);
+            if (!buf) {
+                p->error = WFERR_NOMEMORY;
+                return;
+            }
+            n = strlen(buf);
             W_TYPE(TYPE_FLOAT, p);
-            w_float_str(PyFloat_AS_DOUBLE(v), p);
+            w_byte((int)n, p);
+            w_string(buf, n, p);
+            PyMem_Free(buf);
         }
     }
     else if (PyComplex_CheckExact(v)) {
         if (p->version > 1) {
+            unsigned char buf[8];
+            if (_PyFloat_Pack8(PyComplex_RealAsDouble(v),
+                               buf, 1) < 0) {
+                p->error = WFERR_UNMARSHALLABLE;
+                return;
+            }
             W_TYPE(TYPE_BINARY_COMPLEX, p);
-            w_float_bin(PyComplex_RealAsDouble(v), p);
-            w_float_bin(PyComplex_ImagAsDouble(v), p);
+            w_string((char*)buf, 8, p);
+            if (_PyFloat_Pack8(PyComplex_ImagAsDouble(v),
+                               buf, 1) < 0) {
+                p->error = WFERR_UNMARSHALLABLE;
+                return;
+            }
+            w_string((char*)buf, 8, p);
         }
         else {
+            char *buf;
             W_TYPE(TYPE_COMPLEX, p);
-            w_float_str(PyComplex_RealAsDouble(v), p);
-            w_float_str(PyComplex_ImagAsDouble(v), p);
+            buf = PyOS_double_to_string(PyComplex_RealAsDouble(v),
+                                        'g', 17, 0, NULL);
+            if (!buf) {
+                p->error = WFERR_NOMEMORY;
+                return;
+            }
+            n = strlen(buf);
+            w_byte((int)n, p);
+            w_string(buf, n, p);
+            PyMem_Free(buf);
+            buf = PyOS_double_to_string(PyComplex_ImagAsDouble(v),
+                                        'g', 17, 0, NULL);
+            if (!buf) {
+                p->error = WFERR_NOMEMORY;
+                return;
+            }
+            n = strlen(buf);
+            w_byte((int)n, p);
+            w_string(buf, n, p);
+            PyMem_Free(buf);
         }
     }
     else if (PyBytes_CheckExact(v)) {
@@ -530,7 +549,6 @@ w_complex_object(PyObject *v, char flag, WFILE *p)
         PyCodeObject *co = (PyCodeObject *)v;
         W_TYPE(TYPE_CODE, p);
         w_long(co->co_argcount, p);
-        w_long(co->co_posonlyargcount, p);
         w_long(co->co_kwonlyargcount, p);
         w_long(co->co_nlocals, p);
         w_long(co->co_stacksize, p);
@@ -863,38 +881,6 @@ r_PyLong(RFILE *p)
     return NULL;
 }
 
-static double
-r_float_bin(RFILE *p)
-{
-    const unsigned char *buf = (const unsigned char *) r_string(8, p);
-    if (buf == NULL)
-        return -1;
-    return _PyFloat_Unpack8(buf, 1);
-}
-
-/* Issue #33720: Disable inlining for reducing the C stack consumption
-   on PGO builds. */
-_Py_NO_INLINE static double
-r_float_str(RFILE *p)
-{
-    int n;
-    char buf[256];
-    const char *ptr;
-    n = r_byte(p);
-    if (n == EOF) {
-        PyErr_SetString(PyExc_EOFError,
-            "EOF read where object expected");
-        return -1;
-    }
-    ptr = r_string(n, p);
-    if (ptr == NULL) {
-        return -1;
-    }
-    memcpy(buf, ptr, n);
-    buf[n] = '\0';
-    return PyOS_string_to_double(buf, NULL, NULL);
-}
-
 /* allocate the reflist index for a new object. Return -1 on failure */
 static Py_ssize_t
 r_ref_reserve(int flag, RFILE *p)
@@ -1031,17 +1017,36 @@ r_object(RFILE *p)
 
     case TYPE_FLOAT:
         {
-            double x = r_float_str(p);
-            if (x == -1.0 && PyErr_Occurred())
+            char buf[256];
+            const char *ptr;
+            double dx;
+            n = r_byte(p);
+            if (n == EOF) {
+                PyErr_SetString(PyExc_EOFError,
+                    "EOF read where object expected");
                 break;
-            retval = PyFloat_FromDouble(x);
+            }
+            ptr = r_string(n, p);
+            if (ptr == NULL)
+                break;
+            memcpy(buf, ptr, n);
+            buf[n] = '\0';
+            dx = PyOS_string_to_double(buf, NULL, NULL);
+            if (dx == -1.0 && PyErr_Occurred())
+                break;
+            retval = PyFloat_FromDouble(dx);
             R_REF(retval);
             break;
         }
 
     case TYPE_BINARY_FLOAT:
         {
-            double x = r_float_bin(p);
+            const unsigned char *buf;
+            double x;
+            buf = (const unsigned char *) r_string(8, p);
+            if (buf == NULL)
+                break;
+            x = _PyFloat_Unpack8(buf, 1);
             if (x == -1.0 && PyErr_Occurred())
                 break;
             retval = PyFloat_FromDouble(x);
@@ -1051,11 +1056,35 @@ r_object(RFILE *p)
 
     case TYPE_COMPLEX:
         {
+            char buf[256];
+            const char *ptr;
             Py_complex c;
-            c.real = r_float_str(p);
+            n = r_byte(p);
+            if (n == EOF) {
+                PyErr_SetString(PyExc_EOFError,
+                    "EOF read where object expected");
+                break;
+            }
+            ptr = r_string(n, p);
+            if (ptr == NULL)
+                break;
+            memcpy(buf, ptr, n);
+            buf[n] = '\0';
+            c.real = PyOS_string_to_double(buf, NULL, NULL);
             if (c.real == -1.0 && PyErr_Occurred())
                 break;
-            c.imag = r_float_str(p);
+            n = r_byte(p);
+            if (n == EOF) {
+                PyErr_SetString(PyExc_EOFError,
+                    "EOF read where object expected");
+                break;
+            }
+            ptr = r_string(n, p);
+            if (ptr == NULL)
+                break;
+            memcpy(buf, ptr, n);
+            buf[n] = '\0';
+            c.imag = PyOS_string_to_double(buf, NULL, NULL);
             if (c.imag == -1.0 && PyErr_Occurred())
                 break;
             retval = PyComplex_FromCComplex(c);
@@ -1065,11 +1094,18 @@ r_object(RFILE *p)
 
     case TYPE_BINARY_COMPLEX:
         {
+            const unsigned char *buf;
             Py_complex c;
-            c.real = r_float_bin(p);
+            buf = (const unsigned char *) r_string(8, p);
+            if (buf == NULL)
+                break;
+            c.real = _PyFloat_Unpack8(buf, 1);
             if (c.real == -1.0 && PyErr_Occurred())
                 break;
-            c.imag = r_float_bin(p);
+            buf = (const unsigned char *) r_string(8, p);
+            if (buf == NULL)
+                break;
+            c.imag = _PyFloat_Unpack8(buf, 1);
             if (c.imag == -1.0 && PyErr_Occurred())
                 break;
             retval = PyComplex_FromCComplex(c);
@@ -1323,7 +1359,6 @@ r_object(RFILE *p)
     case TYPE_CODE:
         {
             int argcount;
-            int posonlyargcount;
             int kwonlyargcount;
             int nlocals;
             int stacksize;
@@ -1349,10 +1384,6 @@ r_object(RFILE *p)
             argcount = (int)r_long(p);
             if (PyErr_Occurred())
                 goto code_error;
-            posonlyargcount = (int)r_long(p);
-            if (PyErr_Occurred()) {
-                goto code_error;
-            }
             kwonlyargcount = (int)r_long(p);
             if (PyErr_Occurred())
                 goto code_error;
@@ -1396,8 +1427,8 @@ r_object(RFILE *p)
             if (lnotab == NULL)
                 goto code_error;
 
-            v = (PyObject *) PyCode_NewWithPosOnlyArgs(
-                            argcount, posonlyargcount, kwonlyargcount,
+            v = (PyObject *) PyCode_New(
+                            argcount, kwonlyargcount,
                             nlocals, stacksize, flags,
                             code, consts, names, varnames,
                             freevars, cellvars, filename, name,

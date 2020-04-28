@@ -201,21 +201,10 @@ _MODULE_IDENTIFIER_RE = re.compile(r'^(?:\s*(\w+)\s*\.)?\s*(\w+)')
 
 class _InitVarMeta(type):
     def __getitem__(self, params):
-        return InitVar(params)
+        return self
 
 class InitVar(metaclass=_InitVarMeta):
-    __slots__ = ('type', )
-
-    def __init__(self, type):
-        self.type = type
-
-    def __repr__(self):
-        if isinstance(self.type, type):
-            type_name = self.type.__name__
-        else:
-            # typing objects, e.g. List[int]
-            type_name = repr(self.type)
-        return f'dataclasses.InitVar[{type_name}]'
+    pass
 
 
 # Instances of Field are only ever created from within this module,
@@ -597,8 +586,7 @@ def _is_classvar(a_type, typing):
 def _is_initvar(a_type, dataclasses):
     # The module we're checking against is the module we're
     # currently in (dataclasses.py).
-    return (a_type is dataclasses.InitVar
-            or type(a_type) is dataclasses.InitVar)
+    return a_type is dataclasses.InitVar
 
 
 def _is_type(annotation, cls, a_module, a_type, is_type_predicate):
@@ -974,7 +962,10 @@ def _process_class(cls, init, repr, eq, order, unsafe_hash, frozen):
     return cls
 
 
-def dataclass(cls=None, /, *, init=True, repr=True, eq=True, order=False,
+# _cls should never be specified by keyword, so start it with an
+# underscore.  The presence of _cls is used to detect if this
+# decorator is being called with parameters or not.
+def dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
               unsafe_hash=False, frozen=False):
     """Returns the same class as was passed in, with dunder methods
     added based on the fields defined in the class.
@@ -992,12 +983,12 @@ def dataclass(cls=None, /, *, init=True, repr=True, eq=True, order=False,
         return _process_class(cls, init, repr, eq, order, unsafe_hash, frozen)
 
     # See if we're being called as @dataclass or @dataclass().
-    if cls is None:
+    if _cls is None:
         # We're called with parens.
         return wrap
 
     # We're called as @dataclass without parens.
-    return wrap(cls)
+    return wrap(_cls)
 
 
 def fields(class_or_instance):
@@ -1020,14 +1011,13 @@ def fields(class_or_instance):
 
 def _is_dataclass_instance(obj):
     """Returns True if obj is an instance of a dataclass."""
-    return hasattr(type(obj), _FIELDS)
+    return not isinstance(obj, type) and hasattr(obj, _FIELDS)
 
 
 def is_dataclass(obj):
     """Returns True if obj is a dataclass or an instance of a
     dataclass."""
-    cls = obj if isinstance(obj, type) else type(obj)
-    return hasattr(cls, _FIELDS)
+    return hasattr(obj, _FIELDS)
 
 
 def asdict(obj, *, dict_factory=dict):
@@ -1195,7 +1185,7 @@ def make_dataclass(cls_name, fields, *, bases=(), namespace=None, init=True,
             raise TypeError(f'Invalid field: {item!r}')
 
         if not isinstance(name, str) or not name.isidentifier():
-            raise TypeError(f'Field names must be valid identifiers: {name!r}')
+            raise TypeError(f'Field names must be valid identifers: {name!r}')
         if keyword.iskeyword(name):
             raise TypeError(f'Field names must not be keywords: {name!r}')
         if name in seen:
@@ -1212,7 +1202,7 @@ def make_dataclass(cls_name, fields, *, bases=(), namespace=None, init=True,
                      unsafe_hash=unsafe_hash, frozen=frozen)
 
 
-def replace(*args, **changes):
+def replace(obj, **changes):
     """Return a new object replacing specified fields with new values.
 
     This is especially useful for frozen classes.  Example usage:
@@ -1226,17 +1216,6 @@ def replace(*args, **changes):
       c1 = replace(c, x=3)
       assert c1.x == 3 and c1.y == 2
       """
-    if len(args) > 1:
-        raise TypeError(f'replace() takes 1 positional argument but {len(args)} were given')
-    if args:
-        obj, = args
-    elif 'obj' in changes:
-        obj = changes.pop('obj')
-        import warnings
-        warnings.warn("Passing 'obj' as keyword argument is deprecated",
-                      DeprecationWarning, stacklevel=2)
-    else:
-        raise TypeError("replace() missing 1 required positional argument: 'obj'")
 
     # We're going to mutate 'changes', but that's okay because it's a
     # new dict, even if called with 'replace(obj, **my_changes)'.
@@ -1272,4 +1251,3 @@ def replace(*args, **changes):
     # changes that aren't fields, this will correctly raise a
     # TypeError.
     return obj.__class__(**changes)
-replace.__text_signature__ = '(obj, /, **kwargs)'

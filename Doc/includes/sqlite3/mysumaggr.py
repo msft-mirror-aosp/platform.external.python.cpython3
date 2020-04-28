@@ -18,5 +18,3 @@ cur.execute("insert into test(i) values (1)")
 cur.execute("insert into test(i) values (2)")
 cur.execute("select mysum(i) from test")
 print(cur.fetchone()[0])
-
-con.close()

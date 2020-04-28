@@ -88,13 +88,15 @@ class TestCase(unittest.TestCase):
 
     def test_in_memory_shelf(self):
         d1 = byteskeydict()
-        with shelve.Shelf(d1, protocol=0) as s:
-            s['key1'] = (1,2,3,4)
-            self.assertEqual(s['key1'], (1,2,3,4))
+        s = shelve.Shelf(d1, protocol=0)
+        s['key1'] = (1,2,3,4)
+        self.assertEqual(s['key1'], (1,2,3,4))
+        s.close()
         d2 = byteskeydict()
-        with shelve.Shelf(d2, protocol=1) as s:
-            s['key1'] = (1,2,3,4)
-            self.assertEqual(s['key1'], (1,2,3,4))
+        s = shelve.Shelf(d2, protocol=1)
+        s['key1'] = (1,2,3,4)
+        self.assertEqual(s['key1'], (1,2,3,4))
+        s.close()
 
         self.assertEqual(len(d1), 1)
         self.assertEqual(len(d2), 1)
@@ -102,18 +104,20 @@ class TestCase(unittest.TestCase):
 
     def test_mutable_entry(self):
         d1 = byteskeydict()
-        with shelve.Shelf(d1, protocol=2, writeback=False) as s:
-            s['key1'] = [1,2,3,4]
-            self.assertEqual(s['key1'], [1,2,3,4])
-            s['key1'].append(5)
-            self.assertEqual(s['key1'], [1,2,3,4])
+        s = shelve.Shelf(d1, protocol=2, writeback=False)
+        s['key1'] = [1,2,3,4]
+        self.assertEqual(s['key1'], [1,2,3,4])
+        s['key1'].append(5)
+        self.assertEqual(s['key1'], [1,2,3,4])
+        s.close()
 
         d2 = byteskeydict()
-        with shelve.Shelf(d2, protocol=2, writeback=True) as s:
-            s['key1'] = [1,2,3,4]
-            self.assertEqual(s['key1'], [1,2,3,4])
-            s['key1'].append(5)
-            self.assertEqual(s['key1'], [1,2,3,4,5])
+        s = shelve.Shelf(d2, protocol=2, writeback=True)
+        s['key1'] = [1,2,3,4]
+        self.assertEqual(s['key1'], [1,2,3,4])
+        s['key1'].append(5)
+        self.assertEqual(s['key1'], [1,2,3,4,5])
+        s.close()
 
         self.assertEqual(len(d1), 1)
         self.assertEqual(len(d2), 1)
@@ -136,10 +140,11 @@ class TestCase(unittest.TestCase):
         d = {}
         key = 'key'
         encodedkey = key.encode('utf-8')
-        with shelve.Shelf(d, writeback=True) as s:
-            s[key] = [1]
-            p1 = d[encodedkey]  # Will give a KeyError if backing store not updated
-            s['key'].append(2)
+        s = shelve.Shelf(d, writeback=True)
+        s[key] = [1]
+        p1 = d[encodedkey]  # Will give a KeyError if backing store not updated
+        s['key'].append(2)
+        s.close()
         p2 = d[encodedkey]
         self.assertNotEqual(p1, p2)  # Write creates new object in store
 

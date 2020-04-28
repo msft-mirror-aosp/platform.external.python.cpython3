@@ -7,11 +7,6 @@
 Futures
 =======
 
-**Source code:** :source:`Lib/asyncio/futures.py`,
-:source:`Lib/asyncio/base_futures.py`
-
--------------------------------------
-
 *Future* objects are used to bridge **low-level callback-based code**
 with high-level async/await code.
 
@@ -40,9 +35,7 @@ Future Functions
      is used for the test.)
 
    * a :class:`Task` object wrapping *obj*, if *obj* is a
-     coroutine (:func:`iscoroutine` is used for the test);
-     in this case the coroutine will be scheduled by
-     ``ensure_future()``.
+     coroutine (:func:`iscoroutine` is used for the test.)
 
    * a :class:`Task` object that would await on *obj*, if *obj* is an
      awaitable (:func:`inspect.isawaitable` is used for the test.)

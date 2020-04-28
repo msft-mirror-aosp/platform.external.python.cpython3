@@ -6,8 +6,6 @@ from unittest import mock
 from test.support import captured_stderr
 
 import io
-import sys
-
 
 class RunTest(unittest.TestCase):
 
@@ -36,7 +34,7 @@ class RunTest(unittest.TestCase):
         self.assertIn('UnhashableException: ex1', tb[10])
 
 
-# StdioFile tests.
+# PseudoFile tests.
 
 class S(str):
     def __str__(self):
@@ -68,14 +66,14 @@ class MockShell:
         self.lines = list(lines)[::-1]
 
 
-class StdInputFilesTest(unittest.TestCase):
+class PseudeInputFilesTest(unittest.TestCase):
 
     def test_misc(self):
         shell = MockShell()
-        f = run.StdInputFile(shell, 'stdin')
+        f = run.PseudoInputFile(shell, 'stdin', 'utf-8')
         self.assertIsInstance(f, io.TextIOBase)
         self.assertEqual(f.encoding, 'utf-8')
-        self.assertEqual(f.errors, 'strict')
+        self.assertIsNone(f.errors)
         self.assertIsNone(f.newlines)
         self.assertEqual(f.name, '<stdin>')
         self.assertFalse(f.closed)
@@ -86,7 +84,7 @@ class StdInputFilesTest(unittest.TestCase):
 
     def test_unsupported(self):
         shell = MockShell()
-        f = run.StdInputFile(shell, 'stdin')
+        f = run.PseudoInputFile(shell, 'stdin', 'utf-8')
         self.assertRaises(OSError, f.fileno)
         self.assertRaises(OSError, f.tell)
         self.assertRaises(OSError, f.seek, 0)
@@ -95,7 +93,7 @@ class StdInputFilesTest(unittest.TestCase):
 
     def test_read(self):
         shell = MockShell()
-        f = run.StdInputFile(shell, 'stdin')
+        f = run.PseudoInputFile(shell, 'stdin', 'utf-8')
         shell.push(['one\n', 'two\n', ''])
         self.assertEqual(f.read(), 'one\ntwo\n')
         shell.push(['one\n', 'two\n', ''])
@@ -115,7 +113,7 @@ class StdInputFilesTest(unittest.TestCase):
 
     def test_readline(self):
         shell = MockShell()
-        f = run.StdInputFile(shell, 'stdin')
+        f = run.PseudoInputFile(shell, 'stdin', 'utf-8')
         shell.push(['one\n', 'two\n', 'three\n', 'four\n'])
         self.assertEqual(f.readline(), 'one\n')
         self.assertEqual(f.readline(-1), 'two\n')
@@ -140,7 +138,7 @@ class StdInputFilesTest(unittest.TestCase):
 
     def test_readlines(self):
         shell = MockShell()
-        f = run.StdInputFile(shell, 'stdin')
+        f = run.PseudoInputFile(shell, 'stdin', 'utf-8')
         shell.push(['one\n', 'two\n', ''])
         self.assertEqual(f.readlines(), ['one\n', 'two\n'])
         shell.push(['one\n', 'two\n', ''])
@@ -161,7 +159,7 @@ class StdInputFilesTest(unittest.TestCase):
 
     def test_close(self):
         shell = MockShell()
-        f = run.StdInputFile(shell, 'stdin')
+        f = run.PseudoInputFile(shell, 'stdin', 'utf-8')
         shell.push(['one\n', 'two\n', ''])
         self.assertFalse(f.closed)
         self.assertEqual(f.readline(), 'one\n')
@@ -171,14 +169,14 @@ class StdInputFilesTest(unittest.TestCase):
         self.assertRaises(TypeError, f.close, 1)
 
 
-class StdOutputFilesTest(unittest.TestCase):
+class PseudeOutputFilesTest(unittest.TestCase):
 
     def test_misc(self):
         shell = MockShell()
-        f = run.StdOutputFile(shell, 'stdout')
+        f = run.PseudoOutputFile(shell, 'stdout', 'utf-8')
         self.assertIsInstance(f, io.TextIOBase)
         self.assertEqual(f.encoding, 'utf-8')
-        self.assertEqual(f.errors, 'strict')
+        self.assertIsNone(f.errors)
         self.assertIsNone(f.newlines)
         self.assertEqual(f.name, '<stdout>')
         self.assertFalse(f.closed)
@@ -189,7 +187,7 @@ class StdOutputFilesTest(unittest.TestCase):
 
     def test_unsupported(self):
         shell = MockShell()
-        f = run.StdOutputFile(shell, 'stdout')
+        f = run.PseudoOutputFile(shell, 'stdout', 'utf-8')
         self.assertRaises(OSError, f.fileno)
         self.assertRaises(OSError, f.tell)
         self.assertRaises(OSError, f.seek, 0)
@@ -198,36 +196,16 @@ class StdOutputFilesTest(unittest.TestCase):
 
     def test_write(self):
         shell = MockShell()
-        f = run.StdOutputFile(shell, 'stdout')
+        f = run.PseudoOutputFile(shell, 'stdout', 'utf-8')
         f.write('test')
         self.assertEqual(shell.written, [('test', 'stdout')])
         shell.reset()
-        f.write('t\xe8\u015b\U0001d599')
-        self.assertEqual(shell.written, [('t\xe8\u015b\U0001d599', 'stdout')])
+        f.write('t\xe8st')
+        self.assertEqual(shell.written, [('t\xe8st', 'stdout')])
         shell.reset()
 
-        f.write(S('t\xe8\u015b\U0001d599'))
-        self.assertEqual(shell.written, [('t\xe8\u015b\U0001d599', 'stdout')])
-        self.assertEqual(type(shell.written[0][0]), str)
-        shell.reset()
-
-        self.assertRaises(TypeError, f.write)
-        self.assertEqual(shell.written, [])
-        self.assertRaises(TypeError, f.write, b'test')
-        self.assertRaises(TypeError, f.write, 123)
-        self.assertEqual(shell.written, [])
-        self.assertRaises(TypeError, f.write, 'test', 'spam')
-        self.assertEqual(shell.written, [])
-
-    def test_write_stderr_nonencodable(self):
-        shell = MockShell()
-        f = run.StdOutputFile(shell, 'stderr', 'iso-8859-15', 'backslashreplace')
-        f.write('t\xe8\u015b\U0001d599\xa4')
-        self.assertEqual(shell.written, [('t\xe8\\u015b\\U0001d599\\xa4', 'stderr')])
-        shell.reset()
-
-        f.write(S('t\xe8\u015b\U0001d599\xa4'))
-        self.assertEqual(shell.written, [('t\xe8\\u015b\\U0001d599\\xa4', 'stderr')])
+        f.write(S('t\xe8st'))
+        self.assertEqual(shell.written, [('t\xe8st', 'stdout')])
         self.assertEqual(type(shell.written[0][0]), str)
         shell.reset()
 
@@ -241,7 +219,7 @@ class StdOutputFilesTest(unittest.TestCase):
 
     def test_writelines(self):
         shell = MockShell()
-        f = run.StdOutputFile(shell, 'stdout')
+        f = run.PseudoOutputFile(shell, 'stdout', 'utf-8')
         f.writelines([])
         self.assertEqual(shell.written, [])
         shell.reset()
@@ -271,7 +249,7 @@ class StdOutputFilesTest(unittest.TestCase):
 
     def test_close(self):
         shell = MockShell()
-        f = run.StdOutputFile(shell, 'stdout')
+        f = run.PseudoOutputFile(shell, 'stdout', 'utf-8')
         self.assertFalse(f.closed)
         f.write('test')
         f.close()
@@ -280,45 +258,6 @@ class StdOutputFilesTest(unittest.TestCase):
         self.assertEqual(shell.written, [('test', 'stdout')])
         f.close()
         self.assertRaises(TypeError, f.close, 1)
-
-
-class TestSysRecursionLimitWrappers(unittest.TestCase):
-
-    def test_bad_setrecursionlimit_calls(self):
-        run.install_recursionlimit_wrappers()
-        self.addCleanup(run.uninstall_recursionlimit_wrappers)
-        f = sys.setrecursionlimit
-        self.assertRaises(TypeError, f, limit=100)
-        self.assertRaises(TypeError, f, 100, 1000)
-        self.assertRaises(ValueError, f, 0)
-
-    def test_roundtrip(self):
-        run.install_recursionlimit_wrappers()
-        self.addCleanup(run.uninstall_recursionlimit_wrappers)
-
-        # check that setting the recursion limit works
-        orig_reclimit = sys.getrecursionlimit()
-        self.addCleanup(sys.setrecursionlimit, orig_reclimit)
-        sys.setrecursionlimit(orig_reclimit + 3)
-
-        # check that the new limit is returned by sys.getrecursionlimit()
-        new_reclimit = sys.getrecursionlimit()
-        self.assertEqual(new_reclimit, orig_reclimit + 3)
-
-    def test_default_recursion_limit_preserved(self):
-        orig_reclimit = sys.getrecursionlimit()
-        run.install_recursionlimit_wrappers()
-        self.addCleanup(run.uninstall_recursionlimit_wrappers)
-        new_reclimit = sys.getrecursionlimit()
-        self.assertEqual(new_reclimit, orig_reclimit)
-
-    def test_fixdoc(self):
-        def func(): "docstring"
-        run.fixdoc(func, "more")
-        self.assertEqual(func.__doc__, "docstring\n\nmore")
-        func.__doc__ = None
-        run.fixdoc(func, "more")
-        self.assertEqual(func.__doc__, "more")
 
 
 if __name__ == '__main__':

@@ -1,3 +1,5 @@
+:keepdoctest:
+
 :mod:`doctest` --- Test interactive Python examples
 ===================================================
 
@@ -769,27 +771,23 @@ Warnings
 :mod:`doctest` is serious about requiring exact matches in expected output.  If
 even a single character doesn't match, the test fails.  This will probably
 surprise you a few times, as you learn exactly what Python does and doesn't
-guarantee about output.  For example, when printing a set, Python doesn't
-guarantee that the element is printed in any particular order, so a test like ::
+guarantee about output.  For example, when printing a dict, Python doesn't
+guarantee that the key-value pairs will be printed in any particular order, so a
+test like ::
 
    >>> foo()
-   {"Hermione", "Harry"}
+   {"Hermione": "hippogryph", "Harry": "broomstick"}
 
 is vulnerable!  One workaround is to do ::
 
-   >>> foo() == {"Hermione", "Harry"}
+   >>> foo() == {"Hermione": "hippogryph", "Harry": "broomstick"}
    True
 
 instead.  Another is to do ::
 
-   >>> d = sorted(foo())
+   >>> d = sorted(foo().items())
    >>> d
-   ['Harry', 'Hermione']
-
-.. note::
-
-    Before Python 3.6, when printing a dict, Python did not guarantee that
-    the key-value pairs was printed in any particular order.
+   [('Harry', 'broomstick'), ('Hermione', 'hippogryph')]
 
 There are others, but you get the idea.
 

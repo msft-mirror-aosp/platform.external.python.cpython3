@@ -1,5 +1,6 @@
 import contextlib
 import sys
+import os
 import unittest
 from test import support
 import time
@@ -16,8 +17,6 @@ class ResourceTest(unittest.TestCase):
         self.assertRaises(TypeError, resource.setrlimit)
         self.assertRaises(TypeError, resource.setrlimit, 42, 42, 42)
 
-    @unittest.skipIf(sys.platform == "vxworks",
-                     "setting RLIMIT_FSIZE is not supported on VxWorks")
     def test_fsize_ismax(self):
         try:
             (cur, max) = resource.getrlimit(resource.RLIMIT_FSIZE)
@@ -112,8 +111,6 @@ class ResourceTest(unittest.TestCase):
             pass
 
     # Issue 6083: Reference counting bug
-    @unittest.skipIf(sys.platform == "vxworks",
-                     "setting RLIMIT_CPU is not supported on VxWorks")
     def test_setrusage_refcount(self):
         try:
             limits = resource.getrlimit(resource.RLIMIT_CPU)

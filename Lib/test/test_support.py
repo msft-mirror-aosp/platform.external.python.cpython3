@@ -91,12 +91,14 @@ class TestSupport(unittest.TestCase):
             support.rmtree('__pycache__')
 
     def test_HOST(self):
-        s = socket.create_server((support.HOST, 0))
+        s = socket.socket()
+        s.bind((support.HOST, 0))
         s.close()
 
     def test_find_unused_port(self):
         port = support.find_unused_port()
-        s = socket.create_server((support.HOST, port))
+        s = socket.socket()
+        s.bind((support.HOST, port))
         s.close()
 
     def test_bind_port(self):
@@ -284,7 +286,7 @@ class TestSupport(unittest.TestCase):
         self.assertEqual(cm.exception.errno, errno.EBADF)
 
     def test_check_syntax_error(self):
-        support.check_syntax_error(self, "def class", lineno=1, offset=5)
+        support.check_syntax_error(self, "def class", lineno=1, offset=9)
         with self.assertRaises(AssertionError):
             support.check_syntax_error(self, "x=1")
 
@@ -403,7 +405,7 @@ class TestSupport(unittest.TestCase):
                              ("unittest.result", "unittest.case",
                               "unittest.suite", "unittest.loader",
                               "unittest.main", "unittest.runner",
-                              "unittest.signals", "unittest.async_case"),
+                              "unittest.signals"),
                              extra=extra,
                              blacklist=blacklist)
 
