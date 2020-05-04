@@ -34,16 +34,27 @@ def build_autoconf_target(host, python_src, out_dir):
     os.makedirs(build_dir, exist_ok=True)
     os.makedirs(install_dir, exist_ok=True)
 
+    cflags = []
+    ldflags = ['-s']
+    if host == Host.Darwin:
+        MAC_MIN_VERSION = '10.9'
+        cflags.append('-mmacosx-version-min={}'.format(MAC_MIN_VERSION))
+        cflags.append('-DMACOSX_DEPLOYMENT_TARGET={}'.format(MAC_MIN_VERSION))
+        ldflags.append("-Wl,-rpath,'@loader_path/../lib'")
+    elif host == Host.Linux:
+        ldflags.append("-Wl,-rpath,'$$ORIGIN/../lib'")
+
+    env = {
+        'CC': ' '.join(['gcc'] + cflags + ldflags),
+        'CXX': ' '.join(['g++'] + cflags + ldflags),
+    }
+
     config_cmd = [os.path.join(python_src, 'configure'),
                   '--prefix={}'.format(install_dir),
                   '--enable-shared',
                  ]
-    if host == Host.Linux:
-        config_cmd.append('LDFLAGS=-s -Wl,-rpath,\'$$ORIGIN/../lib\'')
-    elif host == Host.Darwin:
-        config_cmd.append('LDFLAGS=-s -Wl,-rpath,\'@loader_path/../lib\'')
 
-    subprocess.check_call(config_cmd, cwd=build_dir)
+    subprocess.check_call(config_cmd, cwd=build_dir, env=env)
 
     if host == Host.Darwin:
         # By default, LC_ID_DYLIB for libpython will be set to an absolute path.
