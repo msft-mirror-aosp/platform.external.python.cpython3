@@ -44,10 +44,11 @@ def build_autoconf_target(host, python_src, out_dir):
     elif host == Host.Linux:
         ldflags.append("-Wl,-rpath,'$$ORIGIN/../lib'")
 
-    env = {
-        'CC': ' '.join(['gcc'] + cflags + ldflags),
-        'CXX': ' '.join(['g++'] + cflags + ldflags),
-    }
+    env = dict(os.environ)
+    env.update({
+        'CC': ' '.join(['cc'] + cflags + ldflags),
+        'CXX': ' '.join(['c++'] + cflags + ldflags),
+    })
 
     config_cmd = [os.path.join(python_src, 'configure'),
                   '--prefix={}'.format(install_dir),
