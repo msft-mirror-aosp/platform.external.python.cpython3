@@ -34,16 +34,43 @@ def build_autoconf_target(host, python_src, out_dir):
     os.makedirs(build_dir, exist_ok=True)
     os.makedirs(install_dir, exist_ok=True)
 
-    config_cmd = [os.path.join(python_src, 'configure'),
-                  '--prefix={}'.format(install_dir),
-                  '--enable-shared',
-                 ]
-    if host == Host.Linux:
-        config_cmd.append('LDFLAGS=-s -Wl,-rpath,\'$$ORIGIN/../lib\'')
-    elif host == Host.Darwin:
-        config_cmd.append('LDFLAGS=-s -Wl,-rpath,\'@loader_path/../lib\'')
+    cflags = ['-Wno-unused-command-line-argument']
+    ldflags = ['-s']
+    config_cmd = [
+        os.path.join(python_src, 'configure'),
+        '--prefix={}'.format(install_dir),
+        '--enable-shared',
+    ]
+    if host == Host.Darwin:
+        MAC_MIN_VERSION = '10.9'
+        cflags.append('-mmacosx-version-min={}'.format(MAC_MIN_VERSION))
+        cflags.append('-DMACOSX_DEPLOYMENT_TARGET={}'.format(MAC_MIN_VERSION))
+        ldflags.append("-Wl,-rpath,'@loader_path/../lib'")
 
-    subprocess.check_call(config_cmd, cwd=build_dir)
+        # Disable functions to support old macOS. See https://bugs.python.org/issue31359
+        # Fails the build if any new API is used.
+        cflags.append('-Werror=unguarded-availability')
+        # Disables unavailable functions.
+        disable_funcs = [
+            # New in 10.13
+            'utimensat', 'futimens',
+            # New in 10.12
+            'getentropy', 'clock_getres', 'clock_gettime', 'clock_settime',
+            # New in 10.10
+            'fstatat', 'faccessat', 'fchmodat', 'fchownat', 'linkat', 'fdopendir',
+            'mkdirat', 'renameat', 'unlinkat', 'readlinkat', 'symlinkat', 'openat',
+        ]
+        config_cmd.extend('ac_cv_func_{}=no'.format(f) for f in disable_funcs)
+    elif host == Host.Linux:
+        ldflags.append("-Wl,-rpath,'$$ORIGIN/../lib'")
+
+    env = dict(os.environ)
+    env.update({
+        'CC': ' '.join(['cc'] + cflags + ldflags),
+        'CXX': ' '.join(['c++'] + cflags + ldflags),
+    })
+
+    subprocess.check_call(config_cmd, cwd=build_dir, env=env)
 
     if host == Host.Darwin:
         # By default, LC_ID_DYLIB for libpython will be set to an absolute path.
