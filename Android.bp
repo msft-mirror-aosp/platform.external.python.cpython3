@@ -221,7 +221,7 @@ cc_library_static {
     target: {
         linux: {
             cflags: [
-                "-DPLATFORM=\"linux2\"",
+                "-DPLATFORM=\"linux\"",
             ],
         },
         darwin_x86_64: {
