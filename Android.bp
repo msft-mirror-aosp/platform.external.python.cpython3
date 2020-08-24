@@ -222,11 +222,13 @@ cc_library_static {
         linux: {
             cflags: [
                 "-DPLATFORM=\"linux\"",
+                "-DABIFLAGS=\"\"",
             ],
         },
         darwin_x86_64: {
             cflags: [
                 "-DPLATFORM=\"darwin\"",
+                "-DABIFLAGS=\"\"",
             ],
         },
     },
