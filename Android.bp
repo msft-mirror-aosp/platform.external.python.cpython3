@@ -221,12 +221,14 @@ cc_library_static {
     target: {
         linux: {
             cflags: [
-                "-DPLATFORM=\"linux2\"",
+                "-DPLATFORM=\"linux\"",
+                "-DABIFLAGS=\"\"",
             ],
         },
         darwin_x86_64: {
             cflags: [
                 "-DPLATFORM=\"darwin\"",
+                "-DABIFLAGS=\"\"",
             ],
         },
     },
