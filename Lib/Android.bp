@@ -12,10 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-python_library {
-    name: "py3-stdlib",
-    is_internal: true,
-    pkg_path: "stdlib",
+filegroup {
+    name: "py3-stdlib-srcs",
     srcs: [
         "*.py",
         "asyncio/**/*.py",
@@ -42,5 +40,23 @@ python_library {
     exclude_srcs: [
         "__phello__.foo.py",
     ],
+}
+
+python_library {
+    name: "py3-stdlib",
+    is_internal: true,
+    pkg_path: "stdlib",
+    srcs: [":py3-stdlib-srcs"],
     host_supported: true,
+}
+
+// Used by prebuilts/build-tools/build-prebuilts.sh to update
+// prebuilts/build-tools/common/py3-stdlib
+genrule {
+    name: "py3-stdlib-zip",
+    tools: ["soong_zip"],
+    cmd: "echo $(in) >$(genDir)/list && " +
+        "$(location soong_zip) -o $(out) -C external/python/cpython3/Lib -l $(genDir)/list",
+    srcs: [":py3-stdlib-srcs"],
+    out: ["py3-stdlib.zip"],
 }
