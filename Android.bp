@@ -61,6 +61,11 @@ cc_defaults {
         android_x86_64: {
             cflags: ["-DSOABI=\"cpython-38android-x86_64-android-bionic\""],
         },
+        host: {
+            // Host builds are moving to prebuilts, which has a higher risk of
+            // having an incompatible libc++.so when installed.
+            stl: "libc++_static",
+        },
         // Regenerate include dirs with android_regen.sh
         darwin_x86_64: {
             local_include_dirs: ["android/darwin_x86_64/pyconfig"],
