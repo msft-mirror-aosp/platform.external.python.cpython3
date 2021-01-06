@@ -1270,7 +1270,7 @@
 /* Define if you have a useable wchar_t type defined in wchar.h; useable means
    wchar_t must be an unsigned type with at least 16 bits. (see
    Include/unicodeobject.h). */
-/* #undef HAVE_USABLE_WCHAR_T */
+#define HAVE_USABLE_WCHAR_T 1
 
 /* Define to 1 if you have the <util.h> header file. */
 #define HAVE_UTIL_H 1
@@ -1334,7 +1334,7 @@
 #define HAVE_WRITEV 1
 
 /* Define if libssl has X509_VERIFY_PARAM_set1_host and related function */
-#define HAVE_X509_VERIFY_PARAM_SET1_HOST 1
+/* #undef HAVE_X509_VERIFY_PARAM_SET1_HOST */
 
 /* Define if the zlib library has inflateCopy */
 #define HAVE_ZLIB_COPY 1
@@ -1378,7 +1378,7 @@
 /* #undef PTHREAD_KEY_T_IS_COMPATIBLE_WITH_INT */
 
 /* Defined if PTHREAD_SCOPE_SYSTEM supported. */
-#define PTHREAD_SYSTEM_SCHED_SUPPORTED 1
+/* #undef PTHREAD_SYSTEM_SCHED_SUPPORTED */
 
 /* Define as the preferred size in bits of long digits */
 /* #undef PYLONG_BITS_IN_DIGIT */
@@ -1419,7 +1419,7 @@
 /* #undef SHM_NEEDS_LIBRT */
 
 /* Define if i>>j for signed int i does not extend the sign bit when i < 0 */
-/* #undef SIGNED_RIGHT_SHIFT_ZERO_FILLS */
+#define SIGNED_RIGHT_SHIFT_ZERO_FILLS 1
 
 /* The size of `double', as computed by sizeof. */
 #define SIZEOF_DOUBLE 8
@@ -1518,6 +1518,10 @@
 
 /* Define if WINDOW in curses.h offers a field _flags. */
 #define WINDOW_HAS_FLAGS 1
+
+/* Define if you want build the _decimal module using a coroutine-local rather
+   than a thread-local context */
+#define WITH_DECIMAL_CONTEXTVAR 1
 
 /* Define if you want documentation strings in extension modules */
 #define WITH_DOC_STRINGS 1
