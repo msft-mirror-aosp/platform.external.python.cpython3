@@ -42,6 +42,9 @@ if [ $DIR == "darwin_x86_64" ]; then
   # utimensat and futimens are not safe on <10.13, which we still target
   sed -ibak "s%#define HAVE_UTIMENSAT 1%/* #undef HAVE_UTIMENSAT */%" pyconfig.h
   sed -ibak "s%#define HAVE_FUTIMENS 1%/* #undef HAVE_FUTIMENS */%" pyconfig.h
+  # preadv and pwritev are not safe on <11, which we still target
+  sed -ibak "s%#define HAVE_PREADV 1%/* #undef HAVE_PREADV */%" pyconfig.h
+  sed -ibak "s%#define HAVE_PWRITEV 1%/* #undef HAVE_PWRITEV */%" pyconfig.h
 fi
 
 cp pyconfig.h ../pyconfig/
