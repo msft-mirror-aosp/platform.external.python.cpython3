@@ -18,8 +18,46 @@ build = [
     "Android-darwin_x86_64.bp",
 ]
 
+soong_config_module_type {
+    name: "cpython3_cc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "cpython3",
+    bool_variables: ["force_build_host"],
+    properties: ["defaults"],
+}
+
+// By default, disable the source and use the prebuilts for host linux_glibc
+// and darwin. Overridden by cpython3-interp-force_build_host when
+// force_build_host is true (set on aosp-build-tools).
 cc_defaults {
+    name: "cpython3-interp-host-prebuilts",
+    defaults_visibility: ["//visibility:private"],
+    target: {
+        linux_glibc: {
+            enabled: false,
+        },
+        darwin: {
+            enabled: false,
+        },
+    },
+}
+
+cc_defaults {
+    name: "cpython3-interp-force_build_host",
+    defaults_visibility: ["//visibility:private"],
+    target: {
+        linux_glibc: {
+            enabled: true,
+        },
+        darwin: {
+            enabled: true,
+        },
+    },
+}
+
+cpython3_cc_defaults {
     name: "py3-interp-defaults",
+    defaults_visibility: ["//visibility:private"],
     cflags: [
         "-fwrapv",
         "-O3",
@@ -102,11 +140,16 @@ cc_defaults {
             suffix: "64",
         },
     },
+    soong_config_variables: {
+        force_build_host: {
+            defaults: ["cpython3-interp-force_build_host"],
+        },
+    },
 }
 
 cc_library_static {
     name: "py3-interp",
-    defaults: ["py3-interp-defaults"],
+    defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
     cflags: ["-DPy_BUILD_CORE"],
     srcs: [
         // Makefile.pre.in PARSER_OBJS
@@ -241,7 +284,7 @@ cc_library_static {
 
 cc_defaults {
     name: "py3-launcher-defaults",
-    defaults: ["py3-interp-defaults"],
+    defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
     cflags: [
         "-DVERSION=\"3.8\"",
         "-DVPATH=\"\"",
@@ -356,7 +399,7 @@ python_binary_host {
 
 cc_library_static {
     name: "py3-c-modules",
-    defaults: ["py3-interp-defaults"],
+    defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
     cflags: [
         "-DPy_BUILD_CORE_BUILTIN",
         "-DUSE_PYEXPAT_CAPI",
