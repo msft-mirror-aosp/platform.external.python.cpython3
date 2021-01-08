@@ -305,6 +305,10 @@ cc_defaults {
     target: {
         linux_glibc_x86_64: {
             host_ldlibs: ["-lutil"],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
         },
         linux: {
             // Due to test infra limitations, Python native symbols are linked
@@ -317,6 +321,10 @@ cc_defaults {
             host_ldlibs: [
                 "-framework SystemConfiguration",
                 "-framework CoreFoundation",
+            ],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
             ],
         },
         host: {
@@ -417,9 +425,17 @@ cc_library_static {
         },
         linux_glibc_x86_64: {
             srcs: [":py3-c-modules-linux_x86_64"],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
         },
         darwin: {
             srcs: [":py3-c-modules-darwin_x86_64"],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
         },
     },
 }
