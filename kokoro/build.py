@@ -71,6 +71,7 @@ def build_autoconf_target(host, python_src, out_dir):
     env.update({
         'CC': ' '.join(['cc'] + cflags + ldflags),
         'CXX': ' '.join(['c++'] + cflags + ldflags),
+        'MACOSX_DEPLOYMENT_TARGET': MAC_MIN_VERSION,
     })
 
     subprocess.check_call(config_cmd, cwd=build_dir, env=env)
