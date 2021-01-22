@@ -150,8 +150,14 @@ cpython3_cc_defaults {
 cc_library_static {
     name: "py3-interp",
     defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
-    cflags: ["-DPy_BUILD_CORE"],
+    cflags: ["-DPy_BUILD_CORE", "-DPLATLIBDIR=\"lib\""],
     srcs: [
+        // Makefile.pre.in PEGEN_OBJS
+        "Parser/pegen/pegen.c",
+        "Parser/pegen/parse.c",
+        "Parser/pegen/parse_string.c",
+        "Parser/pegen/peg_api.c",
+
         // Makefile.pre.in PARSER_OBJS
         "Parser/acceler.c",
         "Parser/grammar1.c",
@@ -179,6 +185,7 @@ cc_library_static {
         "Objects/descrobject.c",
         "Objects/enumobject.c",
         "Objects/exceptions.c",
+        "Objects/genericaliasobject.c",
         "Objects/genobject.c",
         "Objects/fileobject.c",
         "Objects/floatobject.c",
@@ -231,6 +238,7 @@ cc_library_static {
         "Python/getversion.c",
         "Python/graminit.c",
         "Python/hamt.c",
+        "Python/hashtable.c",
         "Python/import.c",
         "Python/importdl.c",
         "Python/initconfig.c",

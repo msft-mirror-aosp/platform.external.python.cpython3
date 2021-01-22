@@ -67,7 +67,6 @@ filegroup {
         "Modules/faulthandler.c",
         "Modules/fcntlmodule.c",
         "Modules/grpmodule.c",
-        "Modules/hashtable.c",
         "Modules/itertoolsmodule.c",
         "Modules/mathmodule.c",
         "Modules/md5module.c",
