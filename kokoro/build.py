@@ -42,6 +42,9 @@ def build_autoconf_target(host, python_src, out_dir):
         '--enable-shared',
     ]
     if host == Host.Darwin:
+        config_cmd.append('--enable-universalsdk')
+        config_cmd.append('--with-universal-archs=universal2')
+
         MAC_MIN_VERSION = '10.9'
         cflags.append('-mmacosx-version-min={}'.format(MAC_MIN_VERSION))
         cflags.append('-DMACOSX_DEPLOYMENT_TARGET={}'.format(MAC_MIN_VERSION))
@@ -77,7 +80,7 @@ def build_autoconf_target(host, python_src, out_dir):
         # Linker will embed this path to all binaries linking this library.
         # Since configure does not give us a chance to set -install_name, we have
         # to edit the library afterwards.
-        libpython = 'libpython3.8.dylib'
+        libpython = 'libpython3.9.dylib'
         subprocess.check_call(['make',
                                '-j{}'.format(multiprocessing.cpu_count()),
                                libpython],
