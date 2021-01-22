@@ -35,7 +35,6 @@ filegroup {
         "Modules/_functoolsmodule.c",
         "Modules/grpmodule.c",
         "Modules/_hashopenssl.c",
-        "Modules/hashtable.c",
         "Modules/_heapqmodule.c",
         "Modules/_io/bufferedio.c",
         "Modules/_io/bytesio.c",
@@ -58,6 +57,7 @@ filegroup {
         "Modules/_opcode.c",
         "Modules/_operator.c",
         "Modules/parsermodule.c",
+        "Modules/_peg_parser.c",
         "Modules/_pickle.c",
         "Modules/posixmodule.c",
         "Modules/_posixsubprocess.c",
@@ -90,5 +90,6 @@ filegroup {
         "Modules/_xxsubinterpretersmodule.c",
         "Modules/xxsubtype.c",
         "Modules/zlibmodule.c",
+        "Modules/_zoneinfo.c",
     ],
 }
