@@ -41,10 +41,15 @@ def build_autoconf_target(host, python_src, out_dir):
         '--prefix={}'.format(install_dir),
         '--enable-shared',
     ]
+    env = dict(os.environ)
     if host == Host.Darwin:
+        config_cmd.append('--enable-universalsdk')
+        config_cmd.append('--with-universal-archs=universal2')
+
         MAC_MIN_VERSION = '10.9'
         cflags.append('-mmacosx-version-min={}'.format(MAC_MIN_VERSION))
         cflags.append('-DMACOSX_DEPLOYMENT_TARGET={}'.format(MAC_MIN_VERSION))
+        env['MACOSX_DEPLOYMENT_TARGET'] = MAC_MIN_VERSION
         ldflags.append("-Wl,-rpath,'@loader_path/../lib'")
 
         # Disable functions to support old macOS. See https://bugs.python.org/issue31359
@@ -64,7 +69,6 @@ def build_autoconf_target(host, python_src, out_dir):
     elif host == Host.Linux:
         ldflags.append("-Wl,-rpath,'$$ORIGIN/../lib'")
 
-    env = dict(os.environ)
     env.update({
         'CC': ' '.join(['cc'] + cflags + ldflags),
         'CXX': ' '.join(['c++'] + cflags + ldflags),
@@ -77,7 +81,7 @@ def build_autoconf_target(host, python_src, out_dir):
         # Linker will embed this path to all binaries linking this library.
         # Since configure does not give us a chance to set -install_name, we have
         # to edit the library afterwards.
-        libpython = 'libpython3.8.dylib'
+        libpython = 'libpython3.9.dylib'
         subprocess.check_call(['make',
                                '-j{}'.format(multiprocessing.cpu_count()),
                                libpython],
