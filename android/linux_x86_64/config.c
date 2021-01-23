@@ -32,6 +32,7 @@ extern PyObject* PyInit_math(void);
 extern PyObject* PyInit__contextvars(void);
 extern PyObject* PyInit_time(void);
 extern PyObject* PyInit__datetime(void);
+extern PyObject* PyInit__zoneinfo(void);
 extern PyObject* PyInit__random(void);
 extern PyObject* PyInit__bisect(void);
 extern PyObject* PyInit__heapq(void);
@@ -97,6 +98,7 @@ extern PyObject* PyInit__locale(void);
 extern PyObject* PyInit__io(void);
 extern PyObject* PyInit_faulthandler(void);
 extern PyObject* PyInit__tracemalloc(void);
+extern PyObject* PyInit__peg_parser(void);
 extern PyObject* PyInit__symtable(void);
 extern PyObject* PyInit_xxsubtype(void);
 
@@ -120,6 +122,7 @@ struct _inittab _PyImport_Inittab[] = {
     {"_contextvars", PyInit__contextvars},
     {"time", PyInit_time},
     {"_datetime", PyInit__datetime},
+    {"_zoneinfo", PyInit__zoneinfo},
     {"_random", PyInit__random},
     {"_bisect", PyInit__bisect},
     {"_heapq", PyInit__heapq},
@@ -185,6 +188,7 @@ struct _inittab _PyImport_Inittab[] = {
     {"_io", PyInit__io},
     {"faulthandler", PyInit_faulthandler},
     {"_tracemalloc", PyInit__tracemalloc},
+    {"_peg_parser", PyInit__peg_parser},
     {"_symtable", PyInit__symtable},
     {"xxsubtype", PyInit_xxsubtype},
 

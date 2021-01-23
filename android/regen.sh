@@ -25,7 +25,7 @@ mkdir -p $DIR/pyconfig
 cd $DIR
 
 if [ $DIR == "linux_x86_64" ]; then
-  export CC="$ANDROID_BUILD_TOP/prebuilts/clang/host/linux-x86/clang-r365631c/bin/clang"
+  export CC="$ANDROID_BUILD_TOP/prebuilts/clang/host/linux-x86/clang-r399163b/bin/clang"
   export CFLAGS="--sysroot=$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8/sysroot"
   export LDFLAGS="--sysroot=$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8/sysroot -B$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8/lib/gcc/x86_64-linux/4.8.3 -L$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8/lib/gcc/x86_64-linux/4.8.3 -L$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8/x86_64-linux/lib64"
 fi
