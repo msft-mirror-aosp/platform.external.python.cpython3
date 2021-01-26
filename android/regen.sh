@@ -45,6 +45,8 @@ if [ $DIR == "darwin_x86_64" ]; then
   # preadv and pwritev are not safe on <11, which we still target
   sed -ibak "s%#define HAVE_PREADV 1%/* #undef HAVE_PREADV */%" pyconfig.h
   sed -ibak "s%#define HAVE_PWRITEV 1%/* #undef HAVE_PWRITEV */%" pyconfig.h
+  # _dyld_shared_cache_contains_path is not safe on <11, which we still target
+  sed -ibak "s%#define HAVE_DYLD_SHARED_CACHE_CONTAINS_PATH 1%/* #undef HAVE_DYLD_SHARED_CACHE_CONTAINS_PATH */%" pyconfig.h
 fi
 
 cp pyconfig.h ../pyconfig/
