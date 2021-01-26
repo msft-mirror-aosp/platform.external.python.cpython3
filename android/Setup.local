@@ -6,6 +6,7 @@ math mathmodule.c _math.c
 _contextvars _contextvarsmodule.c
 time timemodule.c
 _datetime _datetimemodule.c
+_zoneinfo _zoneinfo.c
 _random _randommodule.c
 _bisect _bisectmodule.c
 _heapq _heapqmodule.c
