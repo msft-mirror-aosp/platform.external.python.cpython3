@@ -18,8 +18,46 @@ build = [
     "Android-darwin_x86_64.bp",
 ]
 
+soong_config_module_type {
+    name: "cpython3_cc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "cpython3",
+    bool_variables: ["force_build_host"],
+    properties: ["defaults"],
+}
+
+// By default, disable the source and use the prebuilts for host linux_glibc
+// and darwin. Overridden by cpython3-interp-force_build_host when
+// force_build_host is true (set on aosp-build-tools).
 cc_defaults {
+    name: "cpython3-interp-host-prebuilts",
+    defaults_visibility: ["//visibility:private"],
+    target: {
+        linux_glibc: {
+            enabled: false,
+        },
+        darwin: {
+            enabled: false,
+        },
+    },
+}
+
+cc_defaults {
+    name: "cpython3-interp-force_build_host",
+    defaults_visibility: ["//visibility:private"],
+    target: {
+        linux_glibc: {
+            enabled: true,
+        },
+        darwin: {
+            enabled: true,
+        },
+    },
+}
+
+cpython3_cc_defaults {
     name: "py3-interp-defaults",
+    defaults_visibility: ["//visibility:private"],
     cflags: [
         "-fwrapv",
         "-O3",
@@ -50,16 +88,21 @@ cc_defaults {
             local_include_dirs: ["android/bionic/pyconfig"],
         },
         android_arm: {
-            cflags: ["-DSOABI=\"cpython-38android-arm-android-bionic\""],
+            cflags: ["-DSOABI=\"cpython-39android-arm-android-bionic\""],
         },
         android_arm64: {
-            cflags: ["-DSOABI=\"cpython-38android-arm64-android-bionic\""],
+            cflags: ["-DSOABI=\"cpython-39android-arm64-android-bionic\""],
         },
         android_x86: {
-            cflags: ["-DSOABI=\"cpython-38android-x86-android-bionic\""],
+            cflags: ["-DSOABI=\"cpython-39android-x86-android-bionic\""],
         },
         android_x86_64: {
-            cflags: ["-DSOABI=\"cpython-38android-x86_64-android-bionic\""],
+            cflags: ["-DSOABI=\"cpython-39android-x86_64-android-bionic\""],
+        },
+        host: {
+            // Host builds are moving to prebuilts, which has a higher risk of
+            // having an incompatible libc++.so when installed.
+            stl: "libc++_static",
         },
         // Regenerate include dirs with android_regen.sh
         darwin_x86_64: {
@@ -67,21 +110,21 @@ cc_defaults {
             cflags: [
                 "-Wno-deprecated-declarations",
                 "-Wno-pointer-arith",
-                "-DSOABI=\"cpython-38android-x86_64-darwin\"",
+                "-DSOABI=\"cpython-39android-x86_64-darwin\"",
             ],
         },
         linux_bionic: {
             // NB linux_bionic is a 'host' architecture but it uses the bionic libc like 'android'
             // targets so use the android pyconfig.
             local_include_dirs: ["android/bionic/pyconfig"],
-            cflags: ["-DSOABI=\"cpython-38android-x86_64-linux-bionic\""],
+            cflags: ["-DSOABI=\"cpython-39android-x86_64-linux-bionic\""],
         },
         linux_glibc_x86: {
             enabled: false,
         },
         linux_glibc_x86_64: {
             local_include_dirs: ["android/linux_x86_64/pyconfig"],
-            cflags: ["-DSOABI=\"cpython-38android-x86_64-linux-gnu\""],
+            cflags: ["-DSOABI=\"cpython-39android-x86_64-linux-gnu\""],
         },
         windows: {
             enabled: false,
@@ -97,13 +140,24 @@ cc_defaults {
             suffix: "64",
         },
     },
+    soong_config_variables: {
+        force_build_host: {
+            defaults: ["cpython3-interp-force_build_host"],
+        },
+    },
 }
 
 cc_library_static {
     name: "py3-interp",
-    defaults: ["py3-interp-defaults"],
-    cflags: ["-DPy_BUILD_CORE"],
+    defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
+    cflags: ["-DPy_BUILD_CORE", "-DPLATLIBDIR=\"lib\""],
     srcs: [
+        // Makefile.pre.in PEGEN_OBJS
+        "Parser/pegen/pegen.c",
+        "Parser/pegen/parse.c",
+        "Parser/pegen/parse_string.c",
+        "Parser/pegen/peg_api.c",
+
         // Makefile.pre.in PARSER_OBJS
         "Parser/acceler.c",
         "Parser/grammar1.c",
@@ -131,6 +185,7 @@ cc_library_static {
         "Objects/descrobject.c",
         "Objects/enumobject.c",
         "Objects/exceptions.c",
+        "Objects/genericaliasobject.c",
         "Objects/genobject.c",
         "Objects/fileobject.c",
         "Objects/floatobject.c",
@@ -183,6 +238,7 @@ cc_library_static {
         "Python/getversion.c",
         "Python/graminit.c",
         "Python/hamt.c",
+        "Python/hashtable.c",
         "Python/import.c",
         "Python/importdl.c",
         "Python/initconfig.c",
@@ -236,7 +292,7 @@ cc_library_static {
 
 cc_defaults {
     name: "py3-launcher-defaults",
-    defaults: ["py3-interp-defaults"],
+    defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
     cflags: [
         "-DVERSION=\"3.8\"",
         "-DVPATH=\"\"",
@@ -257,6 +313,10 @@ cc_defaults {
     target: {
         linux_glibc_x86_64: {
             host_ldlibs: ["-lutil"],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
         },
         linux: {
             // Due to test infra limitations, Python native symbols are linked
@@ -269,6 +329,10 @@ cc_defaults {
             host_ldlibs: [
                 "-framework SystemConfiguration",
                 "-framework CoreFoundation",
+            ],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
             ],
         },
         host: {
@@ -351,7 +415,7 @@ python_binary_host {
 
 cc_library_static {
     name: "py3-c-modules",
-    defaults: ["py3-interp-defaults"],
+    defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
     cflags: [
         "-DPy_BUILD_CORE_BUILTIN",
         "-DUSE_PYEXPAT_CAPI",
@@ -369,9 +433,17 @@ cc_library_static {
         },
         linux_glibc_x86_64: {
             srcs: [":py3-c-modules-linux_x86_64"],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
         },
         darwin: {
             srcs: [":py3-c-modules-darwin_x86_64"],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
         },
     },
 }

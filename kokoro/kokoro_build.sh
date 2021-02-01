@@ -7,6 +7,12 @@ DEST="${KOKORO_ARTIFACTS_DIR}/dest"
 OUT="${KOKORO_ARTIFACTS_DIR}/out"
 PYTHON_SRC=${KOKORO_ARTIFACTS_DIR}/git/cpython3
 
+
+if [ "$(uname)" == "Darwin" ]; then
+    # http://g3doc/devtools/kokoro/g3doc/userdocs/macos/selecting_xcode
+    sudo xcode-select -s /Applications/Xcode_12.2.app/Contents/Developer
+fi
+
 BASEDIR=$(dirname "$0")
 
 python3 --version
