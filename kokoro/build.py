@@ -146,9 +146,13 @@ def main(argv):
     build_id = argv[4]
     host = get_default_host()
 
-    build_dir, install_dir = build_autoconf_target(host, python_src, out_dir)
-    package_target(host, install_dir, dest_dir, build_id)
-    package_logs(build_dir, dest_dir)
+    try:
+        build_dir, install_dir = build_autoconf_target(host, python_src, out_dir)
+        package_target(host, install_dir, dest_dir, build_id)
+    except:
+        # Keep logs before exit.
+        package_logs(build_dir, dest_dir)
+        raise
 
 
 if __name__ == '__main__':
