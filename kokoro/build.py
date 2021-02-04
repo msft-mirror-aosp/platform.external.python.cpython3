@@ -93,7 +93,7 @@ def build_autoconf_target(host, python_src, out_dir):
                            '-j{}'.format(multiprocessing.cpu_count()),
                            'install'],
                           cwd=build_dir)
-    return install_dir
+    return (build_dir, install_dir)
 
 
 def package_target(host, install_dir, dest_dir, build_id):
@@ -133,6 +133,12 @@ def package_target(host, install_dir, dest_dir, build_id):
     subprocess.check_call(tar_cmd, cwd=install_dir)
 
 
+def package_logs(out_dir, dest_dir):
+    import tarfile
+    with tarfile.open(os.path.join(dest_dir, "logs.tar.bz2"), "w:bz2") as tar:
+        tar.add(os.path.join(out_dir, 'config.log'), arcname='config.log')
+
+
 def main(argv):
     python_src = argv[1]
     out_dir = argv[2]
@@ -140,8 +146,9 @@ def main(argv):
     build_id = argv[4]
     host = get_default_host()
 
-    install_dir = build_autoconf_target(host, python_src, out_dir)
+    build_dir, install_dir = build_autoconf_target(host, python_src, out_dir)
     package_target(host, install_dir, dest_dir, build_id)
+    package_logs(build_dir, dest_dir)
 
 
 if __name__ == '__main__':
