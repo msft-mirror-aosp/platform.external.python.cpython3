@@ -107,9 +107,6 @@ def run_command(cmd):
 def set_compiler_flags(compiler_flags, compiler_py_flags_nodist):
     flags = sysconfig.get_config_var(compiler_flags)
     py_flags_nodist = sysconfig.get_config_var(compiler_py_flags_nodist)
-    print("===Flags: " + flags)
-    print("===Flags nodist: " + py_flags_nodist)
-    print("===File: " + sysconfig.__file__)
     sysconfig.get_config_vars()[compiler_flags] = flags + ' ' + py_flags_nodist
 
 
