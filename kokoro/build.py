@@ -43,7 +43,11 @@ def build_autoconf_target(host, python_src, build_dir, install_dir):
     ]
     env = dict(os.environ)
     if host == Host.Darwin:
-        config_cmd.append('--enable-universalsdk')
+        sdkroot = env.get('SDKROOT')
+        if sdkroot:
+            config_cmd.append('--enable-universalsdk={}'.format(sdkroot))
+        else:
+            config_cmd.append('--enable-universalsdk')
         config_cmd.append('--with-universal-archs=universal2')
 
         MAC_MIN_VERSION = '10.9'
