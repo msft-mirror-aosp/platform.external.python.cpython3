@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import subprocess
 import sys
+import tarfile
 
 @enum.unique
 class Host(enum.Enum):
@@ -23,14 +24,13 @@ def get_default_host():
         raise RuntimeError('Unsupported host: {}'.format(sys.platform))
 
 
-def build_autoconf_target(host, python_src, out_dir):
+def build_autoconf_target(host, python_src, build_dir, install_dir):
     print('## Building Python ##')
-    print('## Out Dir     : {}'.format(out_dir))
+    print('## Build Dir   : {}'.format(build_dir))
+    print('## Install Dir : {}'.format(install_dir))
     print('## Python Src  : {}'.format(python_src))
     sys.stdout.flush()
 
-    build_dir = os.path.join(out_dir, 'build')
-    install_dir = os.path.join(out_dir, 'install')
     os.makedirs(build_dir, exist_ok=True)
     os.makedirs(install_dir, exist_ok=True)
 
@@ -134,7 +134,9 @@ def package_target(host, install_dir, dest_dir, build_id):
 
 
 def package_logs(out_dir, dest_dir):
-    import tarfile
+    os.makedirs(dest_dir, exist_ok=True)
+    print('## Packaging Logs ##')
+    sys.stdout.flush()
     with tarfile.open(os.path.join(dest_dir, "logs.tar.bz2"), "w:bz2") as tar:
         tar.add(os.path.join(out_dir, 'config.log'), arcname='config.log')
 
@@ -146,8 +148,11 @@ def main(argv):
     build_id = argv[4]
     host = get_default_host()
 
+    build_dir = os.path.join(out_dir, 'build')
+    install_dir = os.path.join(out_dir, 'install')
+
     try:
-        build_dir, install_dir = build_autoconf_target(host, python_src, out_dir)
+        build_autoconf_target(host, python_src, build_dir, install_dir)
         package_target(host, install_dir, dest_dir, build_id)
     except:
         # Keep logs before exit.
