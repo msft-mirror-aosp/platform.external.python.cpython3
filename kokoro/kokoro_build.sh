@@ -12,8 +12,7 @@ if [ "$(uname)" == "Darwin" ]; then
     # http://g3doc/devtools/kokoro/g3doc/userdocs/macos/selecting_xcode
     sudo xcode-select -s /Applications/Xcode_12.2.app/Contents/Developer
     xcodebuild -showsdks
-    /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk
-    ls -al /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+    ls -al /Applications/Xcode_12.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
 fi
 
 BASEDIR=$(dirname "$0")
