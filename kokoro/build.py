@@ -45,6 +45,7 @@ def build_autoconf_target(host, python_src, build_dir, install_dir):
     if host == Host.Darwin:
         sdkroot = env.get('SDKROOT')
         if sdkroot:
+            print("Using SDK {}".format(sdkroot))
             config_cmd.append('--enable-universalsdk={}'.format(sdkroot))
         else:
             config_cmd.append('--enable-universalsdk')
