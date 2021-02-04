@@ -111,8 +111,12 @@ class UnixCCompiler(CCompiler):
     def _compile(self, obj, src, ext, cc_args, extra_postargs, pp_opts):
         compiler_so = self.compiler_so
         if sys.platform == 'darwin':
+            print("====cc_args: " + cc_args)
+            print("====extra_postargs: " + extra_postargs)
+            print("====Compiler_so before fixup: " + self.compiler_so)
             compiler_so = _osx_support.compiler_fixup(compiler_so,
                                                     cc_args + extra_postargs)
+            print("====Compiler_so after fixup: " + self.compiler_so)
         try:
             self.spawn(compiler_so + cc_args + [src, '-o', obj] +
                        extra_postargs)
