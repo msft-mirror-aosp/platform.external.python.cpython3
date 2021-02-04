@@ -49,6 +49,8 @@ def build_autoconf_target(host, python_src, out_dir):
         MAC_MIN_VERSION = '10.9'
         cflags.append('-mmacosx-version-min={}'.format(MAC_MIN_VERSION))
         cflags.append('-DMACOSX_DEPLOYMENT_TARGET={}'.format(MAC_MIN_VERSION))
+        cflags.extend(['-arch', 'arm64'])
+        cflags.extend(['-arch', 'x86_64'])
         env['MACOSX_DEPLOYMENT_TARGET'] = MAC_MIN_VERSION
         ldflags.append("-Wl,-rpath,'@loader_path/../lib'")
 
@@ -69,10 +71,8 @@ def build_autoconf_target(host, python_src, out_dir):
     elif host == Host.Linux:
         ldflags.append("-Wl,-rpath,'$$ORIGIN/../lib'")
 
-    env.update({
-        'CC': ' '.join(['cc'] + cflags + ldflags),
-        'CXX': ' '.join(['c++'] + cflags + ldflags),
-    })
+    config_cmd.append('CFLAGS={}'.format(' '.join(cflags)))
+    config_cmd.append('LDFLAGS={}'.format(' '.join(cflags + ldflags)))
 
     subprocess.check_call(config_cmd, cwd=build_dir, env=env)
 
