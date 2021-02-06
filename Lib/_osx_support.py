@@ -156,9 +156,9 @@ def _default_sysroot(cc):
 
     if _cache_default_sysroot is not None:
         return _cache_default_sysroot
-
+   
     contents = _read_output('%s -c -E -v - </dev/null' % (cc,), True)
-    in_incdirs = False
+    in_incdirs = False   
     for line in contents.splitlines():
         if line.startswith("#include <...>"):
             in_incdirs = True
@@ -376,9 +376,6 @@ def compiler_fixup(compiler_so, cc_args):
         stripArch = '-arch' in cc_args
         stripSysroot = any(arg for arg in cc_args if arg.startswith('-isysroot'))
 
-    print("=====stripArch: " + repr(stripArch))
-    print("=====stripSysroot: " + repr(stripSysroot))
-    print("=====compiler_so1: " + repr(compiler_so))
     if stripArch or 'ARCHFLAGS' in os.environ:
         while True:
             try:
@@ -394,12 +391,11 @@ def compiler_fixup(compiler_so, cc_args):
             if compiler_so[idx] == '-arch' and compiler_so[idx+1] == "arm64":
                 del compiler_so[idx:idx+2]
 
-    print("=====compiler_so2: " + repr(compiler_so))
     if 'ARCHFLAGS' in os.environ and not stripArch:
         # User specified different -arch flags in the environ,
         # see also distutils.sysconfig
         compiler_so = compiler_so + os.environ['ARCHFLAGS'].split()
-    print("=====compiler_so3: " + repr(compiler_so))
+
     if stripSysroot:
         while True:
             indices = [i for i,x in enumerate(compiler_so) if x.startswith('-isysroot')]
@@ -412,7 +408,7 @@ def compiler_fixup(compiler_so, cc_args):
             else:
                 # It's '-isysroot/some/path' in one arg
                 del compiler_so[index:index+1]
-    print("=====compiler_so4: " + repr(compiler_so))
+
     # Check if the SDK that is used during compilation actually exists,
     # the universal build requires the usage of a universal SDK and not all
     # users have that installed by default.
