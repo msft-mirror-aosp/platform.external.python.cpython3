@@ -39,6 +39,8 @@ cd tmp
 ../../../configure
 
 if [ $DIR == "darwin_x86_64" ]; then
+  # getentropy is not safe on <10.12, which we still target
+  sed -ibak "s%#define HAVE_GETENTROPY 1%/* #undef HAVE_GETENTROPY */%" pyconfig.h
   # utimensat and futimens are not safe on <10.13, which we still target
   sed -ibak "s%#define HAVE_UTIMENSAT 1%/* #undef HAVE_UTIMENSAT */%" pyconfig.h
   sed -ibak "s%#define HAVE_FUTIMENS 1%/* #undef HAVE_FUTIMENS */%" pyconfig.h
