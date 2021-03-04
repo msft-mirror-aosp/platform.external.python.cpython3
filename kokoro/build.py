@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import subprocess
 import sys
+import tarfile
 
 @enum.unique
 class Host(enum.Enum):
@@ -23,14 +24,13 @@ def get_default_host():
         raise RuntimeError('Unsupported host: {}'.format(sys.platform))
 
 
-def build_autoconf_target(host, python_src, out_dir):
+def build_autoconf_target(host, python_src, build_dir, install_dir):
     print('## Building Python ##')
-    print('## Out Dir     : {}'.format(out_dir))
+    print('## Build Dir   : {}'.format(build_dir))
+    print('## Install Dir : {}'.format(install_dir))
     print('## Python Src  : {}'.format(python_src))
     sys.stdout.flush()
 
-    build_dir = os.path.join(out_dir, 'build')
-    install_dir = os.path.join(out_dir, 'install')
     os.makedirs(build_dir, exist_ok=True)
     os.makedirs(install_dir, exist_ok=True)
 
@@ -43,12 +43,19 @@ def build_autoconf_target(host, python_src, out_dir):
     ]
     env = dict(os.environ)
     if host == Host.Darwin:
-        config_cmd.append('--enable-universalsdk')
+        sdkroot = env.get('SDKROOT')
+        if sdkroot:
+            print("Using SDK {}".format(sdkroot))
+            config_cmd.append('--enable-universalsdk={}'.format(sdkroot))
+        else:
+            config_cmd.append('--enable-universalsdk')
         config_cmd.append('--with-universal-archs=universal2')
 
         MAC_MIN_VERSION = '10.9'
         cflags.append('-mmacosx-version-min={}'.format(MAC_MIN_VERSION))
         cflags.append('-DMACOSX_DEPLOYMENT_TARGET={}'.format(MAC_MIN_VERSION))
+        cflags.extend(['-arch', 'arm64'])
+        cflags.extend(['-arch', 'x86_64'])
         env['MACOSX_DEPLOYMENT_TARGET'] = MAC_MIN_VERSION
         ldflags.append("-Wl,-rpath,'@loader_path/../lib'")
 
@@ -69,10 +76,8 @@ def build_autoconf_target(host, python_src, out_dir):
     elif host == Host.Linux:
         ldflags.append("-Wl,-rpath,'$$ORIGIN/../lib'")
 
-    env.update({
-        'CC': ' '.join(['cc'] + cflags + ldflags),
-        'CXX': ' '.join(['c++'] + cflags + ldflags),
-    })
+    config_cmd.append('CFLAGS={}'.format(' '.join(cflags)))
+    config_cmd.append('LDFLAGS={}'.format(' '.join(cflags + ldflags)))
 
     subprocess.check_call(config_cmd, cwd=build_dir, env=env)
 
@@ -93,7 +98,7 @@ def build_autoconf_target(host, python_src, out_dir):
                            '-j{}'.format(multiprocessing.cpu_count()),
                            'install'],
                           cwd=build_dir)
-    return install_dir
+    return (build_dir, install_dir)
 
 
 def package_target(host, install_dir, dest_dir, build_id):
@@ -133,6 +138,14 @@ def package_target(host, install_dir, dest_dir, build_id):
     subprocess.check_call(tar_cmd, cwd=install_dir)
 
 
+def package_logs(out_dir, dest_dir):
+    os.makedirs(dest_dir, exist_ok=True)
+    print('## Packaging Logs ##')
+    sys.stdout.flush()
+    with tarfile.open(os.path.join(dest_dir, "logs.tar.bz2"), "w:bz2") as tar:
+        tar.add(os.path.join(out_dir, 'config.log'), arcname='config.log')
+
+
 def main(argv):
     python_src = argv[1]
     out_dir = argv[2]
@@ -140,8 +153,16 @@ def main(argv):
     build_id = argv[4]
     host = get_default_host()
 
-    install_dir = build_autoconf_target(host, python_src, out_dir)
-    package_target(host, install_dir, dest_dir, build_id)
+    build_dir = os.path.join(out_dir, 'build')
+    install_dir = os.path.join(out_dir, 'install')
+
+    try:
+        build_autoconf_target(host, python_src, build_dir, install_dir)
+        package_target(host, install_dir, dest_dir, build_id)
+    except:
+        # Keep logs before exit.
+        package_logs(build_dir, dest_dir)
+        raise
 
 
 if __name__ == '__main__':
