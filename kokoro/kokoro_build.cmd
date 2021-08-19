@@ -1,10 +1,7 @@
-:: Code under repo is checked out to %KOKORO_ARTIFACTS_DIR%\git.
-:: The final directory name in this path is determined by the scm name specified
-:: in the job configuration
+SETLOCAL
+SET TOP=%~dp0..\..\..\..
+SET PYTHON_SRC=%~dp0..
 
-SET DEST=%KOKORO_ARTIFACTS_DIR%\dest
-SET PYTHON_SRC=%KOKORO_ARTIFACTS_DIR%\git\cpython3
-
-call %~dp0\build.cmd "%PYTHON_SRC%" "%DEST%"
+call %~dp0build.cmd "%PYTHON_SRC%" "%TOP%\out\python3\artifact"
 
 exit /b %ERRORLEVEL%
