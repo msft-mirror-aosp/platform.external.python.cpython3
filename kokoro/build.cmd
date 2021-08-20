@@ -2,8 +2,11 @@
 :: %1 = python_src
 :: %2 = dest_dir
 
+SETLOCAL
 SET PYTHON_SRC=%1
 SET DEST=%2
+
+IF NOT DEFINED KOKORO_BUILD_ID (set KOKORO_BUILD_ID=dev)
 
 cd %PYTHON_SRC%
 md %DEST%
