@@ -74,7 +74,13 @@ def build_autoconf_target(host, python_src, build_dir, install_dir):
         ]
         config_cmd.extend('ac_cv_func_{}=no'.format(f) for f in disable_funcs)
     elif host == Host.Linux:
-        ldflags.append("-Wl,-rpath,'$$ORIGIN/../lib'")
+        # Quoting for -Wl,-rpath,$ORIGIN:
+        #  - To link some binaries, make passes -Wl,-rpath,\$ORIGIN to shell.
+        #  - To build stdlib extension modules, make invokes:
+        #        setup.py LDSHARED='... -Wl,-rpath,\$ORIGIN ...'
+        #  - distutils.util.split_quoted then splits LDSHARED into
+        #    [... "-Wl,-rpath,$ORIGIN", ...].
+        ldflags.append("-Wl,-rpath,\\$$ORIGIN/../lib")
 
     config_cmd.append('CFLAGS={}'.format(' '.join(cflags)))
     config_cmd.append('LDFLAGS={}'.format(' '.join(cflags + ldflags)))
