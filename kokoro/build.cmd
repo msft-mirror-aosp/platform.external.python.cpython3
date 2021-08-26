@@ -9,6 +9,7 @@ SET DEST=%2
 IF NOT DEFINED KOKORO_BUILD_ID (set KOKORO_BUILD_ID=dev)
 
 cd %PYTHON_SRC%
+rmdir /s/q %DEST% 2>NUL
 md %DEST%
 IF %ERRORLEVEL% NEQ 0 goto :end
 
@@ -25,8 +26,10 @@ CALL PCBuild\amd64\python.exe PC\layout --zip %DEST%\python3-windows-%KOKORO_BUI
 IF %ERRORLEVEL% NEQ 0 goto :end
 
 :: Packages all downloaded externals in externals
+:: (Log the location of 7z.exe to show that Cygwin's 7z.exe isn't used.)
 ECHO ## Packaging externals...
-powershell Compress-Archive -Path .\externals -DestinationPath %DEST%\python3-externals-%KOKORO_BUILD_ID%.zip
+where 7z
+7z a %DEST%\python3-externals-%KOKORO_BUILD_ID%.zip .\externals
 IF %ERRORLEVEL% NEQ 0 goto :end
 
 :end
