@@ -21,18 +21,12 @@ extra_notices=
 
 if [ "$(uname)" == "Darwin" ]; then
     # http://g3doc/devtools/kokoro/g3doc/userdocs/macos/selecting_xcode
-    xcode=
     if [ -d /Applications/Xcode_12.5.1.app ]; then
         xcode=/Applications/Xcode_12.5.1.app
-    elif [ -d /Applications/Xcode_12.4.app ]; then
-        xcode=/Applications/Xcode_12.4.app
-    fi
-    if [ -n "$xcode" ]; then
         sudo xcode-select -s $xcode/Contents/Developer
         export SDKROOT=$xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
     fi
     echo "Selected Xcode: $(xcode-select -p)"
-    (cd $python_src; git apply kokoro/0001-Enable-arm64-builds.patch)
 elif [ "$(uname)" == "Linux" ]; then
     # Build libffi.a for use with the _ctypes module.
     (cd $top/external/libffi && ./autogen.sh)
