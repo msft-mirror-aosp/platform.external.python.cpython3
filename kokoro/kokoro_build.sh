@@ -20,10 +20,42 @@ extra_ldflags=
 extra_notices=
 
 if [ "$(uname)" == "Darwin" ]; then
+    # The Kokoro big-sur builder has some extra x86-64 libraries installed in
+    # /usr/local (using homebrew), which override the MacOS SDK. At least 3
+    # modules are affected (_dbm, _gdbm, and _lzma).
+    brew_all_pkgs=$(brew list)
+    printf "Brew packages installed:\n%s\n\n" "$brew_all_pkgs"
+    brew_pkgs=
+    for name in gdbm xz; do
+        if echo "$brew_all_pkgs" | grep -q "^${name}\(@\|$\)"; then
+            brew_pkgs="$brew_pkgs $name"
+        fi
+    done
+    if [ -n "$brew_pkgs" ]; then
+        # A local developer probably won't have $KOKORO_ARTIFACTS_DIR set.
+        if [ -n "$KOKORO_ARTIFACTS_DIR" ]; then
+            # Pass --ignore-dependencies because some Homebrew packages still
+            # need the packages we want to remove, notably python@3.9, which
+            # we're using later to run kokoro/build.py.
+            cmd="brew uninstall --ignore-dependencies $brew_pkgs"
+            echo "Will run in 5 seconds (press Ctrl-C to abort): $cmd"
+            sleep 5
+            $cmd
+        else
+            echo "!!! WARNING: Your machine has Homebrew packages installed that could"
+            echo "!!! affect how some extension modules are built:"
+            echo "!!!"
+            echo "!!!    $brew_pkgs"
+            echo "!!!"
+        fi
+    fi
+
     # http://g3doc/devtools/kokoro/g3doc/userdocs/macos/selecting_xcode
     if [ -d /Applications/Xcode_12.5.1.app ]; then
         xcode=/Applications/Xcode_12.5.1.app
-        sudo xcode-select -s $xcode/Contents/Developer
+        cmd="sudo xcode-select -s $xcode/Contents/Developer"
+        echo "Running: $cmd"
+        $cmd
         export SDKROOT=$xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
     fi
     echo "Selected Xcode: $(xcode-select -p)"
