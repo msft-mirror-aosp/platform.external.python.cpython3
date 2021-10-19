@@ -16,5 +16,4 @@ RUN yum -y update && \
   make \
   ncurses-devel \
   python3 \
-  sqlite-devel \
   zlib-devel \
