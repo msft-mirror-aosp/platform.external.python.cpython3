@@ -20,6 +20,12 @@ set PYTHON_SRC=%~dp0..
 :: (It could leave Cygwin at the very end, but that's less of a problem.)
 set PATH=%PATH:C:\cygwin64\bin;=%
 
+IF NOT DEFINED KOKORO_BUILD_ID (set KOKORO_BUILD_ID=dev)
+
 call %~dp0build.cmd "%PYTHON_SRC%" "%TOP%\out\python3\artifact"
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
+py -3 %TOP%\toolchain\ndk-kokoro\gen_manifest.py --root %TOP% ^
+    -o %TOP%\out\python3\artifact\manifest-%KOKORO_BUILD_ID%.xml
 
 exit /b %ERRORLEVEL%
