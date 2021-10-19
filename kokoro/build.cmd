@@ -20,8 +20,6 @@ setlocal
 set PYTHON_SRC=%1
 set DEST=%2
 
-if not defined KOKORO_BUILD_ID (set KOKORO_BUILD_ID=dev)
-
 cd %PYTHON_SRC%
 rmdir /s/q %DEST% 2>NUL
 md %DEST%
