@@ -92,3 +92,6 @@ python3 $python_src/kokoro/build.py $python_src $out $out/artifact \
 
 # Verify that some extensions can be loaded.
 $out/install/bin/python3 -c 'import binascii, bz2, ctypes, curses, curses.panel, hashlib, zlib'
+
+$top/toolchain/ndk-kokoro/gen_manifest.py --root $top \
+    -o "$out/artifact/manifest-${KOKORO_BUILD_ID:-dev}.xml"
