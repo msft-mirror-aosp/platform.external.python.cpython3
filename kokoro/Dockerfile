@@ -11,9 +11,9 @@ RUN yum -y update && \
   bzip2 \
   bzip2-devel \
   gcc \
+  git \
   libtool \
   make \
   ncurses-devel \
   python3 \
-  sqlite-devel \
   zlib-devel \
