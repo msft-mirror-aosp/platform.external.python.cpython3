@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import enum
-import glob
 import multiprocessing
 import os
 import subprocess
@@ -25,8 +24,7 @@ def get_default_host():
         raise RuntimeError('Unsupported host: {}'.format(sys.platform))
 
 
-def build_autoconf_target(host, python_src, build_dir, install_dir,
-                          extra_ldflags):
+def build_autoconf_target(host, python_src, build_dir, install_dir):
     print('## Building Python ##')
     print('## Build Dir   : {}'.format(build_dir))
     print('## Install Dir : {}'.format(install_dir))
@@ -76,20 +74,10 @@ def build_autoconf_target(host, python_src, build_dir, install_dir,
         ]
         config_cmd.extend('ac_cv_func_{}=no'.format(f) for f in disable_funcs)
     elif host == Host.Linux:
-        # Quoting for -Wl,-rpath,$ORIGIN:
-        #  - To link some binaries, make passes -Wl,-rpath,\$ORIGIN to shell.
-        #  - To build stdlib extension modules, make invokes:
-        #        setup.py LDSHARED='... -Wl,-rpath,\$ORIGIN ...'
-        #  - distutils.util.split_quoted then splits LDSHARED into
-        #    [... "-Wl,-rpath,$ORIGIN", ...].
-        ldflags.append("-Wl,-rpath,\\$$ORIGIN/../lib")
-
-        # Omit DT_NEEDED entries for unused dynamic libraries. This is implicit
-        # with Debian's gcc driver but not with CentOS's gcc driver.
-        ldflags.append('-Wl,--as-needed')
+        ldflags.append("-Wl,-rpath,'$$ORIGIN/../lib'")
 
     config_cmd.append('CFLAGS={}'.format(' '.join(cflags)))
-    config_cmd.append('LDFLAGS={}'.format(' '.join(cflags + ldflags + [extra_ldflags])))
+    config_cmd.append('LDFLAGS={}'.format(' '.join(cflags + ldflags)))
 
     subprocess.check_call(config_cmd, cwd=build_dir, env=env)
 
@@ -111,15 +99,6 @@ def build_autoconf_target(host, python_src, build_dir, install_dir,
                            'install'],
                           cwd=build_dir)
     return (build_dir, install_dir)
-
-
-def install_licenses(host, install_dir, extra_notices):
-    (license_path,) = glob.glob(f'{install_dir}/lib/python*/LICENSE.txt')
-    with open(license_path, 'a') as out:
-        for notice in extra_notices:
-            out.write('\n-------------------------------------------------------------------\n\n')
-            with open(notice) as inp:
-                out.write(inp.read())
 
 
 def package_target(host, install_dir, dest_dir, build_id):
@@ -172,17 +151,13 @@ def main(argv):
     out_dir = argv[2]
     dest_dir = argv[3]
     build_id = argv[4]
-    extra_ldflags = argv[5]
-    extra_notices = argv[6].split()
     host = get_default_host()
 
     build_dir = os.path.join(out_dir, 'build')
     install_dir = os.path.join(out_dir, 'install')
 
     try:
-        build_autoconf_target(host, python_src, build_dir, install_dir,
-                              extra_ldflags)
-        install_licenses(host, install_dir, extra_notices)
+        build_autoconf_target(host, python_src, build_dir, install_dir)
         package_target(host, install_dir, dest_dir, build_id)
     except:
         # Keep logs before exit.

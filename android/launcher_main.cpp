@@ -37,9 +37,7 @@ static_assert(sizeof(time_t) == SIZEOF_TIME_T);
 static_assert(sizeof(uintptr_t) == SIZEOF_UINTPTR_T);
 static_assert(sizeof(void *) == SIZEOF_VOID_P);
 static_assert(sizeof(wchar_t) == SIZEOF_WCHAR_T);
-// This should be _Bool, but _Bool doesn't exist in C++.  Assume C++ bool will
-// be the same size as C _Bool.
-static_assert(sizeof(bool) == SIZEOF__BOOL);
+static_assert(sizeof(_Bool) == SIZEOF__BOOL);
 
 // TODO(b/141583221): stop leaks
 const char *__asan_default_options() {
