@@ -339,7 +339,7 @@ cc_defaults {
     name: "py3-launcher-defaults",
     defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
     cflags: [
-        "-DVERSION=\"3.8\"",
+        "-DVERSION=\"3.9\"",
         "-DVPATH=\"\"",
         "-DPREFIX=\"\"",
         "-DEXEC_PREFIX=\"\"",
