@@ -214,7 +214,10 @@
 
 /* Define to 1 if you have the declaration of `RTLD_DEEPBIND', and to 0 if you
    don't. */
+#ifdef __GLIBC__
+// musl doesn't have RTLD_DEEPBIND
 #define HAVE_DECL_RTLD_DEEPBIND 1
+#endif
 
 /* Define to 1 if you have the declaration of `RTLD_GLOBAL', and to 0 if you
    don't. */
