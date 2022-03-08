@@ -144,7 +144,7 @@ def package_target(host, install_dir, dest_dir, build_id):
       # IDLE_DIRS_ONLY
       "idlelib",
       # VENV_DIRS_ONLY
-      "venv", "ensurepip",
+      "ensurepip",
       # TCLTK_FILES_ONLY
       "turtle.py",
       # BDIST_WININST_FILES_ONLY
