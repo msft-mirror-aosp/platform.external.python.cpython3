@@ -446,6 +446,33 @@ cc_binary {
     cflags: ["-DANDROID_AUTORUN"],
 }
 
+cc_binary_host {
+    name: "py3-launcher-static",
+    defaults: ["py3-launcher-defaults"],
+    srcs: ["android/launcher_main.cpp"],
+    static_libs: ["py3-launcher-lib"],
+    static_executable: true,
+    target: {
+        glibc: {
+            enabled: false,
+        },
+    },
+}
+
+cc_binary_host {
+    name: "py3-launcher-autorun-static",
+    defaults: ["py3-launcher-defaults"],
+    srcs: ["android/launcher_main.cpp"],
+    static_libs: ["py3-launcher-lib"],
+    static_executable: true,
+    cflags: ["-DANDROID_AUTORUN"],
+    target: {
+        glibc: {
+            enabled: false,
+        },
+    },
+}
+
 python_binary_host {
     name: "py3-cmd",
     autorun: false,
