@@ -71,7 +71,7 @@ soong_config_module_type {
     properties: ["defaults"],
 }
 
-// By default, disable the source and use the prebuilts for host linux
+// By default, disable the source and use the prebuilts for host linux_glibc
 // and darwin. Overridden by cpython3-interp-force_build_host when
 // force_build_host is true (set on aosp-build-tools).
 cc_defaults {
@@ -79,9 +79,6 @@ cc_defaults {
     defaults_visibility: ["//visibility:private"],
     target: {
         linux_glibc: {
-            enabled: false,
-        },
-        linux_musl: {
             enabled: false,
         },
         darwin: {
@@ -95,9 +92,6 @@ cc_defaults {
     defaults_visibility: ["//visibility:private"],
     target: {
         linux_glibc: {
-            enabled: true,
-        },
-        linux_musl: {
             enabled: true,
         },
         darwin: {
@@ -173,14 +167,7 @@ cpython3_cc_defaults {
         linux_glibc_x86: {
             enabled: false,
         },
-        linux_musl_x86: {
-            enabled: false,
-        },
         linux_glibc_x86_64: {
-            local_include_dirs: ["android/linux_x86_64/pyconfig"],
-            cflags: ["-DSOABI=\"cpython-39android-x86_64-linux-gnu\""],
-        },
-        linux_musl_x86_64: {
             local_include_dirs: ["android/linux_x86_64/pyconfig"],
             cflags: ["-DSOABI=\"cpython-39android-x86_64-linux-gnu\""],
         },
@@ -371,6 +358,10 @@ cc_defaults {
     target: {
         linux_glibc_x86_64: {
             host_ldlibs: ["-lutil"],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
         },
         linux: {
             // Due to test infra limitations, Python native symbols are linked
@@ -384,20 +375,15 @@ cc_defaults {
                 "-framework SystemConfiguration",
                 "-framework CoreFoundation",
             ],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
         },
         host: {
             static_libs: [
                 "libsqlite",
                 "liblog",
-                "libopenssl_ssl",
-                "libopenssl_crypto",
-            ],
-        },
-        linux_bionic: {
-            // Linux Bionic doesn't have openssl prebuilts
-            exclude_static_libs: [
-                "libopenssl_ssl",
-                "libopenssl_crypto",
             ],
         },
         android: {
@@ -437,9 +423,6 @@ cc_library_static {
             srcs: ["android/bionic/config.c"],
         },
         linux_glibc_x86_64: {
-            srcs: ["android/linux_x86_64/config.c"],
-        },
-        linux_musl_x86_64: {
             srcs: ["android/linux_x86_64/config.c"],
         },
         darwin: {
@@ -521,13 +504,6 @@ cc_library_static {
             srcs: [":py3-c-modules-bionic"],
         },
         linux_glibc_x86_64: {
-            srcs: [":py3-c-modules-linux_x86_64"],
-            static_libs: [
-                "libopenssl_ssl",
-                "libopenssl_crypto",
-            ],
-        },
-        linux_musl_x86_64: {
             srcs: [":py3-c-modules-linux_x86_64"],
             static_libs: [
                 "libopenssl_ssl",

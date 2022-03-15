@@ -76,11 +76,7 @@ python_defaults {
     name: "py3-stdlib-force-build",
     defaults_visibility: ["//visibility:private"],
     target: {
-        glibc: {
-            exclude_srcs: [":py3-stdlib-prebuilt-srcs"],
-            srcs: [":py3-stdlib-srcs"],
-        },
-        musl: {
+        linux_glibc: {
             exclude_srcs: [":py3-stdlib-prebuilt-srcs"],
             srcs: [":py3-stdlib-srcs"],
         },
@@ -97,13 +93,13 @@ cpython3_python_stdlib {
     pkg_path: "stdlib",
     host_supported: true,
     target: {
-        bionic: {
+        android: {
             srcs: [":py3-stdlib-srcs"],
         },
-        glibc: {
-            srcs: [":py3-stdlib-prebuilt-srcs"],
+        linux_bionic: {
+            srcs: [":py3-stdlib-srcs"],
         },
-        musl: {
+        linux_glibc: {
             srcs: [":py3-stdlib-prebuilt-srcs"],
         },
         darwin: {
