@@ -71,7 +71,7 @@ soong_config_module_type {
     properties: ["defaults"],
 }
 
-// By default, disable the source and use the prebuilts for host linux
+// By default, disable the source and use the prebuilts for host linux_glibc
 // and darwin. Overridden by cpython3-interp-force_build_host when
 // force_build_host is true (set on aosp-build-tools).
 cc_defaults {
@@ -79,9 +79,6 @@ cc_defaults {
     defaults_visibility: ["//visibility:private"],
     target: {
         linux_glibc: {
-            enabled: false,
-        },
-        linux_musl: {
             enabled: false,
         },
         darwin: {
@@ -95,9 +92,6 @@ cc_defaults {
     defaults_visibility: ["//visibility:private"],
     target: {
         linux_glibc: {
-            enabled: true,
-        },
-        linux_musl: {
             enabled: true,
         },
         darwin: {
@@ -173,14 +167,7 @@ cpython3_cc_defaults {
         linux_glibc_x86: {
             enabled: false,
         },
-        linux_musl_x86: {
-            enabled: false,
-        },
         linux_glibc_x86_64: {
-            local_include_dirs: ["android/linux_x86_64/pyconfig"],
-            cflags: ["-DSOABI=\"cpython-39android-x86_64-linux-gnu\""],
-        },
-        linux_musl_x86_64: {
             local_include_dirs: ["android/linux_x86_64/pyconfig"],
             cflags: ["-DSOABI=\"cpython-39android-x86_64-linux-gnu\""],
         },
@@ -352,7 +339,7 @@ cc_defaults {
     name: "py3-launcher-defaults",
     defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
     cflags: [
-        "-DVERSION=\"3.9\"",
+        "-DVERSION=\"3.8\"",
         "-DVPATH=\"\"",
         "-DPREFIX=\"\"",
         "-DEXEC_PREFIX=\"\"",
@@ -371,6 +358,10 @@ cc_defaults {
     target: {
         linux_glibc_x86_64: {
             host_ldlibs: ["-lutil"],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
         },
         linux: {
             // Due to test infra limitations, Python native symbols are linked
@@ -384,20 +375,15 @@ cc_defaults {
                 "-framework SystemConfiguration",
                 "-framework CoreFoundation",
             ],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
         },
         host: {
             static_libs: [
                 "libsqlite",
                 "liblog",
-                "libopenssl_ssl",
-                "libopenssl_crypto",
-            ],
-        },
-        linux_bionic: {
-            // Linux Bionic doesn't have openssl prebuilts
-            exclude_static_libs: [
-                "libopenssl_ssl",
-                "libopenssl_crypto",
             ],
         },
         android: {
@@ -436,10 +422,7 @@ cc_library_static {
         linux_bionic: {
             srcs: ["android/bionic/config.c"],
         },
-        glibc_x86_64: {
-            srcs: ["android/linux_x86_64/config.c"],
-        },
-        musl_x86_64: {
+        linux_glibc_x86_64: {
             srcs: ["android/linux_x86_64/config.c"],
         },
         darwin: {
@@ -461,33 +444,6 @@ cc_binary {
     srcs: ["android/launcher_main.cpp"],
     static_libs: ["py3-launcher-lib"],
     cflags: ["-DANDROID_AUTORUN"],
-}
-
-cc_binary_host {
-    name: "py3-launcher-static",
-    defaults: ["py3-launcher-defaults"],
-    srcs: ["android/launcher_main.cpp"],
-    static_libs: ["py3-launcher-lib"],
-    static_executable: true,
-    target: {
-        glibc: {
-            enabled: false,
-        },
-    },
-}
-
-cc_binary_host {
-    name: "py3-launcher-autorun-static",
-    defaults: ["py3-launcher-defaults"],
-    srcs: ["android/launcher_main.cpp"],
-    static_libs: ["py3-launcher-lib"],
-    static_executable: true,
-    cflags: ["-DANDROID_AUTORUN"],
-    target: {
-        glibc: {
-            enabled: false,
-        },
-    },
 }
 
 python_binary_host {
@@ -520,14 +476,7 @@ cc_library_static {
         linux_bionic: {
             srcs: [":py3-c-modules-bionic"],
         },
-        glibc_x86_64: {
-            srcs: [":py3-c-modules-linux_x86_64"],
-            static_libs: [
-                "libopenssl_ssl",
-                "libopenssl_crypto",
-            ],
-        },
-        musl_x86_64: {
+        linux_glibc_x86_64: {
             srcs: [":py3-c-modules-linux_x86_64"],
             static_libs: [
                 "libopenssl_ssl",
