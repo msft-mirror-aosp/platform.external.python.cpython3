@@ -68,18 +68,18 @@ def set_text_element(root: minidom.Element, tag: str, new_text: str) -> None:
     node.data = new_text
 
 
-def patch_python_vcxproj_for_licenses():
+def patch_python_for_licenses():
     # Python already handles bzip2 and libffi itself.
     notice_files = [
         TOP / 'external/zlib/LICENSE',
         TOP / 'toolchain/xz/COPYING',
     ]
 
-    xml_path = PYTHON_SRC / 'PCbuild/python.vcxproj'
+    xml_path = PYTHON_SRC / 'PCbuild/regen.targets'
     proj = read_xml_file(xml_path)
 
-    # Pick the unconditional <LicenseFiles> element and add extra notices to the end.
-    elements = proj.getElementsByTagName('LicenseFiles')
+    # Pick the unconditional <_LicenseSources> element and add extra notices to the end.
+    elements = proj.getElementsByTagName('_LicenseSources')
     (element,) = [e for e in elements if not e.hasAttribute('Condition')]
     includes = element.getAttribute('Include').split(';')
     for notice in notice_files:
@@ -177,7 +177,7 @@ def main() -> None:
     shutil.copy2(xz / 'windows/vs2017/config.h',
                  xz / 'windows/config.h')
 
-    patch_python_vcxproj_for_licenses()
+    patch_python_for_licenses()
     remove_modules_from_pcbuild_proj()
     build_using_cmake(TOP / 'out/libffi', TOP / 'external/libffi')
     build_using_cmake(TOP / 'out/zlib', TOP / 'external/zlib')
