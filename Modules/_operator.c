@@ -735,7 +735,7 @@ _tscmp(const unsigned char *a, const unsigned char *b,
     volatile const unsigned char *left;
     volatile const unsigned char *right;
     Py_ssize_t i;
-    volatile unsigned char result;
+    unsigned char result;
 
     /* loop count depends on length of b */
     length = len_b;
@@ -784,8 +784,6 @@ _operator_length_hint_impl(PyObject *module, PyObject *obj,
 {
     return PyObject_LengthHint(obj, default_value);
 }
-
-/* NOTE: Keep in sync with _hashopenssl.c implementation. */
 
 /*[clinic input]
 _operator._compare_digest = _operator.eq
@@ -1172,7 +1170,7 @@ attrgetter_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     for (idx = 0; idx < nattrs; ++idx) {
         PyObject *item = PyTuple_GET_ITEM(args, idx);
         Py_ssize_t item_len;
-        const void *data;
+        void *data;
         unsigned int kind;
         int dot_count;
 
@@ -1684,7 +1682,7 @@ methodcaller_reduce(methodcallerobject *mc, PyObject *Py_UNUSED(ignored))
 
         newargs[0] = (PyObject *)Py_TYPE(mc);
         newargs[1] = mc->name;
-        constructor = PyObject_VectorcallDict(partial, newargs, 2, mc->kwds);
+        constructor = _PyObject_FastCallDict(partial, newargs, 2, mc->kwds);
 
         Py_DECREF(partial);
         return Py_BuildValue("NO", constructor, mc->args);
@@ -1748,38 +1746,16 @@ static PyTypeObject methodcaller_type = {
 };
 
 
-static int
-operator_exec(PyObject *module)
-{
-    PyTypeObject *types[] = {
-        &itemgetter_type,
-        &attrgetter_type,
-        &methodcaller_type
-    };
-
-    for (size_t i = 0; i < Py_ARRAY_LENGTH(types); i++) {
-        if (PyModule_AddType(module, types[i]) < 0) {
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-
-static struct PyModuleDef_Slot operator_slots[] = {
-    {Py_mod_exec, operator_exec},
-    {0, NULL}
-};
+/* Initialization function for the module (*must* be called PyInit__operator) */
 
 
 static struct PyModuleDef operatormodule = {
     PyModuleDef_HEAD_INIT,
     "_operator",
     operator_doc,
-    0,
+    -1,
     operator_methods,
-    operator_slots,
+    NULL,
     NULL,
     NULL,
     NULL
@@ -1788,5 +1764,26 @@ static struct PyModuleDef operatormodule = {
 PyMODINIT_FUNC
 PyInit__operator(void)
 {
-    return PyModuleDef_Init(&operatormodule);
+    PyObject *m;
+
+    /* Create the module and add the functions */
+    m = PyModule_Create(&operatormodule);
+    if (m == NULL)
+        return NULL;
+
+    if (PyType_Ready(&itemgetter_type) < 0)
+        return NULL;
+    Py_INCREF(&itemgetter_type);
+    PyModule_AddObject(m, "itemgetter", (PyObject *)&itemgetter_type);
+
+    if (PyType_Ready(&attrgetter_type) < 0)
+        return NULL;
+    Py_INCREF(&attrgetter_type);
+    PyModule_AddObject(m, "attrgetter", (PyObject *)&attrgetter_type);
+
+    if (PyType_Ready(&methodcaller_type) < 0)
+        return NULL;
+    Py_INCREF(&methodcaller_type);
+    PyModule_AddObject(m, "methodcaller", (PyObject *)&methodcaller_type);
+    return m;
 }

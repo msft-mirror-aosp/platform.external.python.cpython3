@@ -189,10 +189,6 @@ Glossary
       A list of bytecode instructions can be found in the documentation for
       :ref:`the dis module <bytecodes>`.
 
-   callback
-      A subroutine function which is passed as an argument to be executed at
-      some point in the future.
-
    class
       A template for creating user-defined objects. Class definitions
       normally contain method definitions which operate on instances of the
@@ -301,19 +297,12 @@ Glossary
       including functions, methods, properties, class methods, static methods,
       and reference to super classes.
 
-      For more information about descriptors' methods, see :ref:`descriptors`
-      or the :ref:`Descriptor How To Guide <descriptorhowto>`.
+      For more information about descriptors' methods, see :ref:`descriptors`.
 
    dictionary
       An associative array, where arbitrary keys are mapped to values.  The
       keys can be any object with :meth:`__hash__` and :meth:`__eq__` methods.
       Called a hash in Perl.
-
-   dictionary comprehension
-      A compact way to process all or part of the elements in an iterable and
-      return a dictionary with the results. ``results = {n: n ** 2 for n in
-      range(10)}`` generates a dictionary containing key ``n`` mapped to
-      value ``n ** 2``. See :ref:`comprehensions`.
 
    dictionary view
       The objects returned from :meth:`dict.keys`, :meth:`dict.values`, and
@@ -483,13 +472,6 @@ Glossary
       See also the :term:`single dispatch` glossary entry, the
       :func:`functools.singledispatch` decorator, and :pep:`443`.
 
-   generic type
-      A :term:`type` that can be parameterized; typically a container like
-      :class:`list`. Used for :term:`type hints <type hint>` and
-      :term:`annotations <annotation>`.
-
-      See :pep:`483` for more details, and :mod:`typing` or
-      :ref:`generic alias type <types-genericalias>` for its uses.
 
    GIL
       See :term:`global interpreter lock`.
@@ -601,7 +583,7 @@ Glossary
       and :class:`tuple`) and some non-sequence types like :class:`dict`,
       :term:`file objects <file object>`, and objects of any classes you define
       with an :meth:`__iter__` method or with a :meth:`__getitem__` method
-      that implements :term:`Sequence <sequence>` semantics.
+      that implements :term:`Sequence` semantics.
 
       Iterables can be
       used in a :keyword:`for` loop and in many other places where a sequence is
@@ -842,11 +824,9 @@ Glossary
       .. _positional-only_parameter:
 
       * :dfn:`positional-only`: specifies an argument that can be supplied only
-        by position. Positional-only parameters can be defined by including a
-        ``/`` character in the parameter list of the function definition after
-        them, for example *posonly1* and *posonly2* in the following::
-
-           def func(posonly1, posonly2, /, positional_or_keyword): ...
+        by position.  Python has no syntax for defining positional-only
+        parameters.  However, some built-in functions have positional-only
+        parameters (e.g. :func:`abs`).
 
       .. _keyword-only_parameter:
 
@@ -1038,13 +1018,7 @@ Glossary
       :meth:`index`, :meth:`__contains__`, and
       :meth:`__reversed__`. Types that implement this expanded
       interface can be registered explicitly using
-      :func:`~abc.ABCMeta.register`.
-
-   set comprehension
-      A compact way to process all or part of the elements in an iterable and
-      return a set with the results. ``results = {c for c in 'abracadabra' if
-      c not in 'abc'}`` generates the set of strings ``{'r', 'd'}``.  See
-      :ref:`comprehensions`.
+      :func:`~abc.register`.
 
    single dispatch
       A form of :term:`generic function` dispatch where the implementation is
@@ -1104,15 +1078,19 @@ Glossary
       Type aliases are useful for simplifying :term:`type hints <type hint>`.
       For example::
 
+         from typing import List, Tuple
+
          def remove_gray_shades(
-                 colors: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
+                 colors: List[Tuple[int, int, int]]) -> List[Tuple[int, int, int]]:
              pass
 
       could be made more readable like this::
 
-         Color = tuple[int, int, int]
+         from typing import List, Tuple
 
-         def remove_gray_shades(colors: list[Color]) -> list[Color]:
+         Color = Tuple[int, int, int]
+
+         def remove_gray_shades(colors: List[Color]) -> List[Color]:
              pass
 
       See :mod:`typing` and :pep:`484`, which describe this functionality.

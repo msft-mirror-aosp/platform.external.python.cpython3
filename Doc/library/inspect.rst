@@ -70,9 +70,6 @@ attributes:
 |           |                   | method is bound, or       |
 |           |                   | ``None``                  |
 +-----------+-------------------+---------------------------+
-|           | __module__        | name of module in which   |
-|           |                   | this method was defined   |
-+-----------+-------------------+---------------------------+
 | function  | __doc__           | documentation string      |
 +-----------+-------------------+---------------------------+
 |           | __name__          | name with which this      |
@@ -100,9 +97,6 @@ attributes:
 |           |                   | ``"return"`` key is       |
 |           |                   | reserved for return       |
 |           |                   | annotations.              |
-+-----------+-------------------+---------------------------+
-|           | __module__        | name of module in which   |
-|           |                   | this function was defined |
 +-----------+-------------------+---------------------------+
 | traceback | tb_frame          | frame object at this      |
 |           |                   | level                     |
@@ -821,9 +815,10 @@ function.
 
    .. attribute:: BoundArguments.arguments
 
-      A mutable mapping of parameters' names to arguments' values.
-      Contains only explicitly bound arguments.  Changes in :attr:`arguments`
-      will reflect in :attr:`args` and :attr:`kwargs`.
+      An ordered, mutable mapping (:class:`collections.OrderedDict`) of
+      parameters' names to arguments' values.  Contains only explicitly bound
+      arguments.  Changes in :attr:`arguments` will reflect in :attr:`args` and
+      :attr:`kwargs`.
 
       Should be used in conjunction with :attr:`Signature.parameters` for any
       argument processing purposes.
@@ -834,10 +829,6 @@ function.
          :meth:`Signature.bind_partial` relied on a default value are skipped.
          However, if needed, use :meth:`BoundArguments.apply_defaults` to add
          them.
-
-      .. versionchanged:: 3.9
-         :attr:`arguments` is now of type :class:`dict`. Formerly, it was of
-         type :class:`collections.OrderedDict`.
 
    .. attribute:: BoundArguments.args
 
@@ -869,7 +860,7 @@ function.
         >>> ba = inspect.signature(foo).bind('spam')
         >>> ba.apply_defaults()
         >>> ba.arguments
-        {'a': 'spam', 'b': 'ham', 'args': ()}
+        OrderedDict([('a', 'spam'), ('b', 'ham'), ('args', ())])
 
       .. versionadded:: 3.5
 

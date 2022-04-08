@@ -151,7 +151,6 @@ Some facts and figures:
 
 
 .. class:: TarFile
-   :noindex:
 
    Class for reading and writing tar archives. Do not use this class directly:
    use :func:`tarfile.open` instead. See :ref:`tarfile-objects`.
@@ -160,10 +159,7 @@ Some facts and figures:
 .. function:: is_tarfile(name)
 
    Return :const:`True` if *name* is a tar archive file, that the :mod:`tarfile`
-   module can read. *name* may be a :class:`str`, file, or file-like object.
-
-   .. versionchanged:: 3.9
-      Support for file and file-like objects.
+   module can read.
 
 
 The :mod:`tarfile` module defines the following exceptions:
@@ -445,11 +441,10 @@ be finalized; only the internally used file object will be closed. See the
 
 .. method:: TarFile.extractfile(member)
 
-   Extract a member from the archive as a file object. *member* may be
-   a filename or a :class:`TarInfo` object. If *member* is a regular file or
-   a link, an :class:`io.BufferedReader` object is returned. For all other
-   existing members, :const:`None` is returned. If *member* does not appear
-   in the archive, :exc:`KeyError` is raised.
+   Extract a member from the archive as a file object. *member* may be a filename
+   or a :class:`TarInfo` object. If *member* is a regular file or a link, an
+   :class:`io.BufferedReader` object is returned. Otherwise, :const:`None` is
+   returned.
 
    .. versionchanged:: 3.3
       Return an :class:`io.BufferedReader` object.
@@ -789,7 +784,7 @@ How to read a gzip compressed tar archive and display some member information::
    import tarfile
    tar = tarfile.open("sample.tar.gz", "r:gz")
    for tarinfo in tar:
-       print(tarinfo.name, "is", tarinfo.size, "bytes in size and is ", end="")
+       print(tarinfo.name, "is", tarinfo.size, "bytes in size and is", end="")
        if tarinfo.isreg():
            print("a regular file.")
        elif tarinfo.isdir():

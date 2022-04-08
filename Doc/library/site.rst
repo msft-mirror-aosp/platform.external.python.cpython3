@@ -231,19 +231,10 @@ Module contents
 
    Return the path of the user-specific site-packages directory,
    :data:`USER_SITE`.  If it is not initialized yet, this function will also set
-   it, respecting :data:`USER_BASE`.  To determine if the user-specific
-   site-packages was added to ``sys.path`` :data:`ENABLE_USER_SITE` should be
-   used.
+   it, respecting :envvar:`PYTHONNOUSERSITE` and :data:`USER_BASE`.
 
    .. versionadded:: 3.2
 
-
-.. _site-commandline:
-
-Command Line Interface
-----------------------
-
-.. program:: site
 
 The :mod:`site` module also provides a way to get the user directories from the
 command line:
@@ -252,6 +243,8 @@ command line:
 
    $ python3 -m site --user-site
    /home/user/.local/lib/python3.3/site-packages
+
+.. program:: site
 
 If it is called without arguments, it will print the contents of
 :data:`sys.path` on the standard output, followed by the value of

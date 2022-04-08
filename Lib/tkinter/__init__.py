@@ -32,12 +32,12 @@ tk.mainloop()
 
 import enum
 import sys
-import types
 
 import _tkinter # If this fails your Python may not be configured for Tk
 TclError = _tkinter.TclError
 from tkinter.constants import *
 import re
+
 
 wantobjects = 1
 
@@ -146,10 +146,10 @@ def _splitdict(tk, v, cut_minus=True, conv=None):
 
 class EventType(str, enum.Enum):
     KeyPress = '2'
-    Key = KeyPress
+    Key = KeyPress,
     KeyRelease = '3'
     ButtonPress = '4'
-    Button = ButtonPress
+    Button = ButtonPress,
     ButtonRelease = '5'
     Motion = '6'
     Enter = '7'
@@ -180,12 +180,13 @@ class EventType(str, enum.Enum):
     Colormap = '32'
     ClientMessage = '33'    # undocumented
     Mapping = '34'          # undocumented
-    VirtualEvent = '35'     # undocumented
-    Activate = '36'
-    Deactivate = '37'
-    MouseWheel = '38'
+    VirtualEvent = '35',    # undocumented
+    Activate = '36',
+    Deactivate = '37',
+    MouseWheel = '38',
 
-    __str__ = str.__str__
+    def __str__(self):
+        return self.name
 
 
 class Event:
@@ -265,7 +266,7 @@ class Event:
                 'num', 'delta', 'focus',
                 'x', 'y', 'width', 'height')
         return '<%s event%s>' % (
-            getattr(self.type, 'name', self.type),
+            self.type,
             ''.join(' %s=%s' % (k, attrs[k]) for k in keys if k in attrs)
         )
 
@@ -483,8 +484,6 @@ class Variable:
         Note: if the Variable's master matters to behavior
         also compare self._master == other._master
         """
-        if not isinstance(other, Variable):
-            return NotImplemented
         return self.__class__.__name__ == other.__class__.__name__ \
             and self._name == other._name
 
@@ -2240,7 +2239,7 @@ class Tk(Misc, Wm):
     _w = '.'
 
     def __init__(self, screenName=None, baseName=None, className='Tk',
-                 useTk=True, sync=False, use=None):
+                 useTk=1, sync=0, use=None):
         """Return a new Toplevel widget on screen SCREENNAME. A new Tcl interpreter will
         be created. BASENAME will be used for the identification of the profile file (see
         readprofile).
@@ -2258,7 +2257,7 @@ class Tk(Misc, Wm):
             baseName, ext = os.path.splitext(baseName)
             if ext not in ('.py', '.pyc'):
                 baseName = baseName + ext
-        interactive = False
+        interactive = 0
         self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
         if useTk:
             self._loadtk()
@@ -2360,7 +2359,7 @@ class Tk(Misc, Wm):
 # copied into the Pack, Place or Grid class.
 
 
-def Tcl(screenName=None, baseName=None, className='Tk', useTk=False):
+def Tcl(screenName=None, baseName=None, className='Tk', useTk=0):
     return Tk(screenName, baseName, className, useTk)
 
 
@@ -3964,7 +3963,7 @@ class OptionMenu(Menubutton):
         if 'command' in kwargs:
             del kwargs['command']
         if kwargs:
-            raise TclError('unknown option -'+next(iter(kwargs)))
+            raise TclError('unknown option -'+kwargs.keys()[0])
         menu.add_command(label=value,
                  command=_setit(variable, value, callback))
         for v in values:
@@ -4569,10 +4568,6 @@ def _test():
     root.deiconify()
     root.mainloop()
 
-
-__all__ = [name for name, obj in globals().items()
-           if not name.startswith('_') and not isinstance(obj, types.ModuleType)
-           and name not in {'wantobjects'}]
 
 if __name__ == '__main__':
     _test()

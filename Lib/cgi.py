@@ -200,10 +200,7 @@ def parse_multipart(fp, pdict, encoding="utf-8", errors="replace"):
     ctype = "multipart/form-data; boundary={}".format(boundary)
     headers = Message()
     headers.set_type(ctype)
-    try:
-        headers['Content-Length'] = pdict['CONTENT-LENGTH']
-    except KeyError:
-        pass
+    headers['Content-Length'] = pdict['CONTENT-LENGTH']
     fs = FieldStorage(fp, headers=headers, encoding=encoding, errors=errors,
         environ={'REQUEST_METHOD': 'POST'})
     return {k: fs.getlist(k) for k in fs}
@@ -739,8 +736,7 @@ class FieldStorage:
         last_line_lfend = True
         _read = 0
         while 1:
-
-            if self.limit is not None and 0 <= self.limit <= _read:
+            if self.limit is not None and _read >= self.limit:
                 break
             line = self.fp.readline(1<<16) # bytes
             self.bytes_read += len(line)

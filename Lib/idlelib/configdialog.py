@@ -11,7 +11,7 @@ Refer to comments in EditorWindow autoindent code for details.
 """
 import re
 
-from tkinter import (Toplevel, Listbox, Scale, Canvas,
+from tkinter import (Toplevel, Listbox, Text, Scale, Canvas,
                      StringVar, BooleanVar, IntVar, TRUE, FALSE,
                      TOP, BOTTOM, RIGHT, LEFT, SOLID, GROOVE,
                      NONE, BOTH, X, Y, W, E, EW, NS, NSEW, NW,
@@ -67,6 +67,7 @@ class ConfigDialog(Toplevel):
         if not _utest:
             self.withdraw()
 
+        self.configure(borderwidth=5)
         self.title(title or 'IDLE Preferences')
         x = parent.winfo_rootx() + 20
         y = parent.winfo_rooty() + (30 if not _htest else 150)
@@ -96,7 +97,6 @@ class ConfigDialog(Toplevel):
         """Create and place widgets for tabbed dialog.
 
         Widgets Bound to self:
-            frame: encloses all other widgets
             note: Notebook
             highpage: HighPage
             fontpage: FontPage
@@ -109,9 +109,7 @@ class ConfigDialog(Toplevel):
             load_configs: Load pages except for extensions.
             activate_config_changes: Tell editors to reload.
         """
-        self.frame = frame = Frame(self, padding="5px")
-        self.frame.grid(sticky="nwes")
-        self.note = note = Notebook(frame)
+        self.note = note = Notebook(self)
         self.highpage = HighPage(note)
         self.fontpage = FontPage(note, self.highpage)
         self.keyspage = KeysPage(note)
@@ -150,20 +148,18 @@ class ConfigDialog(Toplevel):
             padding_args = {}
         else:
             padding_args = {'padding': (6, 3)}
-        outer = Frame(self.frame, padding=2)
-        buttons_frame = Frame(outer, padding=2)
-        self.buttons = {}
+        outer = Frame(self, padding=2)
+        buttons = Frame(outer, padding=2)
         for txt, cmd in (
             ('Ok', self.ok),
             ('Apply', self.apply),
             ('Cancel', self.cancel),
             ('Help', self.help)):
-            self.buttons[txt] = Button(buttons_frame, text=txt, command=cmd,
-                       takefocus=FALSE, **padding_args)
-            self.buttons[txt].pack(side=LEFT, padx=5)
+            Button(buttons, text=txt, command=cmd, takefocus=FALSE,
+                   **padding_args).pack(side=LEFT, padx=5)
         # Add space above buttons.
         Frame(outer, height=2, borderwidth=0).pack(side=TOP)
-        buttons_frame.pack(side=BOTTOM)
+        buttons.pack(side=BOTTOM)
         return outer
 
     def ok(self):
@@ -195,7 +191,6 @@ class ConfigDialog(Toplevel):
         Methods:
             destroy: inherited
         """
-        changes.clear()
         self.destroy()
 
     def destroy(self):
@@ -209,12 +204,13 @@ class ConfigDialog(Toplevel):
 
         Attributes accessed:
             note
+
         Methods:
             view_text: Method from textview module.
         """
         page = self.note.tab(self.note.select(), option='text').strip()
         view_text(self, title='Help for IDLE preferences',
-                  contents=help_common+help_pages.get(page, ''))
+                 text=help_common+help_pages.get(page, ''))
 
     def deactivate_current_config(self):
         """Remove current key bindings.
@@ -608,8 +604,9 @@ class FontPage(Frame):
         font_size = configured_font[1]
         font_bold  = configured_font[2]=='bold'
 
-        # Set sorted no-duplicate editor font selection list and font_name.
-        fonts = sorted(set(tkFont.families(self)))
+        # Set editor font selection list and font_name.
+        fonts = list(tkFont.families(self))
+        fonts.sort()
         for font in fonts:
             self.fontlist.insert(END, font)
         self.font_name.set(font_name)
@@ -689,7 +686,7 @@ class HighPage(Frame):
 
     def __init__(self, master):
         super().__init__(master)
-        self.cd = master.winfo_toplevel()
+        self.cd = master.master
         self.style = Style(master)
         self.create_page_highlight()
         self.load_theme_cfg()
@@ -854,7 +851,6 @@ class HighPage(Frame):
         text.configure(
                 font=('courier', 12, ''), cursor='hand2', width=1, height=1,
                 takefocus=FALSE, highlightthickness=0, wrap=NONE)
-        # Prevent perhaps invisible selection of word or slice.
         text.bind('<Double-Button-1>', lambda e: 'break')
         text.bind('<B1-Motion>', lambda e: 'break')
         string_tags=(
@@ -1287,7 +1283,8 @@ class HighPage(Frame):
         theme_name - string, the name of the new theme
         theme - dictionary containing the new theme
         """
-        idleConf.userCfg['highlight'].AddSection(theme_name)
+        if not idleConf.userCfg['highlight'].has_section(theme_name):
+            idleConf.userCfg['highlight'].add_section(theme_name)
         for element in theme:
             value = theme[element]
             idleConf.userCfg['highlight'].SetOption(theme_name, element, value)
@@ -1348,7 +1345,7 @@ class KeysPage(Frame):
 
     def __init__(self, master):
         super().__init__(master)
-        self.cd = master.winfo_toplevel()
+        self.cd = master.master
         self.create_page_keys()
         self.load_key_cfg()
 
@@ -1732,7 +1729,8 @@ class KeysPage(Frame):
         keyset_name - string, the name of the new key set
         keyset - dictionary containing the new keybindings
         """
-        idleConf.userCfg['keys'].AddSection(keyset_name)
+        if not idleConf.userCfg['keys'].has_section(keyset_name):
+            idleConf.userCfg['keys'].add_section(keyset_name)
         for event in keyset:
             value = keyset[event]
             idleConf.userCfg['keys'].SetOption(keyset_name, event, value)

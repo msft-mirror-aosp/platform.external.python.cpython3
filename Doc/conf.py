@@ -14,8 +14,7 @@ sys.path.append(os.path.abspath('includes'))
 # ---------------------
 
 extensions = ['sphinx.ext.coverage', 'sphinx.ext.doctest',
-              'pyspecific', 'c_annotations', 'escape4chm',
-              'asdl_highlight', 'peg_highlight']
+              'pyspecific', 'c_annotations', 'escape4chm']
 
 
 doctest_global_setup = '''
@@ -128,7 +127,6 @@ latex_elements['preamble'] = r'''
 }
 \let\Verbatim=\OriginalVerbatim
 \let\endVerbatim=\endOriginalVerbatim
-\setcounter{tocdepth}{2}
 '''
 
 # The paper size ('letter' or 'a4').
@@ -228,13 +226,3 @@ linkcheck_ignore = [r'https://bugs.python.org/(issue)?\d+',
 
 # Relative filename of the reference count data file.
 refcount_file = 'data/refcounts.dat'
-
-# Sphinx 2 and Sphinx 3 compatibility
-# -----------------------------------
-
-# bpo-40204: Allow Sphinx 2 syntax in the C domain
-c_allow_pre_v3 = True
-
-# bpo-40204: Disable warnings on Sphinx 2 syntax of the C domain since the
-# documentation is built with -W (warnings treated as errors).
-c_warn_on_allowed_pre_v3 = False

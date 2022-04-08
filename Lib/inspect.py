@@ -32,7 +32,6 @@ __author__ = ('Ka-Ping Yee <ping@lfw.org>',
               'Yury Selivanov <yselivanov@sprymix.com>')
 
 import abc
-import ast
 import dis
 import collections.abc
 import enum
@@ -742,7 +741,7 @@ def getmodule(object, _filename=None):
         return sys.modules.get(modulesbyfile[file])
     # Update the filename to module name cache and check yet again
     # Copy sys.modules in order to cope with changes while iterating
-    for modname, module in sys.modules.copy().items():
+    for modname, module in list(sys.modules.items()):
         if ismodule(module) and hasattr(module, '__file__'):
             f = module.__file__
             if f == _filesbymodname.get(modname, None):
@@ -769,42 +768,6 @@ def getmodule(object, _filename=None):
         builtinobject = getattr(builtin, object.__name__)
         if builtinobject is object:
             return builtin
-
-
-class ClassFoundException(Exception):
-    pass
-
-
-class _ClassFinder(ast.NodeVisitor):
-
-    def __init__(self, qualname):
-        self.stack = []
-        self.qualname = qualname
-
-    def visit_FunctionDef(self, node):
-        self.stack.append(node.name)
-        self.stack.append('<locals>')
-        self.generic_visit(node)
-        self.stack.pop()
-        self.stack.pop()
-
-    visit_AsyncFunctionDef = visit_FunctionDef
-
-    def visit_ClassDef(self, node):
-        self.stack.append(node.name)
-        if self.qualname == '.'.join(self.stack):
-            # Return the decorator for the class if present
-            if node.decorator_list:
-                line_number = node.decorator_list[0].lineno
-            else:
-                line_number = node.lineno
-
-            # decrement by one since lines starts with indexing by zero
-            line_number -= 1
-            raise ClassFoundException(line_number)
-        self.generic_visit(node)
-        self.stack.pop()
-
 
 def findsource(object):
     """Return the entire source file and starting line number for an object.
@@ -838,15 +801,25 @@ def findsource(object):
         return lines, 0
 
     if isclass(object):
-        qualname = object.__qualname__
-        source = ''.join(lines)
-        tree = ast.parse(source)
-        class_finder = _ClassFinder(qualname)
-        try:
-            class_finder.visit(tree)
-        except ClassFoundException as e:
-            line_number = e.args[0]
-            return lines, line_number
+        name = object.__name__
+        pat = re.compile(r'^(\s*)class\s*' + name + r'\b')
+        # make some effort to find the best matching class definition:
+        # use the one with the least indentation, which is the one
+        # that's most probably not inside a function definition.
+        candidates = []
+        for i in range(len(lines)):
+            match = pat.match(lines[i])
+            if match:
+                # if it's at toplevel, it's already the best one
+                if lines[i][0] == 'c':
+                    return lines, i
+                # else add whitespace to candidate list
+                candidates.append((match.group(1), i))
+        if candidates:
+            # this will sort by whitespace, and by line number,
+            # less whitespace first
+            candidates.sort()
+            return lines, candidates[0][1]
         else:
             raise OSError('could not find class definition')
 
@@ -864,12 +837,7 @@ def findsource(object):
         lnum = object.co_firstlineno - 1
         pat = re.compile(r'^(\s*def\s)|(\s*async\s+def\s)|(.*(?<!\w)lambda(:|\s))|^(\s*@)')
         while lnum > 0:
-            try:
-                line = lines[lnum]
-            except IndexError:
-                raise OSError('lineno is out of bounds')
-            if pat.match(line):
-                break
+            if pat.match(lines[lnum]): break
             lnum = lnum - 1
         return lines, lnum
     raise OSError('could not find code object')
@@ -931,7 +899,6 @@ class BlockFinder:
         self.indecorator = False
         self.decoratorhasargs = False
         self.last = 1
-        self.body_col0 = None
 
     def tokeneater(self, type, token, srowcol, erowcol, line):
         if not self.started and not self.indecorator:
@@ -963,8 +930,6 @@ class BlockFinder:
         elif self.passline:
             pass
         elif type == tokenize.INDENT:
-            if self.body_col0 is None and self.started:
-                self.body_col0 = erowcol[1]
             self.indent = self.indent + 1
             self.passline = True
         elif type == tokenize.DEDENT:
@@ -974,10 +939,6 @@ class BlockFinder:
             #  not e.g. for "if: else:" or "try: finally:" blocks)
             if self.indent <= 0:
                 raise EndOfBlock
-        elif type == tokenize.COMMENT:
-            if self.body_col0 is not None and srowcol[1] >= self.body_col0:
-                # Include comments if indented at least as much as the block
-                self.last = srowcol[0]
         elif self.indent == 0 and type not in (tokenize.COMMENT, tokenize.NL):
             # any other token on the same indentation level end the previous
             # block as well, except the pseudo-tokens COMMENT and NL.
@@ -1175,6 +1136,7 @@ def getfullargspec(func):
     varkw = None
     posonlyargs = []
     kwonlyargs = []
+    defaults = ()
     annotations = {}
     defaults = ()
     kwdefaults = {}
@@ -2641,7 +2603,7 @@ class BoundArguments:
 
     Has the following public attributes:
 
-    * arguments : dict
+    * arguments : OrderedDict
         An ordered mutable mapping of parameters' names to arguments' values.
         Does not contain arguments' default values.
     * signature : Signature
@@ -2741,7 +2703,7 @@ class BoundArguments:
                     # Signature.bind_partial().
                     continue
                 new_arguments.append((name, val))
-        self.arguments = dict(new_arguments)
+        self.arguments = OrderedDict(new_arguments)
 
     def __eq__(self, other):
         if self is other:
@@ -2809,7 +2771,7 @@ class Signature:
                 top_kind = _POSITIONAL_ONLY
                 kind_defaults = False
 
-                for param in parameters:
+                for idx, param in enumerate(parameters):
                     kind = param.kind
                     name = param.name
 
@@ -2844,7 +2806,8 @@ class Signature:
 
                     params[name] = param
             else:
-                params = OrderedDict((param.name, param) for param in parameters)
+                params = OrderedDict(((param.name, param)
+                                                for param in parameters))
 
         self._parameters = types.MappingProxyType(params)
         self._return_annotation = return_annotation
@@ -2926,7 +2889,7 @@ class Signature:
     def _bind(self, args, kwargs, *, partial=False):
         """Private method. Don't use directly."""
 
-        arguments = {}
+        arguments = OrderedDict()
 
         parameters = iter(self.parameters.values())
         parameters_ex = ()

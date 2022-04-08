@@ -410,8 +410,6 @@ class BaseEventLoop(events.AbstractEventLoop):
         self._asyncgens = weakref.WeakSet()
         # Set to True when `loop.shutdown_asyncgens` is called.
         self._asyncgens_shutdown_called = False
-        # Set to True when `loop.shutdown_default_executor` is called.
-        self._executor_shutdown_called = False
 
     def __repr__(self):
         return (
@@ -509,10 +507,6 @@ class BaseEventLoop(events.AbstractEventLoop):
         if self._closed:
             raise RuntimeError('Event loop is closed')
 
-    def _check_default_executor(self):
-        if self._executor_shutdown_called:
-            raise RuntimeError('Executor shutdown has been called')
-
     def _asyncgen_finalizer_hook(self, agen):
         self._asyncgens.discard(agen)
         if not self.is_closed():
@@ -553,37 +547,14 @@ class BaseEventLoop(events.AbstractEventLoop):
                     'asyncgen': agen
                 })
 
-    async def shutdown_default_executor(self):
-        """Schedule the shutdown of the default executor."""
-        self._executor_shutdown_called = True
-        if self._default_executor is None:
-            return
-        future = self.create_future()
-        thread = threading.Thread(target=self._do_shutdown, args=(future,))
-        thread.start()
-        try:
-            await future
-        finally:
-            thread.join()
-
-    def _do_shutdown(self, future):
-        try:
-            self._default_executor.shutdown(wait=True)
-            self.call_soon_threadsafe(future.set_result, None)
-        except Exception as ex:
-            self.call_soon_threadsafe(future.set_exception, ex)
-
-    def _check_running(self):
+    def run_forever(self):
+        """Run until stop() is called."""
+        self._check_closed()
         if self.is_running():
             raise RuntimeError('This event loop is already running')
         if events._get_running_loop() is not None:
             raise RuntimeError(
                 'Cannot run the event loop while another loop is running')
-
-    def run_forever(self):
-        """Run until stop() is called."""
-        self._check_closed()
-        self._check_running()
         self._set_coroutine_origin_tracking(self._debug)
         self._thread_id = threading.get_ident()
 
@@ -615,7 +586,6 @@ class BaseEventLoop(events.AbstractEventLoop):
         Return the Future's result, or raise its exception.
         """
         self._check_closed()
-        self._check_running()
 
         new_task = not futures.isfuture(future)
         future = tasks.ensure_future(future, loop=self)
@@ -666,7 +636,6 @@ class BaseEventLoop(events.AbstractEventLoop):
         self._closed = True
         self._ready.clear()
         self._scheduled.clear()
-        self._executor_shutdown_called = True
         executor = self._default_executor
         if executor is not None:
             self._default_executor = None
@@ -803,12 +772,8 @@ class BaseEventLoop(events.AbstractEventLoop):
             self._check_callback(func, 'run_in_executor')
         if executor is None:
             executor = self._default_executor
-            # Only check when the default executor is being used
-            self._check_default_executor()
             if executor is None:
-                executor = concurrent.futures.ThreadPoolExecutor(
-                    thread_name_prefix='asyncio'
-                )
+                executor = concurrent.futures.ThreadPoolExecutor()
                 self._default_executor = executor
         return futures.wrap_future(
             executor.submit(func, *args), loop=self)

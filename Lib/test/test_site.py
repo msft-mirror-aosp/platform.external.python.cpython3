@@ -7,21 +7,19 @@ executing have not been removed.
 import unittest
 import test.support
 from test import support
-from test.support import socket_helper
 from test.support import (captured_stderr, TESTFN, EnvironmentVarGuard,
                           change_cwd)
 import builtins
-import encodings
-import glob
 import os
+import sys
 import re
+import encodings
+import urllib.request
+import urllib.error
 import shutil
 import subprocess
-import sys
 import sysconfig
 import tempfile
-import urllib.error
-import urllib.request
 from unittest import mock
 from copy import copy
 
@@ -268,18 +266,11 @@ class HelperFunctionsTests(unittest.TestCase):
         dirs = site.getsitepackages()
         if os.sep == '/':
             # OS X, Linux, FreeBSD, etc
-            if sys.platlibdir != "lib":
-                self.assertEqual(len(dirs), 2)
-                wanted = os.path.join('xoxo', sys.platlibdir,
-                                      'python%d.%d' % sys.version_info[:2],
-                                      'site-packages')
-                self.assertEqual(dirs[0], wanted)
-            else:
-                self.assertEqual(len(dirs), 1)
+            self.assertEqual(len(dirs), 1)
             wanted = os.path.join('xoxo', 'lib',
                                   'python%d.%d' % sys.version_info[:2],
                                   'site-packages')
-            self.assertEqual(dirs[-1], wanted)
+            self.assertEqual(dirs[0], wanted)
         else:
             # other platforms
             self.assertEqual(len(dirs), 2)
@@ -500,6 +491,8 @@ class ImportSideEffectTests(unittest.TestCase):
 
     @test.support.requires_resource('network')
     @test.support.system_must_validate_cert
+    @unittest.skipUnless(sys.version_info[3] == 'final',
+                         'only for released versions')
     @unittest.skipUnless(hasattr(urllib.request, "HTTPSHandler"),
                          'need SSL support to download license')
     def test_license_exists_at_url(self):
@@ -507,10 +500,8 @@ class ImportSideEffectTests(unittest.TestCase):
         # string displayed by license in the absence of a LICENSE file.
         url = license._Printer__data.split()[1]
         req = urllib.request.Request(url, method='HEAD')
-        # Reset global urllib.request._opener
-        self.addCleanup(urllib.request.urlcleanup)
         try:
-            with socket_helper.transient_internet(url):
+            with test.support.transient_internet(url):
                 with urllib.request.urlopen(req) as data:
                     code = data.getcode()
         except urllib.error.HTTPError as e:
@@ -521,23 +512,6 @@ class ImportSideEffectTests(unittest.TestCase):
 class StartupImportTests(unittest.TestCase):
 
     def test_startup_imports(self):
-        # Get sys.path in isolated mode (python3 -I)
-        popen = subprocess.Popen([sys.executable, '-I', '-c',
-                                  'import sys; print(repr(sys.path))'],
-                                 stdout=subprocess.PIPE,
-                                 encoding='utf-8')
-        stdout = popen.communicate()[0]
-        self.assertEqual(popen.returncode, 0, repr(stdout))
-        isolated_paths = eval(stdout)
-
-        # bpo-27807: Even with -I, the site module executes all .pth files
-        # found in sys.path (see site.addpackage()). Skip the test if at least
-        # one .pth file is found.
-        for path in isolated_paths:
-            pth_files = glob.glob(os.path.join(glob.escape(path), "*.pth"))
-            if pth_files:
-                self.skipTest(f"found {len(pth_files)} .pth files in: {path}")
-
         # This tests checks which modules are loaded by Python when it
         # initially starts upon startup.
         popen = subprocess.Popen([sys.executable, '-I', '-v', '-c',
@@ -546,7 +520,6 @@ class StartupImportTests(unittest.TestCase):
                                  stderr=subprocess.PIPE,
                                  encoding='utf-8')
         stdout, stderr = popen.communicate()
-        self.assertEqual(popen.returncode, 0, (stdout, stderr))
         modules = eval(stdout)
 
         self.assertIn('site', modules)
@@ -589,19 +562,12 @@ class StartupImportTests(unittest.TestCase):
 @unittest.skipUnless(sys.platform == 'win32', "only supported on Windows")
 class _pthFileTests(unittest.TestCase):
 
-    def _create_underpth_exe(self, lines, exe_pth=True):
-        import _winapi
+    def _create_underpth_exe(self, lines):
         temp_dir = tempfile.mkdtemp()
         self.addCleanup(test.support.rmtree, temp_dir)
         exe_file = os.path.join(temp_dir, os.path.split(sys.executable)[1])
-        dll_src_file = _winapi.GetModuleFileName(sys.dllhandle)
-        dll_file = os.path.join(temp_dir, os.path.split(dll_src_file)[1])
         shutil.copy(sys.executable, exe_file)
-        shutil.copy(dll_src_file, dll_file)
-        if exe_pth:
-            _pth_file = os.path.splitext(exe_file)[0] + '._pth'
-        else:
-            _pth_file = os.path.splitext(dll_file)[0] + '._pth'
+        _pth_file = os.path.splitext(exe_file)[0] + '._pth'
         with open(_pth_file, 'w') as f:
             for line in lines:
                 print(line, file=f)
@@ -654,31 +620,6 @@ class _pthFileTests(unittest.TestCase):
             '# comment',
             'import site'
         ])
-        sys_prefix = os.path.dirname(exe_file)
-        env = os.environ.copy()
-        env['PYTHONPATH'] = 'from-env'
-        env['PATH'] = '{};{}'.format(exe_prefix, os.getenv('PATH'))
-        rc = subprocess.call([exe_file, '-c',
-            'import sys; sys.exit(not sys.flags.no_site and '
-            '%r in sys.path and %r in sys.path and %r not in sys.path and '
-            'all("\\r" not in p and "\\n" not in p for p in sys.path))' % (
-                os.path.join(sys_prefix, 'fake-path-name'),
-                libpath,
-                os.path.join(sys_prefix, 'from-env'),
-            )], env=env)
-        self.assertTrue(rc, "sys.path is incorrect")
-
-
-    def test_underpth_dll_file(self):
-        libpath = os.path.dirname(os.path.dirname(encodings.__file__))
-        exe_prefix = os.path.dirname(sys.executable)
-        exe_file = self._create_underpth_exe([
-            'fake-path-name',
-            *[libpath for _ in range(200)],
-            '',
-            '# comment',
-            'import site'
-        ], exe_pth=False)
         sys_prefix = os.path.dirname(exe_file)
         env = os.environ.copy()
         env['PYTHONPATH'] = 'from-env'

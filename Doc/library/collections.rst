@@ -33,10 +33,10 @@ Python's general purpose built-in containers, :class:`dict`, :class:`list`,
 :class:`UserString`     wrapper around string objects for easier string subclassing
 =====================   ====================================================================
 
-.. deprecated-removed:: 3.3 3.10
+.. deprecated-removed:: 3.3 3.9
     Moved :ref:`collections-abstract-base-classes` to the :mod:`collections.abc` module.
     For backwards compatibility, they continue to be visible in this module through
-    Python 3.9.
+    Python 3.8.
 
 
 :class:`ChainMap` objects
@@ -115,9 +115,6 @@ The class can be used to simulate nested scopes and is useful in templating.
         >>> combined.update(adjustments)
         >>> list(combined)
         ['music', 'art', 'opera']
-
-    .. versionchanged:: 3.9
-       Added support for ``|`` and ``|=`` operators, specified in :pep:`584`.
 
 .. seealso::
 
@@ -732,10 +729,6 @@ stack manipulations such as ``dup``, ``drop``, ``swap``, ``over``, ``pick``,
         initialized from the first argument to the constructor, if present, or to
         ``None``, if absent.
 
-    .. versionchanged:: 3.9
-       Added merge (``|``) and update (``|=``) operators, specified in
-       :pep:`584`.
-
 
 :class:`defaultdict` Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -848,9 +841,6 @@ they add the ability to access fields by name instead of position index.
 
     Named tuple instances do not have per-instance dictionaries, so they are
     lightweight and require no more memory than regular tuples.
-
-    To support pickling, the named tuple class should be assigned to a variable
-    that matches *typename*.
 
     .. versionchanged:: 3.1
        Added support for *rename*.
@@ -1129,10 +1119,6 @@ anywhere a regular dictionary is used.
    passed to the :class:`OrderedDict` constructor and its :meth:`update`
    method.
 
-.. versionchanged:: 3.9
-    Added merge (``|``) and update (``|=``) operators, specified in :pep:`584`.
-
-
 :class:`OrderedDict` Examples and Recipes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1164,8 +1150,6 @@ variants of :func:`functools.lru_cache`::
             return value
 
         def __setitem__(self, key, value):
-            if key in self:
-                self.move_to_end(key)
             super().__setitem__(key, value)
             if len(self) > self.maxsize:
                 oldest = next(iter(self))

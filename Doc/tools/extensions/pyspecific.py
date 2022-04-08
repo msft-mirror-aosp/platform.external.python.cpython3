@@ -31,12 +31,7 @@ from sphinx.util import status_iterator, logging
 from sphinx.util.nodes import split_explicit_title
 from sphinx.writers.text import TextWriter, TextTranslator
 from sphinx.writers.latex import LaTeXTranslator
-
-try:
-    from sphinx.domains.python import PyFunction, PyMethod
-except ImportError:
-    from sphinx.domains.python import PyClassmember as PyMethod
-    from sphinx.domains.python import PyModulelevel as PyFunction
+from sphinx.domains.python import PyModulelevel, PyClassmember
 
 # Support for checking for suspicious markup
 
@@ -44,7 +39,7 @@ import suspicious
 
 
 ISSUE_URI = 'https://bugs.python.org/issue%s'
-SOURCE_URI = 'https://github.com/python/cpython/tree/3.9/%s'
+SOURCE_URI = 'https://github.com/python/cpython/tree/3.8/%s'
 
 # monkey-patch reST parser to disable alphabetic and roman enumerated lists
 from docutils.parsers.rst.states import Body
@@ -243,18 +238,17 @@ class PyDecoratorMixin(object):
         return False
 
 
-class PyDecoratorFunction(PyDecoratorMixin, PyFunction):
+class PyDecoratorFunction(PyDecoratorMixin, PyModulelevel):
     def run(self):
         # a decorator function is a function after all
         self.name = 'py:function'
-        return PyFunction.run(self)
+        return PyModulelevel.run(self)
 
 
-# TODO: Use sphinx.domains.python.PyDecoratorMethod when possible
-class PyDecoratorMethod(PyDecoratorMixin, PyMethod):
+class PyDecoratorMethod(PyDecoratorMixin, PyClassmember):
     def run(self):
         self.name = 'py:method'
-        return PyMethod.run(self)
+        return PyClassmember.run(self)
 
 
 class PyCoroutineMixin(object):
@@ -271,31 +265,31 @@ class PyAwaitableMixin(object):
         return ret
 
 
-class PyCoroutineFunction(PyCoroutineMixin, PyFunction):
+class PyCoroutineFunction(PyCoroutineMixin, PyModulelevel):
     def run(self):
         self.name = 'py:function'
-        return PyFunction.run(self)
+        return PyModulelevel.run(self)
 
 
-class PyCoroutineMethod(PyCoroutineMixin, PyMethod):
+class PyCoroutineMethod(PyCoroutineMixin, PyClassmember):
     def run(self):
         self.name = 'py:method'
-        return PyMethod.run(self)
+        return PyClassmember.run(self)
 
 
-class PyAwaitableFunction(PyAwaitableMixin, PyFunction):
+class PyAwaitableFunction(PyAwaitableMixin, PyClassmember):
     def run(self):
         self.name = 'py:function'
-        return PyFunction.run(self)
+        return PyClassmember.run(self)
 
 
-class PyAwaitableMethod(PyAwaitableMixin, PyMethod):
+class PyAwaitableMethod(PyAwaitableMixin, PyClassmember):
     def run(self):
         self.name = 'py:method'
-        return PyMethod.run(self)
+        return PyClassmember.run(self)
 
 
-class PyAbstractMethod(PyMethod):
+class PyAbstractMethod(PyClassmember):
 
     def handle_signature(self, sig, signode):
         ret = super(PyAbstractMethod, self).handle_signature(sig, signode)
@@ -305,7 +299,7 @@ class PyAbstractMethod(PyMethod):
 
     def run(self):
         self.name = 'py:method'
-        return PyMethod.run(self)
+        return PyClassmember.run(self)
 
 
 # Support for documenting version of removal in deprecations
@@ -317,8 +311,7 @@ class DeprecatedRemoved(Directive):
     final_argument_whitespace = True
     option_spec = {}
 
-    _deprecated_label = 'Deprecated since version {deprecated}, will be removed in version {removed}'
-    _removed_label = 'Deprecated since version {deprecated}, removed in version {removed}'
+    _label = 'Deprecated since version {deprecated}, will be removed in version {removed}'
 
     def run(self):
         node = addnodes.versionmodified()
@@ -326,15 +319,7 @@ class DeprecatedRemoved(Directive):
         node['type'] = 'deprecated-removed'
         version = (self.arguments[0], self.arguments[1])
         node['version'] = version
-        env = self.state.document.settings.env
-        current_version = tuple(int(e) for e in env.config.version.split('.'))
-        removed_version = tuple(int(e) for e in self.arguments[1].split('.'))
-        if current_version < removed_version:
-            label = self._deprecated_label
-        else:
-            label = self._removed_label
-
-        label = translators['sphinx'].gettext(label)
+        label = translators['sphinx'].gettext(self._label)
         text = label.format(deprecated=self.arguments[0], removed=self.arguments[1])
         if len(self.arguments) == 3:
             inodes, messages = self.state.inline_text(self.arguments[2],

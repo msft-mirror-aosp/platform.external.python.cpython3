@@ -8,13 +8,9 @@
 # Unicode identifiers in tests is allowed by PEP 3131.
 
 import ast
-import os
-import re
 import types
 import decimal
 import unittest
-from test.support import temp_cwd, use_old_parser
-from test.support.script_helper import assert_python_failure
 
 a_global = 'global variable'
 
@@ -525,8 +521,7 @@ non-important content
                              # This looks like a nested format spec.
                              ])
 
-        err_msg = "invalid syntax" if use_old_parser() else "f-string: invalid syntax"
-        self.assertAllRaise(SyntaxError, err_msg,
+        self.assertAllRaise(SyntaxError, "invalid syntax",
                             [# Invalid syntax inside a nested spec.
                              "f'{4:{/5}}'",
                              ])
@@ -588,7 +583,7 @@ non-important content
                              ])
 
         # Different error message is raised for other whitespace characters.
-        self.assertAllRaise(SyntaxError, r"invalid non-printable character U\+00A0",
+        self.assertAllRaise(SyntaxError, 'invalid character in identifier',
                             ["f'''{\xa0}'''",
                              "\xa0",
                              ])
@@ -600,8 +595,7 @@ non-important content
         #  are added around it. But we shouldn't go from an invalid
         #  expression to a valid one. The added parens are just
         #  supposed to allow whitespace (including newlines).
-        err_msg = "invalid syntax" if use_old_parser() else "f-string: invalid syntax"
-        self.assertAllRaise(SyntaxError, err_msg,
+        self.assertAllRaise(SyntaxError, 'invalid syntax',
                             ["f'{,}'",
                              "f'{,}'",  # this is (,), which is an error
                              ])
@@ -719,8 +713,7 @@ non-important content
 
         # lambda doesn't work without parens, because the colon
         #  makes the parser think it's a format_spec
-        err_msg = "invalid syntax" if use_old_parser() else "f-string: invalid syntax"
-        self.assertAllRaise(SyntaxError, err_msg,
+        self.assertAllRaise(SyntaxError, 'unexpected EOF while parsing',
                             ["f'{lambda x:x}'",
                              ])
 
@@ -729,11 +722,9 @@ non-important content
         #  a function into a generator
         def fn(y):
             f'y:{yield y*2}'
-            f'{yield}'
 
         g = fn(4)
         self.assertEqual(next(g), 8)
-        self.assertEqual(next(g), None)
 
     def test_yield_send(self):
         def fn(x):
@@ -850,7 +841,8 @@ non-important content
         self.assertEqual(f'{f"{y}"*3}', '555')
 
     def test_invalid_string_prefixes(self):
-        single_quote_cases = ["fu''",
+        self.assertAllRaise(SyntaxError, 'unexpected EOF while parsing',
+                            ["fu''",
                              "uf''",
                              "Fu''",
                              "fU''",
@@ -871,15 +863,8 @@ non-important content
                              "bf''",
                              "bF''",
                              "Bf''",
-                             "BF''",]
-        double_quote_cases = [case.replace("'", '"') for case in single_quote_cases]
-        error_msg = (
-            'invalid syntax'
-            if use_old_parser()
-            else 'unexpected EOF while parsing'
-        )
-        self.assertAllRaise(SyntaxError, error_msg,
-                            single_quote_cases + double_quote_cases)
+                             "BF''",
+                             ])
 
     def test_leading_trailing_spaces(self):
         self.assertEqual(f'{ 3}', '3')
@@ -1058,17 +1043,6 @@ non-important content
                              r"f'{1000:j}'",
                             ])
 
-    @unittest.skipIf(use_old_parser(), "The old parser only supports <fstring> as the filename")
-    def test_filename_in_syntaxerror(self):
-        # see issue 38964
-        with temp_cwd() as cwd:
-            file_path = os.path.join(cwd, 't.py')
-            with open(file_path, 'w') as f:
-                f.write('f"{a b}"') # This generates a SyntaxError
-            _, _, stderr = assert_python_failure(file_path,
-                                                 PYTHONIOENCODING='ascii')
-        self.assertIn(file_path.encode('ascii', 'backslashreplace'), stderr)
-
     def test_loop(self):
         for i in range(1000):
             self.assertEqual(f'i:{i}', 'i:' + str(i))
@@ -1204,30 +1178,6 @@ non-important content
         self.assertEqual(f'{(x:=10)}', '10')
         self.assertEqual(x, 10)
 
-    def test_invalid_syntax_error_message(self):
-        err_msg = "invalid syntax" if use_old_parser() else "f-string: invalid syntax"
-        with self.assertRaisesRegex(SyntaxError, err_msg):
-            compile("f'{a $ b}'", "?", "exec")
-
-    def test_with_two_commas_in_format_specifier(self):
-        error_msg = re.escape("Cannot specify ',' with ','.")
-        with self.assertRaisesRegex(ValueError, error_msg):
-            f'{1:,,}'
-
-    def test_with_two_underscore_in_format_specifier(self):
-        error_msg = re.escape("Cannot specify '_' with '_'.")
-        with self.assertRaisesRegex(ValueError, error_msg):
-            f'{1:__}'
-
-    def test_with_a_commas_and_an_underscore_in_format_specifier(self):
-        error_msg = re.escape("Cannot specify both ',' and '_'.")
-        with self.assertRaisesRegex(ValueError, error_msg):
-            f'{1:,_}'
-
-    def test_with_an_underscore_and_a_comma_in_format_specifier(self):
-        error_msg = re.escape("Cannot specify both ',' and '_'.")
-        with self.assertRaisesRegex(ValueError, error_msg):
-            f'{1:_,}'
 
 if __name__ == '__main__':
     unittest.main()

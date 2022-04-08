@@ -358,7 +358,7 @@ an error value).
 .. c:function:: int PyErr_ResourceWarning(PyObject *source, Py_ssize_t stack_level, const char *format, ...)
 
    Function similar to :c:func:`PyErr_WarnFormat`, but *category* is
-   :exc:`ResourceWarning` and it passes *source* to :func:`warnings.WarningMessage`.
+   :exc:`ResourceWarning` and pass *source* to :func:`warnings.WarningMessage`.
 
    .. versionadded:: 3.6
 
@@ -373,8 +373,6 @@ Querying the error indicator
    functions or to :c:func:`PyErr_Restore`).  If not set, return ``NULL``.  You do not
    own a reference to the return value, so you do not need to :c:func:`Py_DECREF`
    it.
-
-   The caller must hold the GIL.
 
    .. note::
 
@@ -637,20 +635,10 @@ The following functions are used to create and modify Unicode exceptions from C.
    *object*, *length*, *start*, *end* and *reason*. *encoding* and *reason* are
    UTF-8 encoded strings.
 
-   .. deprecated:: 3.3 3.11
-
-      ``Py_UNICODE`` is deprecated since Python 3.3. Please migrate to
-      ``PyObject_CallFunction(PyExc_UnicodeEncodeError, "sOnns", ...)``.
-
 .. c:function:: PyObject* PyUnicodeTranslateError_Create(const Py_UNICODE *object, Py_ssize_t length, Py_ssize_t start, Py_ssize_t end, const char *reason)
 
    Create a :class:`UnicodeTranslateError` object with the attributes *object*,
    *length*, *start*, *end* and *reason*. *reason* is a UTF-8 encoded string.
-
-   .. deprecated:: 3.3 3.11
-
-      ``Py_UNICODE`` is deprecated since Python 3.3. Please migrate to
-      ``PyObject_CallFunction(PyExc_UnicodeTranslateError, "Onns", ...)``.
 
 .. c:function:: PyObject* PyUnicodeDecodeError_GetEncoding(PyObject *exc)
                 PyObject* PyUnicodeEncodeError_GetEncoding(PyObject *exc)
@@ -707,8 +695,6 @@ The following functions are used to create and modify Unicode exceptions from C.
    ``0`` on success, ``-1`` on failure.
 
 
-.. _recursion:
-
 Recursion Control
 =================
 
@@ -716,8 +702,6 @@ These two functions provide a way to perform safe recursive calls at the C
 level, both in the core and in extension modules.  They are needed if the
 recursive code does not necessarily invoke Python code (which tracks its
 recursion depth automatically).
-They are also not needed for *tp_call* implementations
-because the :ref:`call protocol <call>` takes care of recursion handling.
 
 .. c:function:: int Py_EnterRecursiveCall(const char *where)
 
@@ -731,20 +715,14 @@ because the :ref:`call protocol <call>` takes care of recursion handling.
    case, a :exc:`RecursionError` is set and a nonzero value is returned.
    Otherwise, zero is returned.
 
-   *where* should be a UTF-8 encoded string such as ``" in instance check"`` to
-   be concatenated to the :exc:`RecursionError` message caused by the recursion
+   *where* should be a string such as ``" in instance check"`` to be
+   concatenated to the :exc:`RecursionError` message caused by the recursion
    depth limit.
 
-   .. versionchanged:: 3.9
-      This function is now also available in the limited API.
-
-.. c:function:: void Py_LeaveRecursiveCall(void)
+.. c:function:: void Py_LeaveRecursiveCall()
 
    Ends a :c:func:`Py_EnterRecursiveCall`.  Must be called once for each
    *successful* invocation of :c:func:`Py_EnterRecursiveCall`.
-
-   .. versionchanged:: 3.9
-      This function is now also available in the limited API.
 
 Properly implementing :c:member:`~PyTypeObject.tp_repr` for container types requires
 special recursion handling.  In addition to protecting the stack,
@@ -783,7 +761,7 @@ Standard Exceptions
 
 All standard Python exceptions are available as global variables whose names are
 ``PyExc_`` followed by the Python exception name.  These have the type
-:c:type:`PyObject*`; they are all class objects.  For completeness, here are all
+:c:type:`PyObject\*`; they are all class objects.  For completeness, here are all
 the variables:
 
 .. index::
@@ -993,6 +971,9 @@ Notes:
    This is a base class for other standard exceptions.
 
 (2)
+   This is the same as :exc:`weakref.ReferenceError`.
+
+(3)
    Only defined on Windows; protect code that uses this by testing that the
    preprocessor macro ``MS_WINDOWS`` is defined.
 
@@ -1003,7 +984,7 @@ Standard Warning Categories
 
 All standard Python warning categories are available as global variables whose
 names are ``PyExc_`` followed by the Python exception name. These have the type
-:c:type:`PyObject*`; they are all class objects. For completeness, here are all
+:c:type:`PyObject\*`; they are all class objects. For completeness, here are all
 the variables:
 
 .. index::

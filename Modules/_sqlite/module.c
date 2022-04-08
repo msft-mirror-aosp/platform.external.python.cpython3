@@ -105,7 +105,7 @@ RAM instead of on disk.");
 static PyObject* module_complete(PyObject* self, PyObject* args, PyObject*
         kwargs)
 {
-    static char *kwlist[] = {"statement", NULL};
+    static char *kwlist[] = {"statement", NULL, NULL};
     char* statement;
 
     PyObject* result;
@@ -135,7 +135,7 @@ Checks if a string contains a complete SQL statement. Non-standard.");
 static PyObject* module_enable_shared_cache(PyObject* self, PyObject* args, PyObject*
         kwargs)
 {
-    static char *kwlist[] = {"do_enable", NULL};
+    static char *kwlist[] = {"do_enable", NULL, NULL};
     int do_enable;
     int rc;
 
@@ -203,7 +203,7 @@ static PyObject* module_register_converter(PyObject* self, PyObject* args)
     }
 
     /* convert the name to upper case */
-    name = _PyObject_CallMethodIdNoArgs(orig_name, &PyId_upper);
+    name = _PyObject_CallMethodId(orig_name, &PyId_upper, NULL);
     if (!name) {
         goto error;
     }
@@ -346,14 +346,6 @@ static struct PyModuleDef _sqlite3module = {
         NULL
 };
 
-#define ADD_TYPE(module, type)                 \
-do {                                           \
-    if (PyModule_AddType(module, &type) < 0) { \
-        Py_DECREF(module);                     \
-        return NULL;                           \
-    }                                          \
-} while (0)
-
 PyMODINIT_FUNC PyInit__sqlite3(void)
 {
     PyObject *module, *dict;
@@ -374,10 +366,14 @@ PyMODINIT_FUNC PyInit__sqlite3(void)
         return NULL;
     }
 
-    ADD_TYPE(module, pysqlite_ConnectionType);
-    ADD_TYPE(module, pysqlite_CursorType);
-    ADD_TYPE(module, pysqlite_PrepareProtocolType);
-    ADD_TYPE(module, pysqlite_RowType);
+    Py_INCREF(&pysqlite_ConnectionType);
+    PyModule_AddObject(module, "Connection", (PyObject*) &pysqlite_ConnectionType);
+    Py_INCREF(&pysqlite_CursorType);
+    PyModule_AddObject(module, "Cursor", (PyObject*) &pysqlite_CursorType);
+    Py_INCREF(&pysqlite_PrepareProtocolType);
+    PyModule_AddObject(module, "PrepareProtocol", (PyObject*) &pysqlite_PrepareProtocolType);
+    Py_INCREF(&pysqlite_RowType);
+    PyModule_AddObject(module, "Row", (PyObject*) &pysqlite_RowType);
 
     if (!(dict = PyModule_GetDict(module))) {
         goto error;

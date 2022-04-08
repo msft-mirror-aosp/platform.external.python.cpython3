@@ -79,7 +79,6 @@ import glob
 import pprint
 import signal
 import inspect
-import tokenize
 import traceback
 import linecache
 
@@ -94,7 +93,7 @@ __all__ = ["run", "pm", "Pdb", "runeval", "runctx", "runcall", "set_trace",
 def find_function(funcname, filename):
     cre = re.compile(r'def\s+%s\s*[(]' % re.escape(funcname))
     try:
-        fp = tokenize.open(filename)
+        fp = open(filename)
     except OSError:
         return None
     # consumer of this info expects the first line to be 1
@@ -474,7 +473,7 @@ class Pdb(bdb.Bdb, cmd.Cmd):
         except Exception:
             ret = []
         # Then, try to complete file names as well.
-        globs = glob.glob(glob.escape(text) + '*')
+        globs = glob.glob(text + '*')
         for fn in globs:
             if os.path.isdir(fn):
                 ret.append(fn + '/')
@@ -1312,14 +1311,6 @@ class Pdb(bdb.Bdb, cmd.Cmd):
             # _getval() already printed the error
             return
         code = None
-        # Is it an instance method?
-        try:
-            code = value.__func__.__code__
-        except Exception:
-            pass
-        if code:
-            self.message('Method %s' % code.co_name)
-            return
         # Is it a function?
         try:
             code = value.__code__
@@ -1327,6 +1318,14 @@ class Pdb(bdb.Bdb, cmd.Cmd):
             pass
         if code:
             self.message('Function %s' % code.co_name)
+            return
+        # Is it an instance method?
+        try:
+            code = value.__func__.__code__
+        except Exception:
+            pass
+        if code:
+            self.message('Method %s' % code.co_name)
             return
         # Is it a class?
         if value.__class__ is type:

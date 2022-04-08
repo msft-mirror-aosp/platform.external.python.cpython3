@@ -163,10 +163,18 @@ def urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
 
     The *cadefault* parameter is ignored.
 
+    This function always returns an object which can work as a context
+    manager and has methods such as
 
-    This function always returns an object which can work as a
-    context manager and has the properties url, headers, and status.
-    See urllib.response.addinfourl for more detail on these properties.
+    * geturl() - return the URL of the resource retrieved, commonly used to
+      determine if a redirect was followed
+
+    * info() - return the meta-information of the page, such as headers, in the
+      form of an email.message_from_string() instance (see Quick Reference to
+      HTTP Headers)
+
+    * getcode() - return the HTTP status code of the response.  Raises URLError
+      on errors.
 
     For HTTP and HTTPS URLs, this function returns a http.client.HTTPResponse
     object slightly modified. In addition to the three new methods above, the
@@ -937,15 +945,8 @@ class AbstractBasicAuthHandler:
 
     # allow for double- and single-quoted realm values
     # (single quotes are a violation of the RFC, but appear in the wild)
-    rx = re.compile('(?:^|,)'   # start of the string or ','
-                    '[ \t]*'    # optional whitespaces
-                    '([^ \t]+)' # scheme like "Basic"
-                    '[ \t]+'    # mandatory whitespaces
-                    # realm=xxx
-                    # realm='xxx'
-                    # realm="xxx"
-                    'realm=(["\']?)([^"\']*)\\2',
-                    re.I)
+    rx = re.compile('(?:.*,)*[ \t]*([^ \t]+)[ \t]+'
+                    'realm=(["\']?)([^"\']*)\\2', re.I)
 
     # XXX could pre-emptively send auth info already accepted (RFC 2617,
     # end of section 2, and section 1.2 immediately after "credentials"
@@ -957,51 +958,27 @@ class AbstractBasicAuthHandler:
         self.passwd = password_mgr
         self.add_password = self.passwd.add_password
 
-    def _parse_realm(self, header):
-        # parse WWW-Authenticate header: accept multiple challenges per header
-        found_challenge = False
-        for mo in AbstractBasicAuthHandler.rx.finditer(header):
-            scheme, quote, realm = mo.groups()
-            if quote not in ['"', "'"]:
-                warnings.warn("Basic Auth Realm was unquoted",
-                              UserWarning, 3)
-
-            yield (scheme, realm)
-
-            found_challenge = True
-
-        if not found_challenge:
-            if header:
-                scheme = header.split()[0]
-            else:
-                scheme = ''
-            yield (scheme, None)
-
     def http_error_auth_reqed(self, authreq, host, req, headers):
         # host may be an authority (without userinfo) or a URL with an
         # authority
-        headers = headers.get_all(authreq)
-        if not headers:
-            # no header found
-            return
+        # XXX could be multiple headers
+        authreq = headers.get(authreq, None)
 
-        unsupported = None
-        for header in headers:
-            for scheme, realm in self._parse_realm(header):
-                if scheme.lower() != 'basic':
-                    unsupported = scheme
-                    continue
-
-                if realm is not None:
-                    # Use the first matching Basic challenge.
-                    # Ignore following challenges even if they use the Basic
-                    # scheme.
-                    return self.retry_http_basic_auth(host, req, realm)
-
-        if unsupported is not None:
-            raise ValueError("AbstractBasicAuthHandler does not "
-                             "support the following scheme: %r"
-                             % (scheme,))
+        if authreq:
+            scheme = authreq.split()[0]
+            if scheme.lower() != 'basic':
+                raise ValueError("AbstractBasicAuthHandler does not"
+                                 " support the following scheme: '%s'" %
+                                 scheme)
+            else:
+                mo = AbstractBasicAuthHandler.rx.search(authreq)
+                if mo:
+                    scheme, quote, realm = mo.groups()
+                    if quote not in ['"',"'"]:
+                        warnings.warn("Basic Auth Realm was unquoted",
+                                      UserWarning, 2)
+                    if scheme.lower() == 'basic':
+                        return self.retry_http_basic_auth(host, req, realm)
 
     def retry_http_basic_auth(self, host, req, realm):
         user, pw = self.passwd.find_user_password(realm, host)
@@ -1169,9 +1146,7 @@ class AbstractDigestAuthHandler:
                         req.selector)
         # NOTE: As per  RFC 2617, when server sends "auth,auth-int", the client could use either `auth`
         #     or `auth-int` to the response back. we use `auth` to send the response back.
-        if qop is None:
-            respdig = KD(H(A1), "%s:%s" % (nonce, H(A2)))
-        elif 'auth' in qop.split(','):
+        if 'auth' in qop.split(','):
             if nonce == self.last_nonce:
                 self.nonce_count += 1
             else:
@@ -1181,6 +1156,8 @@ class AbstractDigestAuthHandler:
             cnonce = self.get_cnonce(nonce)
             noncebit = "%s:%s:%s:%s:%s" % (nonce, ncvalue, cnonce, 'auth', H(A2))
             respdig = KD(H(A1), noncebit)
+        elif qop is None:
+            respdig = KD(H(A1), "%s:%s" % (nonce, H(A2)))
         else:
             # XXX handle auth-int.
             raise URLError("qop '%s' is not supported." % qop)
@@ -1811,7 +1788,7 @@ class URLopener:
                 hdrs = fp.info()
                 fp.close()
                 return url2pathname(_splithost(url1)[1]), hdrs
-            except OSError:
+            except OSError as msg:
                 pass
         fp = self.open(url, data)
         try:
@@ -2523,26 +2500,24 @@ def proxy_bypass_environment(host, proxies=None):
     try:
         no_proxy = proxies['no']
     except KeyError:
-        return False
+        return 0
     # '*' is special case for always bypass
     if no_proxy == '*':
-        return True
-    host = host.lower()
+        return 1
     # strip port off host
     hostonly, port = _splitport(host)
     # check if the host ends with any of the DNS suffixes
-    for name in no_proxy.split(','):
-        name = name.strip()
+    no_proxy_list = [proxy.strip() for proxy in no_proxy.split(',')]
+    for name in no_proxy_list:
         if name:
             name = name.lstrip('.')  # ignore leading dots
-            name = name.lower()
-            if hostonly == name or host == name:
-                return True
-            name = '.' + name
-            if hostonly.endswith(name) or host.endswith(name):
-                return True
+            name = re.escape(name)
+            pattern = r'(.+\.)?%s$' % name
+            if (re.match(pattern, hostonly, re.I)
+                    or re.match(pattern, host, re.I)):
+                return 1
     # otherwise, don't bypass
-    return False
+    return 0
 
 
 # This code tests an OSX specific data structure but is testable on all
@@ -2596,11 +2571,6 @@ def _proxy_bypass_macosx_sysconf(host, proxy_settings):
                 mask = 8 * (m.group(1).count('.') + 1)
             else:
                 mask = int(mask[1:])
-
-            if mask < 0 or mask > 32:
-                # System libraries ignore invalid prefix lengths
-                continue
-
             mask = 32 - mask
 
             if (hostIP >> mask) == (base >> mask):
@@ -2673,7 +2643,7 @@ elif os.name == 'nt':
                     for p in proxyServer.split(';'):
                         protocol, address = p.split('=', 1)
                         # See if address has a type:// prefix
-                        if not re.match('(?:[^/:]+)://', address):
+                        if not re.match('^([^/:]+)://', address):
                             address = '%s://%s' % (protocol, address)
                         proxies[protocol] = address
                 else:

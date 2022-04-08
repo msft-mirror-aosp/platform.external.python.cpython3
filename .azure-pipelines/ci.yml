@@ -1,14 +1,18 @@
 variables:
+  manylinux: false
   coverage: false
 
-trigger: ['master', '3.9', '3.8', '3.7']
+resources:
+  containers:
+  - container: manylinux1
+    image: pyca/cryptography-manylinux1:x86_64
 
 jobs:
 - job: Prebuild
   displayName: Pre-build checks
 
   pool:
-    vmImage: ubuntu-18.04
+    vmImage: ubuntu-16.04
 
   steps:
   - template: ./prebuild-checks.yml
@@ -20,7 +24,7 @@ jobs:
   condition: and(succeeded(), eq(dependencies.Prebuild.outputs['docs.run'], 'true'))
 
   pool:
-    vmImage: ubuntu-18.04
+    vmImage: ubuntu-16.04
 
   steps:
   - template: ./docs-steps.yml
@@ -31,9 +35,7 @@ jobs:
 - job: macOS_CI_Tests
   displayName: macOS CI Tests
   dependsOn: Prebuild
-  #condition: and(succeeded(), eq(dependencies.Prebuild.outputs['tests.run'], 'true'))
-  # bpo-39837: macOS tests on Azure Pipelines are disabled
-  condition: false
+  condition: and(succeeded(), eq(dependencies.Prebuild.outputs['tests.run'], 'true'))
 
   variables:
     testRunTitle: '$(build.sourceBranchName)-macos'
@@ -52,17 +54,48 @@ jobs:
   condition: and(succeeded(), eq(dependencies.Prebuild.outputs['tests.run'], 'true'))
 
   pool:
-    vmImage: ubuntu-18.04
+    vmImage: ubuntu-16.04
 
   variables:
     testRunTitle: '$(build.sourceBranchName)-linux'
     testRunPlatform: linux
-    openssl_version: 1.1.1g
+    openssl_version: 1.1.1d
 
   steps:
   - template: ./posix-steps.yml
     parameters:
       dependencies: apt
+
+
+- job: ManyLinux1_CI_Tests
+  displayName: ManyLinux1 CI Tests
+  dependsOn: Prebuild
+  condition: |
+    and(
+        and(
+            succeeded(),
+            eq(variables['manylinux'], 'true')
+        ),
+        eq(dependencies.Prebuild.outputs['tests.run'], 'true')
+    )
+
+  pool:
+    vmImage: ubuntu-16.04
+
+  container: manylinux1
+
+  variables:
+    testRunTitle: '$(build.sourceBranchName)-manylinux1'
+    testRunPlatform: manylinux1
+    openssl_version: ''
+
+  steps:
+  - template: ./posix-steps.yml
+    parameters:
+      dependencies: yum
+      sudo_dependencies: ''
+      xvfb: false
+      patchcheck: false
 
 
 - job: Ubuntu_Coverage_CI_Tests
@@ -78,12 +111,12 @@ jobs:
     )
 
   pool:
-    vmImage: ubuntu-18.04
+    vmImage: ubuntu-16.04
 
   variables:
     testRunTitle: '$(Build.SourceBranchName)-linux-coverage'
     testRunPlatform: linux-coverage
-    openssl_version: 1.1.1g
+    openssl_version: 1.1.1d
 
   steps:
   - template: ./posix-steps.yml
@@ -104,7 +137,7 @@ jobs:
     matrix:
       win32:
         arch: win32
-        buildOpt: '-p Win32'
+        buildOpt:
         testRunTitle: '$(Build.SourceBranchName)-win32'
         testRunPlatform: win32
       win64:

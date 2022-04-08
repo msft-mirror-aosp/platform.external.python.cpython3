@@ -19,11 +19,9 @@ in :pep:`557`.
 The member variables to use in these generated methods are defined
 using :pep:`526` type annotations.  For example this code::
 
-  from dataclasses import dataclass
-
   @dataclass
   class InventoryItem:
-      """Class for keeping track of an item in inventory."""
+      '''Class for keeping track of an item in inventory.'''
       name: str
       unit_price: float
       quantity_on_hand: int = 0
@@ -62,9 +60,8 @@ Module-level decorators, classes, and functions
 
    The :func:`dataclass` decorator will add various "dunder" methods to
    the class, described below.  If any of the added methods already
-   exist on the class, the behavior depends on the parameter, as documented
-   below. The decorator returns the same class that is called on; no new
-   class is created.
+   exist on the class, a :exc:`TypeError` will be raised.  The decorator
+   returns the same class that is called on: no new class is created.
 
    If :func:`dataclass` is used just as a simple decorator with no parameters,
    it acts as if it has the default values documented in this
@@ -118,7 +115,7 @@ Module-level decorators, classes, and functions
 
      If the class already defines any of :meth:`__lt__`,
      :meth:`__le__`, :meth:`__gt__`, or :meth:`__ge__`, then
-     :exc:`TypeError` is raised.
+     :exc:`ValueError` is raised.
 
    - ``unsafe_hash``: If ``False`` (the default), a :meth:`__hash__` method
      is generated according to how ``eq`` and ``frozen`` are set.
@@ -188,7 +185,7 @@ Module-level decorators, classes, and functions
 
      @dataclass
      class C:
-         mylist: list[int] = field(default_factory=list)
+         mylist: List[int] = field(default_factory=list)
 
      c = C()
      c.mylist += [1, 2, 3]
@@ -301,7 +298,7 @@ Module-level decorators, classes, and functions
 
      @dataclass
      class C:
-          mylist: list[Point]
+          mylist: List[Point]
 
      p = Point(10, 20)
      assert asdict(p) == {'x': 10, 'y': 20}
@@ -359,7 +356,7 @@ Module-level decorators, classes, and functions
          def add_one(self):
              return self.x + 1
 
-.. function:: replace(instance, /, **changes)
+.. function:: replace(instance, **changes)
 
    Creates a new object of the same type of ``instance``, replacing
    fields with values from ``changes``.  If ``instance`` is not a Data

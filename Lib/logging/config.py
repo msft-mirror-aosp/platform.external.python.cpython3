@@ -143,7 +143,6 @@ def _install_handlers(cp, formatters):
         kwargs = section.get("kwargs", '{}')
         kwargs = eval(kwargs, vars(logging))
         h = klass(*args, **kwargs)
-        h.name = hand
         if "level" in section:
             level = section["level"]
             h.setLevel(level)
@@ -448,7 +447,7 @@ class BaseConfigurator(object):
             value = ConvertingList(value)
             value.configurator = self
         elif not isinstance(value, ConvertingTuple) and\
-                 isinstance(value, tuple) and not hasattr(value, '_fields'):
+                 isinstance(value, tuple):
             value = ConvertingTuple(value)
             value.configurator = self
         elif isinstance(value, str): # str for py3k

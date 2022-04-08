@@ -26,6 +26,8 @@ Copyright (C) 1994 Steen Lumholt.
 #include "Python.h"
 #include <ctype.h>
 
+#include "pythread.h"
+
 #ifdef MS_WINDOWS
 #include <windows.h>
 #endif
@@ -54,7 +56,7 @@ Copyright (C) 1994 Steen Lumholt.
 
 #if TK_HEX_VERSION >= 0x08050208 && TK_HEX_VERSION < 0x08060000 || \
     TK_HEX_VERSION >= 0x08060200
-#define HAVE_LIBTOMMATH
+#define HAVE_LIBTOMMAMTH
 #include <tclTomMath.h>
 #endif
 
@@ -572,9 +574,9 @@ SplitObj(PyObject *arg)
     else if (PyBytes_Check(arg)) {
         int argc;
         const char **argv;
-        const char *list = PyBytes_AS_STRING(arg);
+        char *list = PyBytes_AS_STRING(arg);
 
-        if (Tcl_SplitList((Tcl_Interp *)NULL, (char *)list, &argc, &argv) != TCL_OK) {
+        if (Tcl_SplitList((Tcl_Interp *)NULL, list, &argc, &argv) != TCL_OK) {
             Py_INCREF(arg);
             return arg;
         }
@@ -710,8 +712,8 @@ Tkapp_New(const char *screenName, const char *className,
     }
 
     strcpy(argv0, className);
-    if (Py_ISUPPER(argv0[0]))
-        argv0[0] = Py_TOLOWER(argv0[0]);
+    if (Py_ISUPPER(Py_CHARMASK(argv0[0])))
+        argv0[0] = Py_TOLOWER(Py_CHARMASK(argv0[0]));
     Tcl_SetVar(v->interp, "argv0", argv0, TCL_GLOBAL_ONLY);
     PyMem_Free(argv0);
 
@@ -831,7 +833,7 @@ typedef struct {
 } PyTclObject;
 
 static PyObject *PyTclObject_Type;
-#define PyTclObject_Check(v) Py_IS_TYPE(v, (PyTypeObject *) PyTclObject_Type)
+#define PyTclObject_Check(v) ((v)->ob_type == (PyTypeObject *) PyTclObject_Type)
 
 static PyObject *
 newPyTclObject(Tcl_Obj *arg)
@@ -965,7 +967,7 @@ static PyType_Spec PyTclObject_Type_spec = {
 #define CHECK_STRING_LENGTH(s)
 #endif
 
-#ifdef HAVE_LIBTOMMATH
+#ifdef HAVE_LIBTOMMAMTH
 static Tcl_Obj*
 asBignumObj(PyObject *value)
 {
@@ -1045,7 +1047,7 @@ AsObj(PyObject *value)
 #endif
         /* If there is an overflow in the wideInt conversion,
            fall through to bignum handling. */
-#ifdef HAVE_LIBTOMMATH
+#ifdef HAVE_LIBTOMMAMTH
         return asBignumObj(value);
 #endif
         /* If there is no wideInt or bignum support,
@@ -1167,7 +1169,7 @@ fromWideIntObj(TkappObject *tkapp, Tcl_Obj *value)
         return NULL;
 }
 
-#ifdef HAVE_LIBTOMMATH
+#ifdef HAVE_LIBTOMMAMTH
 static PyObject*
 fromBignumObj(TkappObject *tkapp, Tcl_Obj *value)
 {
@@ -1247,7 +1249,7 @@ FromObj(TkappObject *tkapp, Tcl_Obj *value)
            fall through to bignum handling. */
     }
 
-#ifdef HAVE_LIBTOMMATH
+#ifdef HAVE_LIBTOMMAMTH
     if (value->typePtr == tkapp->IntType ||
         value->typePtr == tkapp->WideIntType ||
         value->typePtr == tkapp->BignumType) {
@@ -1300,7 +1302,7 @@ FromObj(TkappObject *tkapp, Tcl_Obj *value)
     }
 #endif
 
-#ifdef HAVE_LIBTOMMATH
+#ifdef HAVE_LIBTOMMAMTH
     if (tkapp->BignumType == NULL &&
         strcmp(value->typePtr->name, "bignum") == 0) {
         /* bignum type is not registered in Tcl */
@@ -1732,7 +1734,7 @@ varname_converter(PyObject *in, void *_out)
     }
     PyErr_Format(PyExc_TypeError,
                  "must be str, bytes or Tcl_Obj, not %.50s",
-                 Py_TYPE(in)->tp_name);
+                 in->ob_type->tp_name);
     return 0;
 }
 
@@ -2001,7 +2003,7 @@ _tkinter_tkapp_getint(TkappObject *self, PyObject *arg)
        Prefer bignum because Tcl_GetWideIntFromObj returns ambiguous result for
        value in ranges -2**64..-2**63-1 and 2**63..2**64-1 (on 32-bit platform).
      */
-#ifdef HAVE_LIBTOMMATH
+#ifdef HAVE_LIBTOMMAMTH
     result = fromBignumObj(self, value);
 #else
     result = fromWideIntObj(self, value);
@@ -2164,9 +2166,11 @@ _tkinter_tkapp_exprdouble_impl(TkappObject *self, const char *s)
 
     CHECK_STRING_LENGTH(s);
     CHECK_TCL_APPARTMENT;
+    PyFPE_START_PROTECT("Tkapp_ExprDouble", return 0)
     ENTER_TCL
     retval = Tcl_ExprDouble(Tkapp_Interp(self), s, &v);
     ENTER_OVERLAP
+    PyFPE_END_PROTECT(retval)
     if (retval == TCL_ERROR)
         res = Tkinter_Error(self);
     else
@@ -2299,12 +2303,6 @@ _tkinter_tkapp_split(TkappObject *self, PyObject *arg)
 {
     PyObject *v;
     char *list;
-
-    if (PyErr_WarnEx(PyExc_DeprecationWarning,
-            "split() is deprecated; consider using splitlist() instead", 1))
-    {
-        return NULL;
-    }
 
     if (PyTclObject_Check(arg)) {
         Tcl_Obj *value = ((PyTclObject*)arg)->value;
@@ -2800,7 +2798,7 @@ TimerHandler(ClientData clientData)
 
     ENTER_PYTHON
 
-    res = PyObject_CallNoArgs(func);
+    res = _PyObject_CallNoArg(func);
     Py_DECREF(func);
     Py_DECREF(v); /* See Tktt_New() */
 

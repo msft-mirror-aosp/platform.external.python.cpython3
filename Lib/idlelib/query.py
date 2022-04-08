@@ -19,7 +19,7 @@ Subclass HelpSource gets menu item and path for additions to Help menu.
 # HelpSource was extracted from configHelpSourceEdit.py (temporarily
 # config_help.py), with darwin code moved from ok to path_ok.
 
-import importlib.util, importlib.abc
+import importlib
 import os
 import shlex
 from sys import executable, platform  # Platform is set for one test.
@@ -57,8 +57,7 @@ class Query(Toplevel):
         self.withdraw()  # Hide while configuring, especially geometry.
         self.title(title)
         self.transient(parent)
-        if not _utest:  # Otherwise fail when directly run unittest.
-            self.grab_set()
+        self.grab_set()
 
         windowingsystem = self.tk.call('tk', 'windowingsystem')
         if windowingsystem == 'aqua':
@@ -109,7 +108,6 @@ class Query(Toplevel):
                                exists=True, root=self.parent)
         self.entry_error = Label(frame, text=' ', foreground='red',
                                  font=self.error_font)
-        # Display or blank error by setting ['text'] =.
         entrylabel.grid(column=0, row=0, columnspan=3, padx=5, sticky=W)
         self.entry.grid(column=0, row=1, columnspan=3, padx=5, sticky=W+E,
                         pady=[10,0])
@@ -134,6 +132,7 @@ class Query(Toplevel):
 
     def entry_ok(self):  # Example: usually replace.
         "Return non-blank entry or None."
+        self.entry_error['text'] = ''
         entry = self.entry.get().strip()
         if not entry:
             self.showerror('blank line.')
@@ -145,7 +144,6 @@ class Query(Toplevel):
 
         Otherwise leave dialog open for user to correct entry or cancel.
         '''
-        self.entry_error['text'] = ''
         entry = self.entry_ok()
         if entry is not None:
             self.result = entry
@@ -175,6 +173,7 @@ class SectionName(Query):
 
     def entry_ok(self):
         "Return sensible ConfigParser section name or None."
+        self.entry_error['text'] = ''
         name = self.entry.get().strip()
         if not name:
             self.showerror('no name specified.')
@@ -199,6 +198,7 @@ class ModuleName(Query):
 
     def entry_ok(self):
         "Return entered module name as file path or None."
+        self.entry_error['text'] = ''
         name = self.entry.get().strip()
         if not name:
             self.showerror('no name specified.')
@@ -210,40 +210,18 @@ class ModuleName(Query):
             self.showerror(str(msg))
             return None
         if spec is None:
-            self.showerror("module not found.")
+            self.showerror("module not found")
             return None
         if not isinstance(spec.loader, importlib.abc.SourceLoader):
-            self.showerror("not a source-based module.")
+            self.showerror("not a source-based module")
             return None
         try:
             file_path = spec.loader.get_filename(name)
         except AttributeError:
-            self.showerror("loader does not support get_filename.")
+            self.showerror("loader does not support get_filename",
+                      parent=self)
             return None
-        except ImportError:
-            # Some special modules require this (e.g. os.path)
-            try:
-                file_path = spec.loader.get_filename()
-            except TypeError:
-                self.showerror("loader failed to get filename.")
-                return None
         return file_path
-
-
-class Goto(Query):
-    "Get a positive line number for editor Go To Line."
-    # Used in editor.EditorWindow.goto_line_event.
-
-    def entry_ok(self):
-        try:
-            lineno = int(self.entry.get())
-        except ValueError:
-            self.showerror('not a base 10 integer.')
-            return None
-        if lineno <= 0:
-            self.showerror('not a positive integer.')
-            return None
-        return lineno
 
 
 class HelpSource(Query):
@@ -333,6 +311,7 @@ class HelpSource(Query):
 
     def entry_ok(self):
         "Return apparently valid (name, path) or None"
+        self.entry_error['text'] = ''
         self.path_error['text'] = ''
         name = self.item_ok()
         path = self.path_ok()
@@ -382,7 +361,8 @@ class CustomRun(Query):
         return cli_args
 
     def entry_ok(self):
-        "Return apparently valid (cli_args, restart) or None."
+        "Return apparently valid (cli_args, restart) or None"
+        self.entry_error['text'] = ''
         cli_args = self.cli_args_ok()
         restart = self.restartvar.get()
         return None if cli_args is None else (cli_args, restart)

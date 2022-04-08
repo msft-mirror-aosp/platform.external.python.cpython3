@@ -20,7 +20,6 @@ The following modules are documented in this chapter:
 .. toctree::
 
    datetime.rst
-   zoneinfo.rst
    calendar.rst
    collections.rst
    collections.abc.rst
@@ -33,4 +32,3 @@ The following modules are documented in this chapter:
    pprint.rst
    reprlib.rst
    enum.rst
-   graphlib.rst

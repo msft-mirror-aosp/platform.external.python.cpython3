@@ -35,8 +35,7 @@ on efficient attribute extraction for output formatting and manipulation.
 Aware and Naive Objects
 -----------------------
 
-Date and time objects may be categorized as "aware" or "naive" depending on
-whether or not they include timezone information.
+Date and time objects may be categorized as "aware" or "naive."
 
 With sufficient knowledge of applicable algorithmic and political time
 adjustments, such as time zone and daylight saving time information,
@@ -671,8 +670,7 @@ Instance methods:
 
 .. method:: date.isocalendar()
 
-   Return a :term:`named tuple` object with three components: ``year``,
-   ``week`` and ``weekday``.
+   Return a 3-tuple, (ISO year, ISO week number, ISO weekday).
 
    The ISO calendar is a widely used variant of the Gregorian calendar. [#]_
 
@@ -684,14 +682,11 @@ Instance methods:
    For example, 2004 begins on a Thursday, so the first week of ISO year 2004
    begins on Monday, 29 Dec 2003 and ends on Sunday, 4 Jan 2004::
 
-        >>> from datetime import date
-        >>> date(2003, 12, 29).isocalendar()
-        datetime.IsoCalendarDate(year=2004, week=1, weekday=1)
-        >>> date(2004, 1, 4).isocalendar()
-        datetime.IsoCalendarDate(year=2004, week=1, weekday=7)
-
-   .. versionchanged:: 3.9
-      Result changed from a tuple to a :term:`named tuple`.
+       >>> from datetime import date
+       >>> date(2003, 12, 29).isocalendar()
+       (2004, 1, 1)
+       >>> date(2004, 1, 4).isocalendar()
+       (2004, 1, 7)
 
 .. method:: date.isoformat()
 
@@ -1002,6 +997,8 @@ Other constructors, all class methods:
      as the inverse operation of :meth:`datetime.isoformat`. A more full-featured
      ISO 8601 parser, ``dateutil.parser.isoparse`` is available in the third-party package
      `dateutil <https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.isoparse>`__.
+     This does not support parsing arbitrary ISO 8601 strings - it is only intended
+     as the inverse operation of :meth:`datetime.isoformat`.
 
    Examples::
 
@@ -1402,8 +1399,8 @@ Instance methods:
 
 .. method:: datetime.isocalendar()
 
-   Return a :term:`named tuple` with three components: ``year``, ``week``
-   and ``weekday``. The same as ``self.date().isocalendar()``.
+   Return a 3-tuple, (ISO year, ISO week number, ISO weekday). The same as
+   ``self.date().isocalendar()``.
 
 
 .. method:: datetime.isoformat(sep='T', timespec='auto')
@@ -2365,7 +2362,7 @@ requires, and these work on all platforms with a standard C implementation.
 |           | string if the object is        | +063415,               |       |
 |           | naive).                        | -030712.345216         |       |
 +-----------+--------------------------------+------------------------+-------+
-| ``%Z``    | Time zone name (empty string   | (empty), UTC, GMT      | \(6)  |
+| ``%Z``    | Time zone name (empty string   | (empty), UTC, EST, CST |       |
 |           | if the object is naive).       |                        |       |
 +-----------+--------------------------------+------------------------+-------+
 | ``%j``    | Day of the year as a           | 001, 002, ..., 366     | \(9)  |
@@ -2517,7 +2514,7 @@ Notes:
       :meth:`utcoffset` is transformed into a string of the form
       ``±HHMM[SS[.ffffff]]``, where ``HH`` is a 2-digit string giving the number
       of UTC offset hours, ``MM`` is a 2-digit string giving the number of UTC
-      offset minutes, ``SS`` is a 2-digit string giving the number of UTC offset
+      offset minutes, SS is a 2-digit string giving the number of UTC offset
       seconds and ``ffffff`` is a 6-digit string giving the number of UTC
       offset microseconds. The ``ffffff`` part is omitted when the offset is a
       whole number of seconds and both the ``ffffff`` and the ``SS`` part is
@@ -2536,18 +2533,9 @@ Notes:
       In addition, providing ``'Z'`` is identical to ``'+00:00'``.
 
    ``%Z``
-      In :meth:`strftime`, ``%Z`` is replaced by an empty string if
-      :meth:`tzname` returns ``None``; otherwise ``%Z`` is replaced by the
-      returned value, which must be a string.
-
-      :meth:`strptime` only accepts certain values for ``%Z``:
-
-      1. any value in ``time.tzname`` for your machine's locale
-      2. the hard-coded values ``UTC`` and ``GMT``
-
-      So someone living in Japan may have ``JST``, ``UTC``, and ``GMT`` as
-      valid values, but probably not ``EST``. It will raise ``ValueError`` for
-      invalid values.
+      If :meth:`tzname` returns ``None``, ``%Z`` is replaced by an empty
+      string. Otherwise ``%Z`` is replaced by the returned value, which must
+      be a string.
 
    .. versionchanged:: 3.2
       When the ``%z`` directive is provided to the :meth:`strptime` method, an

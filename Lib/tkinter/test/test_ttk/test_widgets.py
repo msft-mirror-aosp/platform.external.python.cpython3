@@ -60,10 +60,11 @@ class WidgetTest(AbstractTkTest, unittest.TestCase):
         super().setUp()
         self.widget = ttk.Button(self.root, width=0, text="Text")
         self.widget.pack()
+        self.widget.wait_visibility()
 
 
     def test_identify(self):
-        self.widget.update()
+        self.widget.update_idletasks()
         self.assertEqual(self.widget.identify(
             int(self.widget.winfo_width() / 2),
             int(self.widget.winfo_height() / 2)
@@ -325,7 +326,8 @@ class EntryTest(AbstractWidgetTest, unittest.TestCase):
 
     def test_identify(self):
         self.entry.pack()
-        self.entry.update()
+        self.entry.wait_visibility()
+        self.entry.update_idletasks()
 
         # bpo-27313: macOS Cocoa widget differs from X, allow either
         if sys.platform == 'darwin':
@@ -435,11 +437,10 @@ class ComboboxTest(EntryTest, unittest.TestCase):
 
     def _show_drop_down_listbox(self):
         width = self.combo.winfo_width()
-        x, y = width - 5, 5
-        self.assertRegex(self.combo.identify(x, y), r'.*downarrow\Z')
-        self.combo.event_generate('<ButtonPress-1>', x=x, y=y)
-        self.combo.event_generate('<ButtonRelease-1>', x=x, y=y)
+        self.combo.event_generate('<ButtonPress-1>', x=width - 5, y=5)
+        self.combo.event_generate('<ButtonRelease-1>', x=width - 5, y=5)
         self.combo.update_idletasks()
+
 
     def test_virtual_event(self):
         success = []
@@ -448,7 +449,7 @@ class ComboboxTest(EntryTest, unittest.TestCase):
         self.combo.bind('<<ComboboxSelected>>',
             lambda evt: success.append(True))
         self.combo.pack()
-        self.combo.update()
+        self.combo.wait_visibility()
 
         height = self.combo.winfo_height()
         self._show_drop_down_listbox()
@@ -464,7 +465,7 @@ class ComboboxTest(EntryTest, unittest.TestCase):
 
         self.combo['postcommand'] = lambda: success.append(True)
         self.combo.pack()
-        self.combo.update()
+        self.combo.wait_visibility()
 
         self._show_drop_down_listbox()
         self.assertTrue(success)
@@ -664,6 +665,7 @@ class PanedWindowTest(AbstractWidgetTest, unittest.TestCase):
         self.assertRaises(tkinter.TclError, self.paned.sashpos, 1)
 
         self.paned.pack(expand=True, fill='both')
+        self.paned.wait_visibility()
 
         curr_pos = self.paned.sashpos(0)
         self.paned.sashpos(0, 1000)
@@ -931,7 +933,7 @@ class NotebookTest(AbstractWidgetTest, unittest.TestCase):
         self.nb.add(self.child1, text='a')
 
         self.nb.pack()
-        self.nb.update()
+        self.nb.wait_visibility()
         if sys.platform == 'darwin':
             tb_idx = "@20,5"
         else:
@@ -1039,7 +1041,7 @@ class NotebookTest(AbstractWidgetTest, unittest.TestCase):
 
     def test_select(self):
         self.nb.pack()
-        self.nb.update()
+        self.nb.wait_visibility()
 
         success = []
         tab_changed = []
@@ -1082,11 +1084,10 @@ class NotebookTest(AbstractWidgetTest, unittest.TestCase):
 
     def test_traversal(self):
         self.nb.pack()
-        self.nb.update()
+        self.nb.wait_visibility()
 
         self.nb.select(0)
 
-        self.assertEqual(self.nb.identify(5, 5), 'focus')
         simulate_mouse_click(self.nb, 5, 5)
         self.nb.focus_force()
         self.nb.event_generate('<Control-Tab>')
@@ -1101,7 +1102,6 @@ class NotebookTest(AbstractWidgetTest, unittest.TestCase):
         self.nb.tab(self.child1, text='a', underline=0)
         self.nb.enable_traversal()
         self.nb.focus_force()
-        self.assertEqual(self.nb.identify(5, 5), 'focus')
         simulate_mouse_click(self.nb, 5, 5)
         if sys.platform == 'darwin':
             self.nb.event_generate('<Option-a>')
@@ -1132,7 +1132,6 @@ class SpinboxTest(EntryTest, unittest.TestCase):
         height = self.spin.winfo_height()
         x = width - 5
         y = height//2 - 5
-        self.assertRegex(self.spin.identify(x, y), r'.*uparrow\Z')
         self.spin.event_generate('<ButtonPress-1>', x=x, y=y)
         self.spin.event_generate('<ButtonRelease-1>', x=x, y=y)
         self.spin.update_idletasks()
@@ -1142,7 +1141,6 @@ class SpinboxTest(EntryTest, unittest.TestCase):
         height = self.spin.winfo_height()
         x = width - 5
         y = height//2 + 4
-        self.assertRegex(self.spin.identify(x, y), r'.*downarrow\Z')
         self.spin.event_generate('<ButtonPress-1>', x=x, y=y)
         self.spin.event_generate('<ButtonRelease-1>', x=x, y=y)
         self.spin.update_idletasks()
@@ -1344,6 +1342,7 @@ class TreeviewTest(AbstractWidgetTest, unittest.TestCase):
     def test_bbox(self):
         self.tv.pack()
         self.assertEqual(self.tv.bbox(''), '')
+        self.tv.wait_visibility()
         self.tv.update()
 
         item_id = self.tv.insert('', 'end')
@@ -1531,15 +1530,13 @@ class TreeviewTest(AbstractWidgetTest, unittest.TestCase):
 
     def test_heading_callback(self):
         def simulate_heading_click(x, y):
-            if tcl_version >= (8, 6):
-                self.assertEqual(self.tv.identify_column(x), '#0')
-                self.assertEqual(self.tv.identify_region(x, y), 'heading')
             simulate_mouse_click(self.tv, x, y)
             self.tv.update()
 
         success = [] # no success for now
 
         self.tv.pack()
+        self.tv.wait_visibility()
         self.tv.heading('#0', command=lambda: success.append(True))
         self.tv.column('#0', width=100)
         self.tv.update()
@@ -1787,6 +1784,7 @@ class TreeviewTest(AbstractWidgetTest, unittest.TestCase):
             lambda evt: events.append(2))
 
         self.tv.pack()
+        self.tv.wait_visibility()
         self.tv.update()
 
         pos_y = set()

@@ -548,7 +548,14 @@ class Bdb:
             s += frame.f_code.co_name
         else:
             s += "<lambda>"
-        s += '()'
+        if '__args__' in frame.f_locals:
+            args = frame.f_locals['__args__']
+        else:
+            args = None
+        if args:
+            s += reprlib.repr(args)
+        else:
+            s += '()'
         if '__return__' in frame.f_locals:
             rv = frame.f_locals['__return__']
             s += '->'
@@ -611,11 +618,26 @@ class Bdb:
 
     # This method is more useful to debug a single function call.
 
-    def runcall(self, func, /, *args, **kwds):
+    def runcall(*args, **kwds):
         """Debug a single function call.
 
         Return the result of the function call.
         """
+        if len(args) >= 2:
+            self, func, *args = args
+        elif not args:
+            raise TypeError("descriptor 'runcall' of 'Bdb' object "
+                            "needs an argument")
+        elif 'func' in kwds:
+            func = kwds.pop('func')
+            self, *args = args
+            import warnings
+            warnings.warn("Passing 'func' as keyword argument is deprecated",
+                          DeprecationWarning, stacklevel=2)
+        else:
+            raise TypeError('runcall expected at least 1 positional argument, '
+                            'got %d' % (len(args)-1))
+
         self.reset()
         sys.settrace(self.trace_dispatch)
         res = None
@@ -627,6 +649,7 @@ class Bdb:
             self.quitting = True
             sys.settrace(None)
         return res
+    runcall.__text_signature__ = '($self, func, /, *args, **kwds)'
 
 
 def set_trace():

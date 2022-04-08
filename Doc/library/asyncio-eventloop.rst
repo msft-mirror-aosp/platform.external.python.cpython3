@@ -38,10 +38,8 @@ an event loop:
 
 .. function:: get_event_loop()
 
-   Get the current event loop.
-
-   If there is no current event loop set in the current OS thread,
-   the OS thread is main, and :func:`set_event_loop` has not yet
+   Get the current event loop.  If there is no current event loop set
+   in the current OS thread and :func:`set_event_loop` has not yet
    been called, asyncio will create a new event loop and set it as the
    current one.
 
@@ -173,26 +171,14 @@ Running and stopping the loop
 
    .. versionadded:: 3.6
 
-.. coroutinemethod:: loop.shutdown_default_executor()
-
-   Schedule the closure of the default executor and wait for it to join all of
-   the threads in the :class:`ThreadPoolExecutor`. After calling this method, a
-   :exc:`RuntimeError` will be raised if :meth:`loop.run_in_executor` is called
-   while using the default executor.
-
-   Note that there is no need to call this function when
-   :func:`asyncio.run` is used.
-
-   .. versionadded:: 3.9
-
 
 Scheduling callbacks
 ^^^^^^^^^^^^^^^^^^^^
 
 .. method:: loop.call_soon(callback, *args, context=None)
 
-   Schedule the *callback* :term:`callback` to be called with
-   *args* arguments at the next iteration of the event loop.
+   Schedule a *callback* to be called with *args* arguments at
+   the next iteration of the event loop.
 
    Callbacks are called in the order in which they are registered.
    Each callback will be called exactly once.
@@ -359,8 +345,7 @@ Opening network connections
                           host=None, port=None, \*, ssl=None, \
                           family=0, proto=0, flags=0, sock=None, \
                           local_addr=None, server_hostname=None, \
-                          ssl_handshake_timeout=None, \
-                          happy_eyeballs_delay=None, interleave=None)
+                          ssl_handshake_timeout=None)
 
    Open a streaming transport connection to a given
    address specified by *host* and *port*.
@@ -449,18 +434,7 @@ Opening network connections
 
    .. versionadded:: 3.8
 
-      Added the *happy_eyeballs_delay* and *interleave* parameters.
-
-      Happy Eyeballs Algorithm: Success with Dual-Stack Hosts.
-      When a server's IPv4 path and protocol are working, but the server's
-      IPv6 path and protocol are not working, a dual-stack client
-      application experiences significant connection delay compared to an
-      IPv4-only client.  This is undesirable because it causes the dual-
-      stack client to have a worse user experience.  This document
-      specifies requirements for algorithms that reduce this user-visible
-      delay and provides an algorithm.
-
-      For more information: https://tools.ietf.org/html/rfc6555
+      The *happy_eyeballs_delay* and *interleave* parameters.
 
    .. versionadded:: 3.7
 
@@ -493,7 +467,7 @@ Opening network connections
       UDP. Explicitly passing ``reuse_address=True`` will raise an exception.
 
       When multiple processes with differing UIDs assign sockets to an
-      identical UDP socket address with ``SO_REUSEADDR``, incoming packets can
+      indentical UDP socket address with ``SO_REUSEADDR``, incoming packets can
       become randomly distributed among the sockets.
 
       For supported platforms, *reuse_port* can be used as a replacement for
@@ -1212,7 +1186,7 @@ Enabling debug mode
 
    .. versionchanged:: 3.7
 
-      The new :ref:`Python Development Mode <devmode>` can now also be used
+      The new ``-X dev`` command line option can now also be used
       to enable the debug mode.
 
 .. seealso::

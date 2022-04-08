@@ -23,7 +23,7 @@ import multiprocessing
 AVAILABLE_START_METHODS = set(multiprocessing.get_all_start_methods())
 
 # Issue #22332: Skip tests if sem_open implementation is broken.
-support.skip_if_broken_multiprocessing_synchronize()
+support.import_module('multiprocessing.synchronize')
 
 verbose = support.verbose
 

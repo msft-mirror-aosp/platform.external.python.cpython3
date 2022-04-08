@@ -9,7 +9,7 @@ import sys
 import threading
 import unittest
 from unittest import mock
-from test.support import socket_helper
+from test import support
 try:
     import ssl
 except ImportError:
@@ -66,7 +66,7 @@ class StreamTests(test_utils.TestCase):
                                                loop=self.loop)
             self._basetest_open_connection(conn_fut)
 
-    @socket_helper.skip_unless_bind_unix_socket
+    @support.skip_unless_bind_unix_socket
     def test_open_unix_connection(self):
         with test_utils.run_test_unix_server() as httpd:
             conn_fut = asyncio.open_unix_connection(httpd.address,
@@ -99,7 +99,7 @@ class StreamTests(test_utils.TestCase):
 
             self._basetest_open_connection_no_loop_ssl(conn_fut)
 
-    @socket_helper.skip_unless_bind_unix_socket
+    @support.skip_unless_bind_unix_socket
     @unittest.skipIf(ssl is None, 'No ssl module')
     def test_open_unix_connection_no_loop_ssl(self):
         with test_utils.run_test_unix_server(use_ssl=True) as httpd:
@@ -130,7 +130,7 @@ class StreamTests(test_utils.TestCase):
                                                loop=self.loop)
             self._basetest_open_connection_error(conn_fut)
 
-    @socket_helper.skip_unless_bind_unix_socket
+    @support.skip_unless_bind_unix_socket
     def test_open_unix_connection_error(self):
         with test_utils.run_test_unix_server() as httpd:
             conn_fut = asyncio.open_unix_connection(httpd.address,
@@ -452,14 +452,12 @@ class StreamTests(test_utils.TestCase):
 
     def test_readuntil_eof(self):
         stream = asyncio.StreamReader(loop=self.loop)
-        data = b'some dataAA'
-        stream.feed_data(data)
+        stream.feed_data(b'some dataAA')
         stream.feed_eof()
 
-        with self.assertRaisesRegex(asyncio.IncompleteReadError,
-                                    'undefined expected bytes') as cm:
+        with self.assertRaises(asyncio.IncompleteReadError) as cm:
             self.loop.run_until_complete(stream.readuntil(b'AAA'))
-        self.assertEqual(cm.exception.partial, data)
+        self.assertEqual(cm.exception.partial, b'some dataAA')
         self.assertIsNone(cm.exception.expected)
         self.assertEqual(b'', stream._buffer)
 
@@ -655,7 +653,7 @@ class StreamTests(test_utils.TestCase):
 
         self.assertEqual(messages, [])
 
-    @socket_helper.skip_unless_bind_unix_socket
+    @support.skip_unless_bind_unix_socket
     def test_start_unix_server(self):
 
         class MyServer:

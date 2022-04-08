@@ -7,7 +7,6 @@ import collections
 import logging
 import threading
 import time
-import types
 
 FIRST_COMPLETED = 'FIRST_COMPLETED'
 FIRST_EXCEPTION = 'FIRST_EXCEPTION'
@@ -545,12 +544,10 @@ class Future(object):
             self._condition.notify_all()
         self._invoke_callbacks()
 
-    __class_getitem__ = classmethod(types.GenericAlias)
-
 class Executor(object):
     """This is an abstract base class for concrete asynchronous executors."""
 
-    def submit(self, fn, /, *args, **kwargs):
+    def submit(*args, **kwargs):
         """Submits a callable to be executed with the given arguments.
 
         Schedules the callable to be executed as fn(*args, **kwargs) and returns
@@ -559,7 +556,21 @@ class Executor(object):
         Returns:
             A Future representing the given call.
         """
+        if len(args) >= 2:
+            pass
+        elif not args:
+            raise TypeError("descriptor 'submit' of 'Executor' object "
+                            "needs an argument")
+        elif 'fn' in kwargs:
+            import warnings
+            warnings.warn("Passing 'fn' as keyword argument is deprecated",
+                          DeprecationWarning, stacklevel=2)
+        else:
+            raise TypeError('submit expected at least 1 positional argument, '
+                            'got %d' % (len(args)-1))
+
         raise NotImplementedError()
+    submit.__text_signature__ = '($self, fn, /, *args, **kwargs)'
 
     def map(self, fn, *iterables, timeout=None, chunksize=1):
         """Returns an iterator equivalent to map(fn, iter).
@@ -605,7 +616,7 @@ class Executor(object):
                     future.cancel()
         return result_iterator()
 
-    def shutdown(self, wait=True, *, cancel_futures=False):
+    def shutdown(self, wait=True):
         """Clean-up the resources associated with the Executor.
 
         It is safe to call this method several times. Otherwise, no other
@@ -615,9 +626,6 @@ class Executor(object):
             wait: If True then shutdown will not return until all running
                 futures have finished executing and the resources used by the
                 executor have been reclaimed.
-            cancel_futures: If True then shutdown will cancel all pending
-                futures. Futures that are completed or running will not be
-                cancelled.
         """
         pass
 

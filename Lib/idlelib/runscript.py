@@ -11,7 +11,6 @@ TODO: Specify command line arguments in a dialog box.
 """
 import os
 import tabnanny
-import time
 import tokenize
 
 import tkinter.messagebox as tkMessageBox
@@ -43,7 +42,9 @@ class ScriptBinding:
         self.root = self.editwin.root
         # cli_args is list of strings that extends sys.argv
         self.cli_args = []
-        self.perf = 0.0    # Workaround for macOS 11 Uni2; see bpo-42508.
+
+        if macosx.isCocoaTk():
+            self.editwin.text_frame.bind('<<run-module-event-2>>', self._run_module_event)
 
     def check_module_event(self, event):
         if isinstance(self.editwin, outwin.OutputWindow):
@@ -106,10 +107,24 @@ class ScriptBinding:
         finally:
             shell.set_warning_stream(saved_stream)
 
-    def run_custom_event(self, event):
-        return self.run_module_event(event, customize=True)
+    def run_module_event(self, event):
+        if macosx.isCocoaTk():
+            # Tk-Cocoa in MacOSX is broken until at least
+            # Tk 8.5.9, and without this rather
+            # crude workaround IDLE would hang when a user
+            # tries to run a module using the keyboard shortcut
+            # (the menu item works fine).
+            self.editwin.text_frame.after(200,
+                lambda: self.editwin.text_frame.event_generate(
+                        '<<run-module-event-2>>'))
+            return 'break'
+        else:
+            return self._run_module_event(event)
 
-    def run_module_event(self, event, *, customize=False):
+    def run_custom_event(self, event):
+        return self._run_module_event(event, customize=True)
+
+    def _run_module_event(self, event, *, customize=False):
         """Run the module after setting up the environment.
 
         First check the syntax.  Next get customization.  If OK, make
@@ -118,8 +133,6 @@ class ScriptBinding:
         module being executed and also add that directory to its
         sys.path if not already included.
         """
-        if macosx.isCocoaTk() and (time.perf_counter() - self.perf < .05):
-            return 'break'
         if isinstance(self.editwin, outwin.OutputWindow):
             self.editwin.text.bell()
             return 'break'
@@ -205,7 +218,6 @@ class ScriptBinding:
         # XXX This should really be a function of EditorWindow...
         tkMessageBox.showerror(title, message, parent=self.editwin.text)
         self.editwin.text.focus_set()
-        self.perf = time.perf_counter()
 
 
 if __name__ == "__main__":

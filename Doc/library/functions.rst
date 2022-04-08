@@ -43,8 +43,9 @@ are always available.  They are listed here in alphabetical order.
 .. function:: abs(x)
 
    Return the absolute value of a number.  The argument may be an
-   integer, a floating point number, or an object implementing :meth:`__abs__`.
-   If the argument is a complex number, its magnitude is returned.
+   integer or a floating point number.  If the argument is a complex number, its
+   magnitude is returned. If *x* defines :meth:`__abs__`,
+   ``abs(x)`` returns ``x.__abs__()``.
 
 
 .. function:: all(iterable)
@@ -150,8 +151,8 @@ are always available.  They are listed here in alphabetical order.
    * If it is an *integer*, the array will have that size and will be
      initialized with null bytes.
 
-   * If it is an object conforming to the :ref:`buffer interface <bufferobjects>`,
-     a read-only buffer of the object will be used to initialize the bytes array.
+   * If it is an object conforming to the *buffer* interface, a read-only buffer
+     of the object will be used to initialize the bytes array.
 
    * If it is an *iterable*, it must be an iterable of integers in the range
      ``0 <= x < 256``, which are used as the initial contents of the array.
@@ -221,12 +222,10 @@ are always available.  They are listed here in alphabetical order.
    implied first argument.
 
    Class methods are different than C++ or Java static methods. If you want those,
-   see :func:`staticmethod` in this section.
+   see :func:`staticmethod`.
+
    For more information on class methods, see :ref:`types`.
 
-   .. versionchanged:: 3.9
-      Class methods can now wrap other :term:`descriptors <descriptor>` such as
-      :func:`property`.
 
 .. function:: compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
 
@@ -245,24 +244,26 @@ are always available.  They are listed here in alphabetical order.
    interactive statement (in the latter case, expression statements that
    evaluate to something other than ``None`` will be printed).
 
-   The optional arguments *flags* and *dont_inherit* control which
-   :ref:`compiler options <ast-compiler-flags>` should be activated
-   and which :ref:`future features <future>` should be allowed. If neither
-   is present (or both are zero) the code is compiled with the same flags that
-   affect the code that is calling :func:`compile`. If the *flags*
-   argument is given and *dont_inherit* is not (or is zero) then the compiler
-   options and the future statements specified by the *flags* argument are used
-   in addition to those that would be used anyway. If *dont_inherit* is a
-   non-zero integer then the *flags* argument is it -- the flags (future
-   features and compiler options) in the surrounding code are ignored.
+   The optional arguments *flags* and *dont_inherit* control which :ref:`future
+   statements <future>` affect the compilation of *source*.  If neither
+   is present (or both are zero) the code is compiled with those future
+   statements that are in effect in the code that is calling :func:`compile`.  If the
+   *flags* argument is given and *dont_inherit* is not (or is zero) then the
+   future statements specified by the *flags* argument are used in addition to
+   those that would be used anyway. If *dont_inherit* is a non-zero integer then
+   the *flags* argument is it -- the future statements in effect around the call
+   to compile are ignored.
 
-   Compiler options and future statements are specified by bits which can be
-   bitwise ORed together to specify multiple options. The bitfield required to
-   specify a given future feature can be found as the
-   :attr:`~__future__._Feature.compiler_flag` attribute on the
-   :class:`~__future__._Feature` instance in the :mod:`__future__` module.
-   :ref:`Compiler flags <ast-compiler-flags>` can be found in :mod:`ast`
-   module, with ``PyCF_`` prefix.
+   Future statements are specified by bits which can be bitwise ORed together to
+   specify multiple statements.  The bitfield required to specify a given feature
+   can be found as the :attr:`~__future__._Feature.compiler_flag` attribute on
+   the :class:`~__future__._Feature` instance in the :mod:`__future__` module.
+
+   The optional argument *flags* also controls whether the compiled source is
+   allowed to contain top-level ``await``, ``async for`` and ``async with``.
+   When the bit ``ast.PyCF_ALLOW_TOP_LEVEL_AWAIT`` is set, the return code
+   object has ``CO_COROUTINE`` set in ``co_code``, and can be interactively
+   executed via ``await eval(code_object)``.
 
    The argument *optimize* specifies the optimization level of the compiler; the
    default value of ``-1`` selects the optimization level of the interpreter as
@@ -580,7 +581,7 @@ are always available.  They are listed here in alphabetical order.
    input must conform to the following grammar after leading and trailing
    whitespace characters are removed:
 
-   .. productionlist:: float
+   .. productionlist::
       sign: "+" | "-"
       infinity: "Infinity" | "inf"
       nan: "nan"
@@ -766,8 +767,6 @@ are always available.  They are listed here in alphabetical order.
 
    .. impl-detail:: This is the address of the object in memory.
 
-   .. audit-event:: builtins.id id id
-
 
 .. function:: input([prompt])
 
@@ -891,11 +890,6 @@ are always available.  They are listed here in alphabetical order.
    sequence (such as a string, bytes, tuple, list, or range) or a collection
    (such as a dictionary, set, or frozen set).
 
-   .. impl-detail::
-
-      ``len`` raises :exc:`OverflowError` on lengths larger than
-      :data:`sys.maxsize`, such as :class:`range(2 ** 100) <range>`.
-
 
 .. _func-list:
 .. class:: list([iterable])
@@ -956,7 +950,7 @@ are always available.  They are listed here in alphabetical order.
 
 
 .. _func-memoryview:
-.. class:: memoryview(obj)
+.. function:: memoryview(obj)
    :noindex:
 
    Return a "memory view" object created from the given argument.  See
@@ -1041,8 +1035,7 @@ are always available.  They are listed here in alphabetical order.
 .. function:: open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None)
 
    Open *file* and return a corresponding :term:`file object`.  If the file
-   cannot be opened, an :exc:`OSError` is raised. See
-   :ref:`tut-files` for more examples of how to use this function.
+   cannot be opened, an :exc:`OSError` is raised.
 
    *file* is a :term:`path-like object` giving the pathname (absolute or
    relative to the current working directory) of the file to be opened or an
@@ -1252,7 +1245,7 @@ are always available.  They are listed here in alphabetical order.
 
          * The file is now non-inheritable.
 
-   .. deprecated-removed:: 3.4 3.10
+   .. deprecated-removed:: 3.4 3.9
 
       The ``'U'`` mode.
 
@@ -1311,7 +1304,7 @@ are always available.  They are listed here in alphabetical order.
       the second argument to be negative, permitting computation of modular
       inverses.
 
-   .. versionchanged:: 3.8
+   .. versionchanged:: 3.9
       Allow keyword arguments.  Formerly, only positional arguments were
       supported.
 
@@ -1419,7 +1412,7 @@ are always available.  They are listed here in alphabetical order.
 
 
 .. _func-range:
-.. class:: range(stop)
+.. function:: range(stop)
               range(start, stop[, step])
    :noindex:
 
@@ -1666,7 +1659,7 @@ are always available.  They are listed here in alphabetical order.
 
 
 .. _func-tuple:
-.. class:: tuple([iterable])
+.. function:: tuple([iterable])
    :noindex:
 
    Rather than being a function, :class:`tuple` is actually an immutable
@@ -1720,9 +1713,6 @@ are always available.  They are listed here in alphabetical order.
    locals dictionary is only useful for reads since updates to the locals
    dictionary are ignored.
 
-   A :exc:`TypeError` exception is raised if an object is specified but
-   it doesn't have a :attr:`~object.__dict__` attribute (for example, if
-   its class defines the :attr:`~object.__slots__` attribute).
 
 .. function:: zip(*iterables)
 
@@ -1838,9 +1828,6 @@ are always available.  They are listed here in alphabetical order.
       Negative values for *level* are no longer supported (which also changes
       the default value to 0).
 
-   .. versionchanged:: 3.9
-      When the command line options :option:`-E` or :option:`-I` are being used,
-      the environment variable :envvar:`PYTHONCASEOK` is now ignored.
 
 .. rubric:: Footnotes
 

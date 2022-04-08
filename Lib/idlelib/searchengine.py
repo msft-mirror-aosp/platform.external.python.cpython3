@@ -84,17 +84,20 @@ class SearchEngine:
             flags = flags | re.IGNORECASE
         try:
             prog = re.compile(pat, flags)
-        except re.error as e:
-            self.report_error(pat, e.msg, e.pos)
+        except re.error as what:
+            args = what.args
+            msg = args[0]
+            col = args[1] if len(args) >= 2 else -1
+            self.report_error(pat, msg, col)
             return None
         return prog
 
-    def report_error(self, pat, msg, col=None):
+    def report_error(self, pat, msg, col=-1):
         # Derived class could override this with something fancier
         msg = "Error: " + str(msg)
         if pat:
             msg = msg + "\nPattern: " + str(pat)
-        if col is not None:
+        if col >= 0:
             msg = msg + "\nOffset: " + str(col)
         tkMessageBox.showerror("Regular expression error",
                                msg, master=self.root)
