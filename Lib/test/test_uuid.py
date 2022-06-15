@@ -1,6 +1,5 @@
 import unittest
 from test import support
-from test.support import import_helper
 import builtins
 import contextlib
 import copy
@@ -11,8 +10,8 @@ import sys
 import weakref
 from unittest import mock
 
-py_uuid = import_helper.import_fresh_module('uuid', blocked=['_uuid'])
-c_uuid = import_helper.import_fresh_module('uuid', fresh=['_uuid'])
+py_uuid = support.import_fresh_module('uuid', blocked=['_uuid'])
+c_uuid = support.import_fresh_module('uuid', fresh=['_uuid'])
 
 def importable(name):
     try:
@@ -639,7 +638,7 @@ class BaseTestUUID:
             equal(u, self.uuid.UUID(v))
             equal(str(u), v)
 
-    @unittest.skipUnless(hasattr(os, 'fork'), 'need os.fork')
+    @unittest.skipUnless(os.name == 'posix', 'requires Posix')
     def testIssue8621(self):
         # On at least some versions of OSX self.uuid.uuid4 generates
         # the same sequence of UUIDs in the parent and any

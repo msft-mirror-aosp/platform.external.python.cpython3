@@ -2,7 +2,6 @@
 
 from tkinter import Toplevel
 from tkinter.ttk import Frame, Entry, Label, Button, Checkbutton, Radiobutton
-from tkinter.simpledialog import _setup_dialog
 
 
 class SearchDialogBase:
@@ -84,7 +83,6 @@ class SearchDialogBase:
         top.protocol("WM_DELETE_WINDOW", self.close)
         top.wm_title(self.title)
         top.wm_iconname(self.icon)
-        _setup_dialog(top)
         self.top = top
         self.frame = Frame(top, padding="5px")
         self.frame.grid(sticky="nwes")

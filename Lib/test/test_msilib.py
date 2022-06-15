@@ -1,8 +1,7 @@
 """ Test suite for the code in msilib """
 import os
 import unittest
-from test.support.import_helper import import_module
-from test.support.os_helper import TESTFN, unlink
+from test.support import TESTFN, import_module, unlink
 msilib = import_module('msilib')
 import msilib.schema
 
@@ -112,16 +111,6 @@ class MsiDatabaseTestCase(unittest.TestCase):
         si = db.GetSummaryInformation(0)
         with self.assertRaises(msilib.MSIError):
             si.GetProperty(-1)
-
-    def test_FCICreate(self):
-        filepath = TESTFN + '.txt'
-        cabpath = TESTFN + '.cab'
-        self.addCleanup(unlink, filepath)
-        with open(filepath, 'wb'):
-            pass
-        self.addCleanup(unlink, cabpath)
-        msilib.FCICreate(cabpath, [(filepath, 'test.txt')])
-        self.assertTrue(os.path.isfile(cabpath))
 
 
 class Test_make_id(unittest.TestCase):

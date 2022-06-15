@@ -18,10 +18,7 @@ import threading
 import unittest
 import warnings
 from test import support
-from test.support import _4G, bigmemtest
-from test.support.import_helper import import_fresh_module
-from test.support import threading_helper
-from test.support import warnings_helper
+from test.support import _4G, bigmemtest, import_fresh_module
 from http.client import HTTPException
 
 # Were we compiled --with-pydebug or with #define Py_DEBUG?
@@ -48,14 +45,11 @@ else:
     builtin_hashlib = None
 
 try:
-    from _hashlib import HASH, HASHXOF, openssl_md_meth_names, get_fips_mode
+    from _hashlib import HASH, HASHXOF, openssl_md_meth_names
 except ImportError:
     HASH = None
     HASHXOF = None
     openssl_md_meth_names = frozenset()
-
-    def get_fips_mode():
-        return 0
 
 try:
     import _blake2
@@ -64,9 +58,12 @@ except ImportError:
 
 requires_blake2 = unittest.skipUnless(_blake2, 'requires _blake2')
 
-# bpo-46913: Don't test the _sha3 extension on a Python UBSAN build
-SKIP_SHA3 = support.check_sanitizer(ub=True)
-requires_sha3 = unittest.skipUnless(not SKIP_SHA3, 'requires _sha3')
+try:
+    import _sha3
+except ImportError:
+    _sha3 = None
+
+requires_sha3 = unittest.skipUnless(_sha3, 'requires _sha3')
 
 
 def hexstr(s):
@@ -83,7 +80,7 @@ URL = "http://www.pythontest.net/hashlib/{}.txt"
 def read_vectors(hash_name):
     url = URL.format(hash_name)
     try:
-        testdata = support.open_urlresource(url, encoding="utf-8")
+        testdata = support.open_urlresource(url)
     except (OSError, HTTPException):
         raise unittest.SkipTest("Could not retrieve {}".format(url))
     with testdata:
@@ -129,8 +126,6 @@ class HashLibTestCase(unittest.TestCase):
 
         self.constructors_to_test = {}
         for algorithm in algorithms:
-            if SKIP_SHA3 and algorithm.startswith('sha3_'):
-                continue
             self.constructors_to_test[algorithm] = set()
 
         # For each algorithm, test the direct constructor and the use
@@ -183,15 +178,14 @@ class HashLibTestCase(unittest.TestCase):
             add_builtin_constructor('blake2s')
             add_builtin_constructor('blake2b')
 
-        if not SKIP_SHA3:
-            _sha3 = self._conditional_import_module('_sha3')
-            if _sha3:
-                add_builtin_constructor('sha3_224')
-                add_builtin_constructor('sha3_256')
-                add_builtin_constructor('sha3_384')
-                add_builtin_constructor('sha3_512')
-                add_builtin_constructor('shake_128')
-                add_builtin_constructor('shake_256')
+        _sha3 = self._conditional_import_module('_sha3')
+        if _sha3:
+            add_builtin_constructor('sha3_224')
+            add_builtin_constructor('sha3_256')
+            add_builtin_constructor('sha3_384')
+            add_builtin_constructor('sha3_512')
+            add_builtin_constructor('shake_128')
+            add_builtin_constructor('shake_256')
 
         super(HashLibTestCase, self).__init__(*args, **kwargs)
 
@@ -202,7 +196,10 @@ class HashLibTestCase(unittest.TestCase):
 
     @property
     def is_fips_mode(self):
-        return get_fips_mode()
+        if hasattr(self._hashlib, "get_fips_mode"):
+            return self._hashlib.get_fips_mode()
+        else:
+            return None
 
     def test_hash_array(self):
         a = array.array("b", range(10))
@@ -829,22 +826,26 @@ class HashLibTestCase(unittest.TestCase):
         for msg, md in read_vectors('sha3_512'):
             self.check('sha3_512', msg, md)
 
+    @requires_sha3
     def test_case_shake_128_0(self):
         self.check('shake_128', b"",
           "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26",
           True)
         self.check('shake_128', b"", "7f9c", True)
 
+    @requires_sha3
     def test_case_shake128_vector(self):
         for msg, md in read_vectors('shake_128'):
             self.check('shake_128', msg, md, True)
 
+    @requires_sha3
     def test_case_shake_256_0(self):
         self.check('shake_256', b"",
           "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f",
           True)
         self.check('shake_256', b"", "46b9", True)
 
+    @requires_sha3
     def test_case_shake256_vector(self):
         for msg, md in read_vectors('shake_256'):
             self.check('shake_256', msg, md, True)
@@ -878,7 +879,7 @@ class HashLibTestCase(unittest.TestCase):
             '1cfceca95989f51f658e3f3ffe7f1cd43726c9e088c13ee10b46f57cef135b94'
         )
 
-    @threading_helper.reap_threads
+    @support.reap_threads
     def test_threaded_hashing(self):
         # Updating the same hash object from several threads at once
         # using data chunk sizes containing the same byte sequences.
@@ -919,40 +920,17 @@ class HashLibTestCase(unittest.TestCase):
         if fips_mode is not None:
             self.assertIsInstance(fips_mode, int)
 
-    @support.cpython_only
-    def test_disallow_instantiation(self):
-        for algorithm, constructors in self.constructors_to_test.items():
-            if algorithm.startswith(("sha3_", "shake", "blake")):
-                # _sha3 and _blake types can be instantiated
-                continue
-            # all other types have DISALLOW_INSTANTIATION
-            for constructor in constructors:
-                # In FIPS mode some algorithms are not available raising ValueError
-                try:
-                    h = constructor()
-                except ValueError:
-                    continue
-                with self.subTest(constructor=constructor):
-                    support.check_disallow_instantiation(self, type(h))
-
     @unittest.skipUnless(HASH is not None, 'need _hashlib')
-    def test_hash_disallow_instantiation(self):
+    def test_internal_types(self):
         # internal types like _hashlib.HASH are not constructable
-        support.check_disallow_instantiation(self, HASH)
-        support.check_disallow_instantiation(self, HASHXOF)
-
-    def test_readonly_types(self):
-        for algorithm, constructors in self.constructors_to_test.items():
-            # all other types have DISALLOW_INSTANTIATION
-            for constructor in constructors:
-                # In FIPS mode some algorithms are not available raising ValueError
-                try:
-                    hash_type = type(constructor())
-                except ValueError:
-                    continue
-                with self.subTest(hash_type=hash_type):
-                    with self.assertRaisesRegex(TypeError, "immutable type"):
-                        hash_type.value = False
+        with self.assertRaisesRegex(
+            TypeError, "cannot create 'HASH' instance"
+        ):
+            HASH()
+        with self.assertRaisesRegex(
+            TypeError, "cannot create 'HASHXOF' instance"
+        ):
+            HASHXOF()
 
 
 class KDFTests(unittest.TestCase):
@@ -1035,7 +1013,7 @@ class KDFTests(unittest.TestCase):
                     self.assertEqual(out, expected,
                                      (digest_name, password, salt, rounds))
 
-        with self.assertRaisesRegex(ValueError, '.*unsupported.*'):
+        with self.assertRaisesRegex(ValueError, 'unsupported hash type'):
             pbkdf2('unknown', b'pass', b'salt', 1)
 
         if 'sha1' in supported:
@@ -1063,10 +1041,7 @@ class KDFTests(unittest.TestCase):
 
     @unittest.skipIf(builtin_hashlib is None, "test requires builtin_hashlib")
     def test_pbkdf2_hmac_py(self):
-        with warnings_helper.check_warnings():
-            self._test_pbkdf2_hmac(
-                builtin_hashlib.pbkdf2_hmac, builtin_hashes
-            )
+        self._test_pbkdf2_hmac(builtin_hashlib.pbkdf2_hmac, builtin_hashes)
 
     @unittest.skipUnless(hasattr(openssl_hashlib, 'pbkdf2_hmac'),
                      '   test requires OpenSSL > 1.0')
@@ -1075,7 +1050,6 @@ class KDFTests(unittest.TestCase):
 
     @unittest.skipUnless(hasattr(hashlib, 'scrypt'),
                      '   test requires OpenSSL > 1.1')
-    @unittest.skipIf(get_fips_mode(), reason="scrypt is blocked in FIPS mode")
     def test_scrypt(self):
         for password, salt, n, r, p, expected in self.scrypt_test_vectors:
             result = hashlib.scrypt(password, salt=salt, n=n, r=r, p=p)

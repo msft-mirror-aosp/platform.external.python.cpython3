@@ -12,8 +12,6 @@ import os
 import os.path
 from pathlib import Path, PurePath
 from test import support
-from test.support import import_helper
-from test.support import os_helper
 import unittest
 import sys
 import tempfile
@@ -57,8 +55,8 @@ _extension_details()
 def import_importlib(module_name):
     """Import a module from importlib both w/ and w/o _frozen_importlib."""
     fresh = ('importlib',) if '.' in module_name else ()
-    frozen = import_helper.import_fresh_module(module_name)
-    source = import_helper.import_fresh_module(module_name, fresh=fresh,
+    frozen = support.import_fresh_module(module_name)
+    source = support.import_fresh_module(module_name, fresh=fresh,
                                          blocked=('_frozen_importlib', '_frozen_importlib_external'))
     return {'Frozen': frozen, 'Source': source}
 
@@ -116,7 +114,7 @@ def case_insensitive_tests(test):
 
 def submodule(parent, name, pkg_dir, content=''):
     path = os.path.join(pkg_dir, name + '.py')
-    with open(path, 'w', encoding='utf-8') as subfile:
+    with open(path, 'w') as subfile:
         subfile.write(content)
     return '{}.{}'.format(parent, name), path
 
@@ -160,9 +158,9 @@ def uncache(*names):
 @contextlib.contextmanager
 def temp_module(name, content='', *, pkg=False):
     conflicts = [n for n in sys.modules if n.partition('.')[0] == name]
-    with os_helper.temp_cwd(None) as cwd:
+    with support.temp_cwd(None) as cwd:
         with uncache(name, *conflicts):
-            with import_helper.DirsOnSysPath(cwd):
+            with support.DirsOnSysPath(cwd):
                 invalidate_caches()
 
                 location = os.path.join(cwd, name)
@@ -176,7 +174,7 @@ def temp_module(name, content='', *, pkg=False):
                         content = ''
                 if content is not None:
                     # not a namespace package
-                    with open(modpath, 'w', encoding='utf-8') as modfile:
+                    with open(modpath, 'w') as modfile:
                         modfile.write(content)
                 yield location
 
@@ -384,7 +382,7 @@ def create_modules(*names):
                     os.mkdir(file_path)
                     created_paths.append(file_path)
             file_path = os.path.join(file_path, name_parts[-1] + '.py')
-            with open(file_path, 'w', encoding='utf-8') as file:
+            with open(file_path, 'w') as file:
                 file.write(source.format(name))
             created_paths.append(file_path)
             mapping[name] = file_path
@@ -398,7 +396,7 @@ def create_modules(*names):
             state_manager.__exit__(None, None, None)
         if uncache_manager is not None:
             uncache_manager.__exit__(None, None, None)
-        os_helper.rmtree(temp_dir)
+        support.rmtree(temp_dir)
 
 
 def mock_path_hook(*entries, importer):
@@ -574,8 +572,8 @@ class ZipSetupBase:
             pass
 
     def setUp(self):
-        modules = import_helper.modules_setup()
-        self.addCleanup(import_helper.modules_cleanup, *modules)
+        modules = support.modules_setup()
+        self.addCleanup(support.modules_cleanup, *modules)
 
 
 class ZipSetup(ZipSetupBase):

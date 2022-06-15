@@ -62,44 +62,12 @@ the definition of all other Python objects.
    See documentation of :c:type:`PyVarObject` above.
 
 
-.. c:function:: int Py_Is(const PyObject *x, const PyObject *y)
+.. c:macro:: Py_TYPE(o)
 
-   Test if the *x* object is the *y* object, the same as ``x is y`` in Python.
+   This macro is used to access the :attr:`ob_type` member of a Python object.
+   It expands to::
 
-   .. versionadded:: 3.10
-
-
-.. c:function:: int Py_IsNone(const PyObject *x)
-
-   Test if an object is the ``None`` singleton,
-   the same as ``x is None`` in Python.
-
-   .. versionadded:: 3.10
-
-
-.. c:function:: int Py_IsTrue(const PyObject *x)
-
-   Test if an object is the ``True`` singleton,
-   the same as ``x is True`` in Python.
-
-   .. versionadded:: 3.10
-
-
-.. c:function:: int Py_IsFalse(const PyObject *x)
-
-   Test if an object is the ``False`` singleton,
-   the same as ``x is False`` in Python.
-
-   .. versionadded:: 3.10
-
-
-.. c:function:: PyTypeObject* Py_TYPE(const PyObject *o)
-
-   Get the type of the Python object *o*.
-
-   Return a :term:`borrowed reference`.
-
-   The :c:func:`Py_SET_TYPE` function must be used to set an object type.
+      (((PyObject*)(o))->ob_type)
 
 
 .. c:function:: int Py_IS_TYPE(PyObject *o, PyTypeObject *type)
@@ -117,13 +85,13 @@ the definition of all other Python objects.
    .. versionadded:: 3.9
 
 
-.. c:function:: Py_ssize_t Py_REFCNT(const PyObject *o)
+.. c:macro:: Py_REFCNT(o)
 
-   Get the reference count of the Python object *o*.
+   This macro is used to access the :attr:`ob_refcnt` member of a Python
+   object.
+   It expands to::
 
-   .. versionchanged:: 3.10
-      :c:func:`Py_REFCNT()` is changed to the inline static function.
-      Use :c:func:`Py_SET_REFCNT()` to set an object reference count.
+      (((PyObject*)(o))->ob_refcnt)
 
 
 .. c:function:: void Py_SET_REFCNT(PyObject *o, Py_ssize_t refcnt)
@@ -133,11 +101,12 @@ the definition of all other Python objects.
    .. versionadded:: 3.9
 
 
-.. c:function:: Py_ssize_t Py_SIZE(const PyVarObject *o)
+.. c:macro:: Py_SIZE(o)
 
-   Get the size of the Python object *o*.
+   This macro is used to access the :attr:`ob_size` member of a Python object.
+   It expands to::
 
-   The :c:func:`Py_SET_SIZE` function must be used to set an object size.
+      (((PyVarObject*)(o))->ob_size)
 
 
 .. c:function:: void Py_SET_SIZE(PyVarObject *o, Py_ssize_t size)
@@ -290,11 +259,9 @@ There are these calling conventions:
    of :c:type:`PyObject*` values indicating the arguments and the third
    parameter is the number of arguments (the length of the array).
 
+   This is not part of the :ref:`limited API <stable>`.
+
    .. versionadded:: 3.7
-
-   .. versionchanged:: 3.10
-
-      ``METH_FASTCALL`` is now part of the stable ABI.
 
 
 .. data:: METH_FASTCALL | METH_KEYWORDS
@@ -468,21 +435,6 @@ Accessing attributes of extension types
           {"__dictoffset__", T_PYSSIZET, offsetof(Spam_object, dict), READONLY},
           {NULL}  /* Sentinel */
       };
-
-
-.. c:function:: PyObject* PyMember_GetOne(const char *obj_addr, struct PyMemberDef *m)
-
-   Get an attribute belonging to the object at address *obj_addr*.  The
-   attribute is described by ``PyMemberDef`` *m*.  Returns ``NULL``
-   on error.
-
-
-.. c:function:: int PyMember_SetOne(char *obj_addr, struct PyMemberDef *m, PyObject *o)
-
-   Set an attribute belonging to the object at address *obj_addr* to object *o*.
-   The attribute to set is described by ``PyMemberDef`` *m*.  Returns ``0``
-   if successful and a negative value on failure.
-
 
 .. c:type:: PyGetSetDef
 

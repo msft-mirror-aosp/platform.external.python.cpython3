@@ -235,12 +235,12 @@ mpd_qsetround(mpd_context_t *ctx, int round)
 }
 
 int
-mpd_qsettraps(mpd_context_t *ctx, uint32_t flags)
+mpd_qsettraps(mpd_context_t *ctx, uint32_t traps)
 {
-    if (flags > MPD_Max_status) {
+    if (traps > MPD_Max_status) {
         return 0;
     }
-    ctx->traps = flags;
+    ctx->traps = traps;
     return 1;
 }
 

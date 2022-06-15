@@ -4,8 +4,7 @@ import unittest
 import binascii
 import array
 import re
-from test.support import warnings_helper
-
+from test import support
 
 # Note: "*_hex" functions are aliases for "(un)hexlify"
 b2a_functions = ['b2a_base64', 'b2a_hex', 'b2a_hqx', 'b2a_qp', 'b2a_uu',
@@ -38,7 +37,7 @@ class BinASCIITest(unittest.TestCase):
             self.assertTrue(hasattr(getattr(binascii, name), '__call__'))
             self.assertRaises(TypeError, getattr(binascii, name))
 
-    @warnings_helper.ignore_warnings(category=DeprecationWarning)
+    @support.ignore_warnings(category=DeprecationWarning)
     def test_returned_value(self):
         # Limit to the minimum of all limits (b2a_uu)
         MAX_ALL = 45
@@ -182,7 +181,7 @@ class BinASCIITest(unittest.TestCase):
         with self.assertRaises(TypeError):
             binascii.b2a_uu(b"", True)
 
-    @warnings_helper.ignore_warnings(category=DeprecationWarning)
+    @support.ignore_warnings(category=DeprecationWarning)
     def test_crc_hqx(self):
         crc = binascii.crc_hqx(self.type2test(b"Test the CRC-32 of"), 0)
         crc = binascii.crc_hqx(self.type2test(b" this string."), crc)
@@ -202,7 +201,7 @@ class BinASCIITest(unittest.TestCase):
 
         self.assertRaises(TypeError, binascii.crc32)
 
-    @warnings_helper.ignore_warnings(category=DeprecationWarning)
+    @support.ignore_warnings(category=DeprecationWarning)
     def test_hqx(self):
         # Perform binhex4 style RLE-compression
         # Then calculate the hexbin4 binary-to-ASCII translation
@@ -213,7 +212,7 @@ class BinASCIITest(unittest.TestCase):
         res = binascii.rledecode_hqx(b)
         self.assertEqual(res, self.rawdata)
 
-    @warnings_helper.ignore_warnings(category=DeprecationWarning)
+    @support.ignore_warnings(category=DeprecationWarning)
     def test_rle(self):
         # test repetition with a repetition longer than the limit of 255
         data = (b'a' * 100 + b'b' + b'c' * 300)
@@ -360,7 +359,7 @@ class BinASCIITest(unittest.TestCase):
         self.assertEqual(b2a_qp(type2test(b'a.\n')), b'a.\n')
         self.assertEqual(b2a_qp(type2test(b'.a')[:-1]), b'=2E')
 
-    @warnings_helper.ignore_warnings(category=DeprecationWarning)
+    @support.ignore_warnings(category=DeprecationWarning)
     def test_empty_string(self):
         # A test for SF bug #1022953.  Make sure SystemError is not raised.
         empty = self.type2test(b'')
@@ -385,7 +384,7 @@ class BinASCIITest(unittest.TestCase):
         # crc_hqx needs 2 arguments
         self.assertRaises(TypeError, binascii.crc_hqx, "test", 0)
 
-    @warnings_helper.ignore_warnings(category=DeprecationWarning)
+    @support.ignore_warnings(category=DeprecationWarning)
     def test_unicode_a2b(self):
         # Unicode strings are accepted by a2b_* functions.
         MAX_ALL = 45

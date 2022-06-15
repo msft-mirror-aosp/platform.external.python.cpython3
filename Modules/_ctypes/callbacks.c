@@ -111,9 +111,8 @@ TryAddRef(StgDictObject *dict, CDataObject *obj)
     IUnknown *punk;
     _Py_IDENTIFIER(_needs_com_addref_);
 
-    int r = _PyDict_ContainsId((PyObject *)dict, &PyId__needs_com_addref_);
-    if (r <= 0) {
-        if (r < 0) {
+    if (!_PyDict_GetItemIdWithError((PyObject *)dict, &PyId__needs_com_addref_)) {
+        if (PyErr_Occurred()) {
             PrintError("getting _needs_com_addref_");
         }
         return;
@@ -431,7 +430,7 @@ CThunkObject *_ctypes_alloc_callback(PyObject *callable,
         #pragma clang diagnostic push
         #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
-#if defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ > 5)))
+#if defined(__GNUC__)
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
@@ -440,7 +439,7 @@ CThunkObject *_ctypes_alloc_callback(PyObject *callable,
 #if defined(__clang__) || defined(MACOSX)
         #pragma clang diagnostic pop
 #endif
-#if defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ > 5)))
+#if defined(__GNUC__)
         #pragma GCC diagnostic pop
 #endif
 

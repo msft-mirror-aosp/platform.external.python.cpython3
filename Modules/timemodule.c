@@ -51,7 +51,7 @@
 #define _Py_tzname tzname
 #endif
 
-#if defined(__APPLE__ ) && defined(__has_builtin)
+#if defined(__APPLE__ ) && defined(__has_builtin) 
 #  if __has_builtin(__builtin_available)
 #    define HAVE_CLOCK_GETTIME_RUNTIME __builtin_available(macOS 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *)
 #  endif
@@ -74,21 +74,10 @@ _PyFloat_FromPyTime(_PyTime_t t)
 }
 
 
-static int
-get_system_time(_PyTime_t *t)
-{
-    // Avoid _PyTime_GetSystemClock() which silently ignores errors.
-    return _PyTime_GetSystemClockWithInfo(t, NULL);
-}
-
-
 static PyObject *
 time_time(PyObject *self, PyObject *unused)
 {
-    _PyTime_t t;
-    if (get_system_time(&t) < 0) {
-        return NULL;
-    }
+    _PyTime_t t = _PyTime_GetSystemClock();
     return _PyFloat_FromPyTime(t);
 }
 
@@ -102,10 +91,7 @@ Fractions of a second may be present if the system clock provides them.");
 static PyObject *
 time_time_ns(PyObject *self, PyObject *unused)
 {
-    _PyTime_t t;
-    if (get_system_time(&t) < 0) {
-        return NULL;
-    }
+    _PyTime_t t = _PyTime_GetSystemClock();
     return _PyTime_AsNanosecondsObject(t);
 }
 
@@ -161,11 +147,20 @@ _PyTime_GetClockWithInfo(_PyTime_t *tp, _Py_clock_info_t *info)
 }
 #endif /* HAVE_CLOCK */
 
+static PyObject*
+perf_counter(_Py_clock_info_t *info)
+{
+    _PyTime_t t;
+    if (_PyTime_GetPerfCounterWithInfo(&t, info) < 0) {
+        return NULL;
+    }
+    return _PyFloat_FromPyTime(t);
+}
 
 #ifdef HAVE_CLOCK_GETTIME
 
 #ifdef __APPLE__
-/*
+/* 
  * The clock_* functions will be removed from the module
  * dict entirely when the C API is not available.
  */
@@ -1101,22 +1096,10 @@ the local timezone used by methods such as localtime, but this behaviour\n\
 should not be relied on.");
 #endif /* HAVE_WORKING_TZSET */
 
-
-static int
-get_monotonic(_PyTime_t *t)
-{
-    // Avoid _PyTime_GetMonotonicClock() which silently ignores errors.
-    return _PyTime_GetMonotonicClockWithInfo(t, NULL);
-}
-
-
 static PyObject *
 time_monotonic(PyObject *self, PyObject *unused)
 {
-    _PyTime_t t;
-    if (get_monotonic(&t) < 0) {
-        return NULL;
-    }
+    _PyTime_t t = _PyTime_GetMonotonicClock();
     return _PyFloat_FromPyTime(t);
 }
 
@@ -1128,10 +1111,7 @@ Monotonic clock, cannot go backward.");
 static PyObject *
 time_monotonic_ns(PyObject *self, PyObject *unused)
 {
-    _PyTime_t t;
-    if (get_monotonic(&t) < 0) {
-        return NULL;
-    }
+    _PyTime_t t = _PyTime_GetMonotonicClock();
     return _PyTime_AsNanosecondsObject(t);
 }
 
@@ -1140,23 +1120,10 @@ PyDoc_STRVAR(monotonic_ns_doc,
 \n\
 Monotonic clock, cannot go backward, as nanoseconds.");
 
-
-static int
-get_perf_counter(_PyTime_t *t)
-{
-    // Avoid _PyTime_GetPerfCounter() which silently ignores errors.
-    return _PyTime_GetPerfCounterWithInfo(t, NULL);
-}
-
-
 static PyObject *
 time_perf_counter(PyObject *self, PyObject *unused)
 {
-    _PyTime_t t;
-    if (get_perf_counter(&t) < 0) {
-        return NULL;
-    }
-    return _PyFloat_FromPyTime(t);
+    return perf_counter(NULL);
 }
 
 PyDoc_STRVAR(perf_counter_doc,
@@ -1164,14 +1131,10 @@ PyDoc_STRVAR(perf_counter_doc,
 \n\
 Performance counter for benchmarking.");
 
-
 static PyObject *
 time_perf_counter_ns(PyObject *self, PyObject *unused)
 {
-    _PyTime_t t;
-    if (get_perf_counter(&t) < 0) {
-        return NULL;
-    }
+    _PyTime_t t = _PyTime_GetPerfCounter();
     return _PyTime_AsNanosecondsObject(t);
 }
 
@@ -1458,7 +1421,7 @@ _PyTime_GetThreadTimeWithInfo(_PyTime_t *tp, _Py_clock_info_t *info)
 
 #if defined(__APPLE__) && defined(__has_attribute) && __has_attribute(availability)
 static int
-_PyTime_GetThreadTimeWithInfo(_PyTime_t *tp, _Py_clock_info_t *info)
+_PyTime_GetThreadTimeWithInfo(_PyTime_t *tp, _Py_clock_info_t *info) 
      __attribute__((availability(macos, introduced=10.12)))
      __attribute__((availability(ios, introduced=10.0)))
      __attribute__((availability(tvos, introduced=10.0)))
@@ -1497,7 +1460,7 @@ _PyTime_GetThreadTimeWithInfo(_PyTime_t *tp, _Py_clock_info_t *info)
 
 #ifdef HAVE_THREAD_TIME
 #ifdef __APPLE__
-/*
+/* 
  * The clock_* functions will be removed from the module
  * dict entirely when the C API is not available.
  */
@@ -2062,10 +2025,7 @@ pysleep(_PyTime_t secs)
     HANDLE hInterruptEvent;
 #endif
 
-    if (get_monotonic(&monotonic) < 0) {
-        return -1;
-    }
-    deadline = monotonic + secs;
+    deadline = _PyTime_GetMonotonicClock() + secs;
 
     do {
 #ifndef MS_WINDOWS
@@ -2117,13 +2077,10 @@ pysleep(_PyTime_t secs)
         if (PyErr_CheckSignals())
             return -1;
 
-        if (get_monotonic(&monotonic) < 0) {
-            return -1;
-        }
+        monotonic = _PyTime_GetMonotonicClock();
         secs = deadline - monotonic;
-        if (secs < 0) {
+        if (secs < 0)
             break;
-        }
         /* retry with the recomputed delay */
     } while (1);
 

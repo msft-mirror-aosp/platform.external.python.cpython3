@@ -5,7 +5,6 @@ import gettext
 import unittest
 
 from test import support
-from test.support import os_helper
 
 
 # TODO:
@@ -130,14 +129,14 @@ class GettextBaseTest(unittest.TestCase):
             fp.write(base64.decodebytes(UMO_DATA))
         with open(MMOFILE, 'wb') as fp:
             fp.write(base64.decodebytes(MMO_DATA))
-        self.env = os_helper.EnvironmentVarGuard()
+        self.env = support.EnvironmentVarGuard()
         self.env['LANGUAGE'] = 'xx'
         gettext._translations.clear()
 
     def tearDown(self):
         self.env.__exit__()
         del self.env
-        os_helper.rmtree(os.path.split(LOCALEDIR)[0])
+        support.rmtree(os.path.split(LOCALEDIR)[0])
 
 GNU_MO_DATA_ISSUE_17898 = b'''\
 3hIElQAAAAABAAAAHAAAACQAAAAAAAAAAAAAAAAAAAAsAAAAggAAAC0AAAAAUGx1cmFsLUZvcm1z
@@ -820,8 +819,8 @@ class GettextCacheTestCase(GettextBaseTest):
 
 class MiscTestCase(unittest.TestCase):
     def test__all__(self):
-        support.check__all__(self, gettext,
-                             not_exported={'c2py', 'ENOENT'})
+        blacklist = {'c2py', 'ENOENT'}
+        support.check__all__(self, gettext, blacklist=blacklist)
 
 
 if __name__ == '__main__':

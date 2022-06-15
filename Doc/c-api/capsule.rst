@@ -34,8 +34,7 @@ Refer to :ref:`using-capsules` for more information on using these objects.
 
 .. c:function:: int PyCapsule_CheckExact(PyObject *p)
 
-   Return true if its argument is a :c:type:`PyCapsule`.  This function always
-   succeeds.
+   Return true if its argument is a :c:type:`PyCapsule`.
 
 
 .. c:function:: PyObject* PyCapsule_New(void *pointer, const char *name, PyCapsule_Destructor destructor)

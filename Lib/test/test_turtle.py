@@ -1,11 +1,8 @@
 import pickle
 import unittest
 from test import support
-from test.support import import_helper
-from test.support import os_helper
 
-
-turtle = import_helper.import_module('turtle')
+turtle = support.import_module('turtle')
 Vec2D = turtle.Vec2D
 
 test_config = """\
@@ -53,10 +50,10 @@ visible = False
 class TurtleConfigTest(unittest.TestCase):
 
     def get_cfg_file(self, cfg_str):
-        self.addCleanup(os_helper.unlink, os_helper.TESTFN)
-        with open(os_helper.TESTFN, 'w') as f:
+        self.addCleanup(support.unlink, support.TESTFN)
+        with open(support.TESTFN, 'w') as f:
             f.write(cfg_str)
-        return os_helper.TESTFN
+        return support.TESTFN
 
     def test_config_dict(self):
 
@@ -235,9 +232,17 @@ class TestVec2D(VectorComparisonMixin, unittest.TestCase):
         self.assertVectorsAlmostEqual(-vec, expected)
 
     def test_distance(self):
-        self.assertAlmostEqual(abs(Vec2D(6, 8)), 10)
-        self.assertEqual(abs(Vec2D(0, 0)), 0)
-        self.assertAlmostEqual(abs(Vec2D(2.5, 6)), 6.5)
+        vec = Vec2D(6, 8)
+        expected = 10
+        self.assertEqual(abs(vec), expected)
+
+        vec = Vec2D(0, 0)
+        expected = 0
+        self.assertEqual(abs(vec), expected)
+
+        vec = Vec2D(2.5, 6)
+        expected = 6.5
+        self.assertEqual(abs(vec), expected)
 
     def test_rotate(self):
 

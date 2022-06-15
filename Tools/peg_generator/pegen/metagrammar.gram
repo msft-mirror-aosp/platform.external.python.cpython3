@@ -4,7 +4,6 @@ from ast import literal_eval
 from pegen.grammar import (
     Alt,
     Cut,
-    Forced,
     Gather,
     Group,
     Item,
@@ -84,15 +83,9 @@ items[NamedItemList]:
     | named_item { [named_item] }
 
 named_item[NamedItem]:
-    | NAME '[' type=NAME '*' ']' '=' ~ item {NamedItem(name.string, item, f"{type.string}*")}
-    | NAME '[' type=NAME ']' '=' ~ item {NamedItem(name.string, item, type.string)}
     | NAME '=' ~ item {NamedItem(name.string, item)}
     | item {NamedItem(None, item)}
-    | it=forced_atom {NamedItem(None, it)}
     | it=lookahead {NamedItem(None, it)}
-
-forced_atom[NamedItem]:
-    | '&''&' ~ atom {Forced(atom)}
 
 lookahead[LookaheadOrCut]:
     | '&' ~ atom {PositiveLookahead(atom)}

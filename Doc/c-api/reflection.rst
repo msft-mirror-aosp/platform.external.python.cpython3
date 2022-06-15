@@ -31,22 +31,22 @@ Reflection
    See also :c:func:`PyThreadState_GetFrame`.
 
 
-.. c:function:: PyFrameObject* PyFrame_GetBack(PyFrameObject *frame)
+.. c:function:: int PyFrame_GetBack(PyFrameObject *frame)
 
    Get the *frame* next outer frame.
 
-   Return a :term:`strong reference`, or ``NULL`` if *frame* has no outer frame.
+   Return a strong reference, or ``NULL`` if *frame* has no outer frame.
 
    *frame* must not be ``NULL``.
 
    .. versionadded:: 3.9
 
 
-.. c:function:: PyCodeObject* PyFrame_GetCode(PyFrameObject *frame)
+.. c:function:: int PyFrame_GetCode(PyFrameObject *frame)
 
    Get the *frame* code.
 
-   Return a :term:`strong reference`.
+   Return a strong reference.
 
    *frame* must not be ``NULL``. The result (frame code) cannot be ``NULL``.
 

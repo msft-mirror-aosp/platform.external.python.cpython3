@@ -27,9 +27,6 @@ on efficient attribute extraction for output formatting and manipulation.
    Module :mod:`time`
       Time access and conversions.
 
-   Module :mod:`zoneinfo`
-      Concrete time zones representing the IANA time zone database.
-
    Package `dateutil <https://dateutil.readthedocs.io/en/stable/>`_
       Third-party library with expanded time zone and parsing support.
 
@@ -1222,7 +1219,7 @@ Instance methods:
 
 .. method:: datetime.replace(year=self.year, month=self.month, day=self.day, \
    hour=self.hour, minute=self.minute, second=self.second, microsecond=self.microsecond, \
-   tzinfo=self.tzinfo, *, fold=0)
+   tzinfo=self.tzinfo, * fold=0)
 
    Return a datetime with the same attributes, except for those attributes given
    new values by whichever keyword arguments are specified. Note that
@@ -1786,7 +1783,7 @@ Other constructor:
 Instance methods:
 
 .. method:: time.replace(hour=self.hour, minute=self.minute, second=self.second, \
-   microsecond=self.microsecond, tzinfo=self.tzinfo, *, fold=0)
+   microsecond=self.microsecond, tzinfo=self.tzinfo, * fold=0)
 
    Return a :class:`.time` with the same value, except for those attributes given
    new values by whichever keyword arguments are specified. Note that
@@ -2177,13 +2174,14 @@ only EST (fixed offset -5 hours), or only EDT (fixed offset -4 hours)).
 
 .. seealso::
 
-    :mod:`zoneinfo`
+   `dateutil.tz <https://dateutil.readthedocs.io/en/stable/tz.html>`_
       The :mod:`datetime` module has a basic :class:`timezone` class (for
       handling arbitrary fixed offsets from UTC) and its :attr:`timezone.utc`
       attribute (a UTC timezone instance).
 
-      ``zoneinfo`` brings the *IANA timezone database* (also known as the Olson
-      database) to Python, and its usage is recommended.
+      *dateutil.tz* library brings the *IANA timezone database*
+      (also known as the Olson database) to Python, and its usage is
+      recommended.
 
    `IANA timezone database <https://www.iana.org/time-zones>`_
       The Time Zone Database (often called tz, tzdata or zoneinfo) contains code
@@ -2359,8 +2357,8 @@ requires, and these work on all platforms with a standard C implementation.
 |           | decimal number.                |                        | \(9)  |
 +-----------+--------------------------------+------------------------+-------+
 | ``%f``    | Microsecond as a decimal       | 000000, 000001, ...,   | \(5)  |
-|           | number, zero-padded to 6       | 999999                 |       |
-|           | digits.                        |                        |       |
+|           | number, zero-padded on the     | 999999                 |       |
+|           | left.                          |                        |       |
 +-----------+--------------------------------+------------------------+-------+
 | ``%z``    | UTC offset in the form         | (empty), +0000,        | \(6)  |
 |           | ``±HHMM[SS[.ffffff]]`` (empty  | -0400, +1030,          |       |
@@ -2375,7 +2373,7 @@ requires, and these work on all platforms with a standard C implementation.
 +-----------+--------------------------------+------------------------+-------+
 | ``%U``    | Week number of the year        | 00, 01, ..., 53        | \(7), |
 |           | (Sunday as the first day of    |                        | \(9)  |
-|           | the week) as a zero-padded     |                        |       |
+|           | the week) as a zero padded     |                        |       |
 |           | decimal number. All days in a  |                        |       |
 |           | new year preceding the first   |                        |       |
 |           | Sunday are considered to be in |                        |       |
@@ -2383,10 +2381,10 @@ requires, and these work on all platforms with a standard C implementation.
 +-----------+--------------------------------+------------------------+-------+
 | ``%W``    | Week number of the year        | 00, 01, ..., 53        | \(7), |
 |           | (Monday as the first day of    |                        | \(9)  |
-|           | the week) as a zero-padded     |                        |       |
-|           | decimal number. All days in a  |                        |       |
-|           | new year preceding the first   |                        |       |
-|           | Monday are considered to be in |                        |       |
+|           | the week) as a decimal number. |                        |       |
+|           | All days in a new year         |                        |       |
+|           | preceding the first Monday     |                        |       |
+|           | are considered to be in        |                        |       |
 |           | week 0.                        |                        |       |
 +-----------+--------------------------------+------------------------+-------+
 | ``%c``    | Locale's appropriate date and  || Tue Aug 16 21:30:00   | \(1)  |
@@ -2433,8 +2431,7 @@ incomplete or ambiguous ISO 8601 directives will raise a :exc:`ValueError`.
 The full set of format codes supported varies across platforms, because Python
 calls the platform C library's :func:`strftime` function, and platform
 variations are common. To see the full set of format codes supported on your
-platform, consult the :manpage:`strftime(3)` documentation. There are also
-differences between platforms in handling of unsupported format specifiers.
+platform, consult the :manpage:`strftime(3)` documentation.
 
 .. versionadded:: 3.6
    ``%G``, ``%u`` and ``%V`` were added.

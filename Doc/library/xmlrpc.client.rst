@@ -378,7 +378,7 @@ Fault Objects
 
    .. attribute:: faultCode
 
-      An int indicating the fault type.
+      A string indicating the fault type.
 
 
    .. attribute:: faultString

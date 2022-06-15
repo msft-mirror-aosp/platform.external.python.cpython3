@@ -37,6 +37,7 @@ extern PyObject* PyInit__random(void);
 extern PyObject* PyInit__bisect(void);
 extern PyObject* PyInit__heapq(void);
 extern PyObject* PyInit__pickle(void);
+extern PyObject* PyInit_atexit(void);
 extern PyObject* PyInit__json(void);
 extern PyObject* PyInit__lsprof(void);
 extern PyObject* PyInit_unicodedata(void);
@@ -49,6 +50,7 @@ extern PyObject* PyInit_fcntl(void);
 extern PyObject* PyInit_pwd(void);
 extern PyObject* PyInit_grp(void);
 extern PyObject* PyInit_select(void);
+extern PyObject* PyInit_parser(void);
 extern PyObject* PyInit_mmap(void);
 extern PyObject* PyInit_syslog(void);
 extern PyObject* PyInit__xxsubinterpreters(void);
@@ -96,6 +98,7 @@ extern PyObject* PyInit__locale(void);
 extern PyObject* PyInit__io(void);
 extern PyObject* PyInit_faulthandler(void);
 extern PyObject* PyInit__tracemalloc(void);
+extern PyObject* PyInit__peg_parser(void);
 extern PyObject* PyInit__symtable(void);
 extern PyObject* PyInit_xxsubtype(void);
 
@@ -124,6 +127,7 @@ struct _inittab _PyImport_Inittab[] = {
     {"_bisect", PyInit__bisect},
     {"_heapq", PyInit__heapq},
     {"_pickle", PyInit__pickle},
+    {"atexit", PyInit_atexit},
     {"_json", PyInit__json},
     {"_lsprof", PyInit__lsprof},
     {"unicodedata", PyInit_unicodedata},
@@ -136,6 +140,7 @@ struct _inittab _PyImport_Inittab[] = {
     {"pwd", PyInit_pwd},
     {"grp", PyInit_grp},
     {"select", PyInit_select},
+    {"parser", PyInit_parser},
     {"mmap", PyInit_mmap},
     {"syslog", PyInit_syslog},
     {"_xxsubinterpreters", PyInit__xxsubinterpreters},
@@ -183,6 +188,7 @@ struct _inittab _PyImport_Inittab[] = {
     {"_io", PyInit__io},
     {"faulthandler", PyInit_faulthandler},
     {"_tracemalloc", PyInit__tracemalloc},
+    {"_peg_parser", PyInit__peg_parser},
     {"_symtable", PyInit__symtable},
     {"xxsubtype", PyInit_xxsubtype},
 

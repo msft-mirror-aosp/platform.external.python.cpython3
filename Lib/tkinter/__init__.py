@@ -270,7 +270,7 @@ class Event:
         )
 
 
-_support_default_root = True
+_support_default_root = 1
 _default_root = None
 
 
@@ -280,49 +280,11 @@ def NoDefaultRoot():
     Call this function to inhibit that the first instance of
     Tk is used for windows without an explicit parent window.
     """
-    global _support_default_root, _default_root
-    _support_default_root = False
-    # Delete, so any use of _default_root will immediately raise an exception.
-    # Rebind before deletion, so repeated calls will not fail.
+    global _support_default_root
+    _support_default_root = 0
+    global _default_root
     _default_root = None
     del _default_root
-
-
-def _get_default_root(what=None):
-    if not _support_default_root:
-        raise RuntimeError("No master specified and tkinter is "
-                           "configured to not support default root")
-    if _default_root is None:
-        if what:
-            raise RuntimeError(f"Too early to {what}: no default root window")
-        root = Tk()
-        assert _default_root is root
-    return _default_root
-
-
-def _get_temp_root():
-    global _support_default_root
-    if not _support_default_root:
-        raise RuntimeError("No master specified and tkinter is "
-                           "configured to not support default root")
-    root = _default_root
-    if root is None:
-        assert _support_default_root
-        _support_default_root = False
-        root = Tk()
-        _support_default_root = True
-        assert _default_root is None
-        root.withdraw()
-        root._temporary = True
-    return root
-
-
-def _destroy_temp_root(master):
-    if getattr(master, '_temporary', False):
-        try:
-            master.destroy()
-        except TclError:
-            pass
 
 
 def _tkerror(err):
@@ -367,8 +329,8 @@ class Variable:
         if name is not None and not isinstance(name, str):
             raise TypeError("name must be a string")
         global _varnum
-        if master is None:
-            master = _get_default_root('create variable')
+        if not master:
+            master = _default_root
         self._root = master._root()
         self._tk = master.tk
         if name:
@@ -516,11 +478,15 @@ class Variable:
             self._tk.call("trace", "vinfo", self._name))]
 
     def __eq__(self, other):
+        """Comparison for equality (==).
+
+        Note: if the Variable's master matters to behavior
+        also compare self._master == other._master
+        """
         if not isinstance(other, Variable):
             return NotImplemented
-        return (self._name == other._name
-                and self.__class__.__name__ == other.__class__.__name__
-                and self._tk == other._tk)
+        return self.__class__.__name__ == other.__class__.__name__ \
+            and self._name == other._name
 
 
 class StringVar(Variable):
@@ -625,7 +591,7 @@ class BooleanVar(Variable):
 
 def mainloop(n=0):
     """Run the main loop of Tcl."""
-    _get_default_root('run the main loop').tk.mainloop(n)
+    _default_root.tk.mainloop(n)
 
 
 getint = int
@@ -634,9 +600,9 @@ getdouble = float
 
 
 def getboolean(s):
-    """Convert Tcl object to True or False."""
+    """Convert true and false to integer values 1 and 0."""
     try:
-        return _get_default_root('use getboolean()').tk.getboolean(s)
+        return _default_root.tk.getboolean(s)
     except TclError:
         raise ValueError("invalid literal for getboolean()")
 
@@ -829,7 +795,7 @@ class Misc:
         function which shall be called. Additional parameters
         are given as parameters to the function call.  Return
         identifier to cancel scheduling with after_cancel."""
-        if func is None:
+        if not func:
             # I'd rather use time.sleep(ms*0.001)
             self.tk.call('after', ms)
             return None
@@ -842,11 +808,7 @@ class Misc:
                         self.deletecommand(name)
                     except TclError:
                         pass
-            try:
-                callit.__name__ = func.__name__
-            except AttributeError:
-                # Required for callable classes (bpo-44404)
-                callit.__name__ = type(func).__name__
+            callit.__name__ = func.__name__
             name = self._register(callit)
             return self.tk.call('after', ms, name)
 
@@ -1189,7 +1151,8 @@ class Misc:
             self.tk.call('winfo', 'reqwidth', self._w))
 
     def winfo_rgb(self, color):
-        """Return a tuple of integer RGB values in range(65536) for color in this widget."""
+        """Return tuple of decimal values for red, green, blue for
+        COLOR in this widget."""
         return self._getints(
             self.tk.call('winfo', 'rgb', self._w, color))
 
@@ -1566,7 +1529,7 @@ class Misc:
     def _root(self):
         """Internal function."""
         w = self
-        while w.master is not None: w = w.master
+        while w.master: w = w.master
         return w
     _subst_format = ('%#', '%b', '%f', '%h', '%k',
              '%s', '%t', '%w', '%x', '%y',
@@ -2285,7 +2248,7 @@ class Tk(Misc, Wm):
         is the name of the widget class."""
         self.master = None
         self.children = {}
-        self._tkloaded = False
+        self._tkloaded = 0
         # to avoid recursions in the getattr code in case of failure, we
         # ensure that self.tk is always _something_.
         self.tk = None
@@ -2309,7 +2272,7 @@ class Tk(Misc, Wm):
             self._loadtk()
 
     def _loadtk(self):
-        self._tkloaded = True
+        self._tkloaded = 1
         global _default_root
         # Version sanity checks
         tk_version = self.tk.getvar('tk_version')
@@ -2330,7 +2293,7 @@ class Tk(Misc, Wm):
         self.tk.createcommand('exit', _exit)
         self._tclCommands.append('tkerror')
         self._tclCommands.append('exit')
-        if _support_default_root and _default_root is None:
+        if _support_default_root and not _default_root:
             _default_root = self
         self.protocol("WM_DELETE_WINDOW", self.destroy)
 
@@ -2558,8 +2521,12 @@ class BaseWidget(Misc):
 
     def _setup(self, master, cnf):
         """Internal function. Sets up information about children."""
-        if master is None:
-            master = _get_default_root()
+        if _support_default_root:
+            global _default_root
+            if not master:
+                if not _default_root:
+                    _default_root = Tk()
+                master = _default_root
         self.master = master
         self.tk = master.tk
         name = None
@@ -2736,7 +2703,7 @@ class Canvas(Widget, XView, YView):
         """Add tag NEWTAG to item which is closest to pixel at X, Y.
         If several match take the top-most.
         All items closer than HALO are considered overlapping (all are
-        closest). If START is specified the next below this tag is taken."""
+        closests). If START is specified the next below this tag is taken."""
         self.addtag(newtag, 'closest', x, y, halo, start)
 
     def addtag_enclosed(self, newtag, x1, y1, x2, y2):
@@ -3331,7 +3298,7 @@ class Menu(Widget):
         self.add('command', cnf or kw)
 
     def add_radiobutton(self, cnf={}, **kw):
-        """Add radio menu item."""
+        """Addd radio menu item."""
         self.add('radiobutton', cnf or kw)
 
     def add_separator(self, cnf={}, **kw):
@@ -3356,7 +3323,7 @@ class Menu(Widget):
         self.insert(index, 'command', cnf or kw)
 
     def insert_radiobutton(self, index, cnf={}, **kw):
-        """Add radio menu item at INDEX."""
+        """Addd radio menu item at INDEX."""
         self.insert(index, 'radiobutton', cnf or kw)
 
     def insert_separator(self, index, cnf={}, **kw):
@@ -3973,7 +3940,7 @@ class _setit:
 
     def __call__(self, *args):
         self.__var.set(self.__value)
-        if self.__callback is not None:
+        if self.__callback:
             self.__callback(self.__value, *args)
 
 
@@ -4022,8 +3989,10 @@ class Image:
 
     def __init__(self, imgtype, name=None, cnf={}, master=None, **kw):
         self.name = None
-        if master is None:
-            master = _get_default_root('create image')
+        if not master:
+            master = _default_root
+            if not master:
+                raise RuntimeError('Too early to create image')
         self.tk = getattr(master, 'tk', master)
         if not name:
             Image._last_id += 1
@@ -4177,13 +4146,11 @@ class BitmapImage(Image):
 
 
 def image_names():
-    tk = _get_default_root('use image_names()').tk
-    return tk.splitlist(tk.call('image', 'names'))
+    return _default_root.tk.splitlist(_default_root.tk.call('image', 'names'))
 
 
 def image_types():
-    tk = _get_default_root('use image_types()').tk
-    return tk.splitlist(tk.call('image', 'types'))
+    return _default_root.tk.splitlist(_default_root.tk.call('image', 'types'))
 
 
 class Spinbox(Widget, XView):

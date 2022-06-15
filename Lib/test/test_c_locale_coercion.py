@@ -427,9 +427,12 @@ class LocaleCoercionTests(_LocaleHandlingTestCase):
         self.assertEqual(cmd.stdout.rstrip(), loc)
 
 
-def tearDownModule():
+def test_main():
+    support.run_unittest(
+        LocaleConfigurationTests,
+        LocaleCoercionTests
+    )
     support.reap_children()
 
-
 if __name__ == "__main__":
-    unittest.main()
+    test_main()

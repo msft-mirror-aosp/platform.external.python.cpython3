@@ -1,10 +1,10 @@
 /* List object implementation */
 
 #include "Python.h"
-#include "pycore_abstract.h"      // _PyIndex_Check()
-#include "pycore_interp.h"        // PyInterpreterState.list
-#include "pycore_object.h"        // _PyObject_GC_TRACK()
-#include "pycore_tuple.h"         // _PyTuple_FromArray()
+#include "pycore_abstract.h"   // _PyIndex_Check()
+#include "pycore_object.h"
+#include "pycore_tupleobject.h"
+#include "pycore_accu.h"
 
 #ifdef STDC_HEADERS
 #include <stddef.h>
@@ -18,15 +18,6 @@ class list "PyListObject *" "&PyList_Type"
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=f9b222678f9f71e0]*/
 
 #include "clinic/listobject.c.h"
-
-
-static struct _Py_list_state *
-get_list_state(void)
-{
-    PyInterpreterState *interp = _PyInterpreterState_GET();
-    return &interp->list;
-}
-
 
 /* Ensure ob_item has room for at least newsize elements, and set
  * ob_size to newsize.  If newsize > ob_size on entry, the content
@@ -69,7 +60,7 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
      *       is PY_SSIZE_T_MAX * (9 / 8) + 6 which always fits in a size_t.
      */
     new_allocated = ((size_t)newsize + (newsize >> 3) + 6) & ~(size_t)3;
-    /* Do not overallocate if the new size is closer to overallocated size
+    /* Do not overallocate if the new size is closer to overalocated size
      * than to the old size.
      */
     if (newsize - Py_SIZE(self) > (Py_ssize_t)(new_allocated - newsize))
@@ -105,65 +96,59 @@ list_preallocate_exact(PyListObject *self, Py_ssize_t size)
     return 0;
 }
 
+/* Empty list reuse scheme to save calls to malloc and free */
+#ifndef PyList_MAXFREELIST
+#  define PyList_MAXFREELIST 80
+#endif
+
+static PyListObject *free_list[PyList_MAXFREELIST];
+static int numfree = 0;
+
 void
-_PyList_ClearFreeList(PyInterpreterState *interp)
+_PyList_ClearFreeList(void)
 {
-    struct _Py_list_state *state = &interp->list;
-    while (state->numfree) {
-        PyListObject *op = state->free_list[--state->numfree];
+    while (numfree) {
+        PyListObject *op = free_list[--numfree];
         assert(PyList_CheckExact(op));
         PyObject_GC_Del(op);
     }
 }
 
 void
-_PyList_Fini(PyInterpreterState *interp)
+_PyList_Fini(void)
 {
-    _PyList_ClearFreeList(interp);
-#ifdef Py_DEBUG
-    struct _Py_list_state *state = &interp->list;
-    state->numfree = -1;
-#endif
+    _PyList_ClearFreeList();
 }
 
 /* Print summary info about the state of the optimized allocator */
 void
 _PyList_DebugMallocStats(FILE *out)
 {
-    struct _Py_list_state *state = get_list_state();
     _PyDebugAllocatorStats(out,
                            "free PyListObject",
-                           state->numfree, sizeof(PyListObject));
+                           numfree, sizeof(PyListObject));
 }
 
 PyObject *
 PyList_New(Py_ssize_t size)
 {
+    PyListObject *op;
+
     if (size < 0) {
         PyErr_BadInternalCall();
         return NULL;
     }
-
-    struct _Py_list_state *state = get_list_state();
-    PyListObject *op;
-#ifdef Py_DEBUG
-    // PyList_New() must not be called after _PyList_Fini()
-    assert(state->numfree != -1);
-#endif
-    if (state->numfree) {
-        state->numfree--;
-        op = state->free_list[state->numfree];
+    if (numfree) {
+        numfree--;
+        op = free_list[numfree];
         _Py_NewReference((PyObject *)op);
-    }
-    else {
+    } else {
         op = PyObject_GC_New(PyListObject, &PyList_Type);
-        if (op == NULL) {
+        if (op == NULL)
             return NULL;
-        }
     }
-    if (size <= 0) {
+    if (size <= 0)
         op->ob_item = NULL;
-    }
     else {
         op->ob_item = (PyObject **) PyMem_Calloc(size, sizeof(PyObject *));
         if (op->ob_item == NULL) {
@@ -180,10 +165,9 @@ PyList_New(Py_ssize_t size)
 static PyObject *
 list_new_prealloc(Py_ssize_t size)
 {
-    assert(size > 0);
     PyListObject *op = (PyListObject *) PyList_New(0);
-    if (op == NULL) {
-        return NULL;
+    if (size == 0 || op == NULL) {
+        return (PyObject *) op;
     }
     assert(op->ob_item == NULL);
     op->ob_item = PyMem_New(PyObject *, size);
@@ -271,8 +255,12 @@ ins1(PyListObject *self, Py_ssize_t where, PyObject *v)
         PyErr_BadInternalCall();
         return -1;
     }
+    if (n == PY_SSIZE_T_MAX) {
+        PyErr_SetString(PyExc_OverflowError,
+            "cannot add more objects to list");
+        return -1;
+    }
 
-    assert((size_t)n + 1 < PY_SSIZE_T_MAX);
     if (list_resize(self, n+1) < 0)
         return -1;
 
@@ -307,7 +295,12 @@ app1(PyListObject *self, PyObject *v)
     Py_ssize_t n = PyList_GET_SIZE(self);
 
     assert (v != NULL);
-    assert((size_t)n + 1 < PY_SSIZE_T_MAX);
+    if (n == PY_SSIZE_T_MAX) {
+        PyErr_SetString(PyExc_OverflowError,
+            "cannot add more objects to list");
+        return -1;
+    }
+
     if (list_resize(self, n+1) < 0)
         return -1;
 
@@ -342,19 +335,12 @@ list_dealloc(PyListObject *op)
         while (--i >= 0) {
             Py_XDECREF(op->ob_item[i]);
         }
-        PyMem_Free(op->ob_item);
+        PyMem_FREE(op->ob_item);
     }
-    struct _Py_list_state *state = get_list_state();
-#ifdef Py_DEBUG
-    // list_dealloc() must not be called after _PyList_Fini()
-    assert(state->numfree != -1);
-#endif
-    if (state->numfree < PyList_MAXFREELIST && PyList_CheckExact(op)) {
-        state->free_list[state->numfree++] = op;
-    }
-    else {
+    if (numfree < PyList_MAXFREELIST && PyList_CheckExact(op))
+        free_list[numfree++] = op;
+    else
         Py_TYPE(op)->tp_free((PyObject *)op);
-    }
     Py_TRASHCAN_END
 }
 
@@ -460,9 +446,6 @@ list_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh)
     PyObject **src, **dest;
     Py_ssize_t i, len;
     len = ihigh - ilow;
-    if (len <= 0) {
-        return PyList_New(0);
-    }
     np = (PyListObject *) list_new_prealloc(len);
     if (np == NULL)
         return NULL;
@@ -514,11 +497,9 @@ list_concat(PyListObject *a, PyObject *bb)
         return NULL;
     }
 #define b ((PyListObject *)bb)
-    assert((size_t)Py_SIZE(a) + (size_t)Py_SIZE(b) < PY_SSIZE_T_MAX);
+    if (Py_SIZE(a) > PY_SSIZE_T_MAX - Py_SIZE(b))
+        return PyErr_NoMemory();
     size = Py_SIZE(a) + Py_SIZE(b);
-    if (size == 0) {
-        return PyList_New(0);
-    }
     np = (PyListObject *) list_new_prealloc(size);
     if (np == NULL) {
         return NULL;
@@ -599,7 +580,7 @@ _list_clear(PyListObject *a)
         while (--i >= 0) {
             Py_XDECREF(item[i]);
         }
-        PyMem_Free(item);
+        PyMem_FREE(item);
     }
     /* Never fails; the return value can be ignored.
        Note that there is no guarantee that the list is actually empty
@@ -675,7 +656,7 @@ list_ass_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh, PyObject *v)
     /* If norig == 0, item might be NULL, in which case we may not memcpy from it. */
     if (s) {
         if (s > sizeof(recycle_on_stack)) {
-            recycle = (PyObject **)PyMem_Malloc(s);
+            recycle = (PyObject **)PyMem_MALLOC(s);
             if (recycle == NULL) {
                 PyErr_NoMemory();
                 goto Error;
@@ -713,7 +694,7 @@ list_ass_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh, PyObject *v)
     result = 0;
  Error:
     if (recycle != recycle_on_stack)
-        PyMem_Free(recycle);
+        PyMem_FREE(recycle);
     Py_XDECREF(v_as_SF);
     return result;
 #undef b
@@ -2024,7 +2005,7 @@ safe_object_compare(PyObject *v, PyObject *w, MergeState *ms)
     return PyObject_RichCompareBool(v, w, Py_LT);
 }
 
-/* Homogeneous compare: safe for any two comparable objects of the same type.
+/* Homogeneous compare: safe for any two compareable objects of the same type.
  * (ms->key_richcompare is set to ob_type->tp_richcompare in the
  *  pre-sort check.)
  */
@@ -2237,7 +2218,7 @@ list_sort_impl(PyListObject *self, PyObject *keyfunc, int reverse)
             /* Leverage stack space we allocated but won't otherwise use */
             keys = &ms.temparray[saved_ob_size+1];
         else {
-            keys = PyMem_Malloc(sizeof(PyObject *) * saved_ob_size);
+            keys = PyMem_MALLOC(sizeof(PyObject *) * saved_ob_size);
             if (keys == NULL) {
                 PyErr_NoMemory();
                 goto keyfunc_fail;
@@ -2250,7 +2231,7 @@ list_sort_impl(PyListObject *self, PyObject *keyfunc, int reverse)
                 for (i=i-1 ; i>=0 ; i--)
                     Py_DECREF(keys[i]);
                 if (saved_ob_size >= MERGESTATE_TEMP_SIZE/2)
-                    PyMem_Free(keys);
+                    PyMem_FREE(keys);
                 goto keyfunc_fail;
             }
         }
@@ -2421,7 +2402,7 @@ fail:
         for (i = 0; i < saved_ob_size; i++)
             Py_DECREF(keys[i]);
         if (saved_ob_size >= MERGESTATE_TEMP_SIZE/2)
-            PyMem_Free(keys);
+            PyMem_FREE(keys);
     }
 
     if (self->allocated != -1 && result != NULL) {
@@ -2449,7 +2430,7 @@ keyfunc_fail:
         while (--i >= 0) {
             Py_XDECREF(final_ob_item[i]);
         }
-        PyMem_Free(final_ob_item);
+        PyMem_FREE(final_ob_item);
     }
     Py_XINCREF(result);
     return result;
@@ -2915,7 +2896,7 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
             }
 
             garbage = (PyObject**)
-                PyMem_Malloc(slicelength*sizeof(PyObject*));
+                PyMem_MALLOC(slicelength*sizeof(PyObject*));
             if (!garbage) {
                 PyErr_NoMemory();
                 return -1;
@@ -2956,7 +2937,7 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
             for (i = 0; i < slicelength; i++) {
                 Py_DECREF(garbage[i]);
             }
-            PyMem_Free(garbage);
+            PyMem_FREE(garbage);
 
             return res;
         }
@@ -2997,7 +2978,7 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
             }
 
             garbage = (PyObject**)
-                PyMem_Malloc(slicelength*sizeof(PyObject*));
+                PyMem_MALLOC(slicelength*sizeof(PyObject*));
             if (!garbage) {
                 Py_DECREF(seq);
                 PyErr_NoMemory();
@@ -3018,7 +2999,7 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
                 Py_DECREF(garbage[i]);
             }
 
-            PyMem_Free(garbage);
+            PyMem_FREE(garbage);
             Py_DECREF(seq);
 
             return 0;
@@ -3059,8 +3040,7 @@ PyTypeObject PyList_Type = {
     0,                                          /* tp_setattro */
     0,                                          /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC |
-        Py_TPFLAGS_BASETYPE | Py_TPFLAGS_LIST_SUBCLASS |
-        _Py_TPFLAGS_MATCH_SELF | Py_TPFLAGS_SEQUENCE,  /* tp_flags */
+        Py_TPFLAGS_BASETYPE | Py_TPFLAGS_LIST_SUBCLASS, /* tp_flags */
     list___init____doc__,                       /* tp_doc */
     (traverseproc)list_traverse,                /* tp_traverse */
     (inquiry)_list_clear,                       /* tp_clear */

@@ -48,17 +48,19 @@ The following top-level asyncio functions can be used to create
 and work with streams:
 
 
-.. coroutinefunction:: open_connection(host=None, port=None, *, \
-                          limit=None, ssl=None, family=0, proto=0, \
-                          flags=0, sock=None, local_addr=None, \
-                          server_hostname=None, ssl_handshake_timeout=None, \
-                          happy_eyeballs_delay=None, interleave=None)
+.. coroutinefunction:: open_connection(host=None, port=None, \*, \
+                          loop=None, limit=None, ssl=None, family=0, \
+                          proto=0, flags=0, sock=None, local_addr=None, \
+                          server_hostname=None, ssl_handshake_timeout=None)
 
    Establish a network connection and return a pair of
    ``(reader, writer)`` objects.
 
    The returned *reader* and *writer* objects are instances of
    :class:`StreamReader` and :class:`StreamWriter` classes.
+
+   The *loop* argument is optional and can always be determined
+   automatically when this function is awaited from a coroutine.
 
    *limit* determines the buffer size limit used by the
    returned :class:`StreamReader` instance.  By default the *limit*
@@ -67,18 +69,12 @@ and work with streams:
    The rest of the arguments are passed directly to
    :meth:`loop.create_connection`.
 
-   .. versionchanged:: 3.7
-      Added the *ssl_handshake_timeout* parameter.
+   .. versionadded:: 3.7
 
-   .. versionadded:: 3.8
-      Added *happy_eyeballs_delay* and *interleave* parameters.
-
-   .. versionchanged:: 3.10
-      Removed the *loop* parameter.
-
+      The *ssl_handshake_timeout* parameter.
 
 .. coroutinefunction:: start_server(client_connected_cb, host=None, \
-                          port=None, *, limit=None, \
+                          port=None, \*, loop=None, limit=None, \
                           family=socket.AF_UNSPEC, \
                           flags=socket.AI_PASSIVE, sock=None, \
                           backlog=100, ssl=None, reuse_address=None, \
@@ -96,6 +92,9 @@ and work with streams:
    :ref:`coroutine function <coroutine>`; if it is a coroutine function,
    it will be automatically scheduled as a :class:`Task`.
 
+   The *loop* argument is optional and can always be determined
+   automatically when this method is awaited from a coroutine.
+
    *limit* determines the buffer size limit used by the
    returned :class:`StreamReader` instance.  By default the *limit*
    is set to 64 KiB.
@@ -103,18 +102,16 @@ and work with streams:
    The rest of the arguments are passed directly to
    :meth:`loop.create_server`.
 
-   .. versionchanged:: 3.7
-      Added the *ssl_handshake_timeout* and *start_serving* parameters.
+   .. versionadded:: 3.7
 
-   .. versionchanged:: 3.10
-      Removed the *loop* parameter.
+      The *ssl_handshake_timeout* and *start_serving* parameters.
 
 
 .. rubric:: Unix Sockets
 
-.. coroutinefunction:: open_unix_connection(path=None, *, limit=None, \
-                        ssl=None, sock=None, server_hostname=None, \
-                        ssl_handshake_timeout=None)
+.. coroutinefunction:: open_unix_connection(path=None, \*, loop=None, \
+                        limit=None, ssl=None, sock=None, \
+                        server_hostname=None, ssl_handshake_timeout=None)
 
    Establish a Unix socket connection and return a pair of
    ``(reader, writer)``.
@@ -125,17 +122,19 @@ and work with streams:
 
    .. availability:: Unix.
 
-   .. versionchanged:: 3.7
-      Added the *ssl_handshake_timeout* parameter.
-      The *path* parameter can now be a :term:`path-like object`
+   .. versionadded:: 3.7
 
-   .. versionchanged:: 3.10
-      Removed the *loop* parameter.
+      The *ssl_handshake_timeout* parameter.
+
+   .. versionchanged:: 3.7
+
+      The *path* parameter can now be a :term:`path-like object`
 
 
 .. coroutinefunction:: start_unix_server(client_connected_cb, path=None, \
-                          *, limit=None, sock=None, backlog=100, ssl=None, \
-                          ssl_handshake_timeout=None, start_serving=True)
+                          \*, loop=None, limit=None, sock=None, \
+                          backlog=100, ssl=None, ssl_handshake_timeout=None, \
+                          start_serving=True)
 
    Start a Unix socket server.
 
@@ -145,12 +144,13 @@ and work with streams:
 
    .. availability:: Unix.
 
-   .. versionchanged:: 3.7
-      Added the *ssl_handshake_timeout* and *start_serving* parameters.
-      The *path* parameter can now be a :term:`path-like object`.
+   .. versionadded:: 3.7
 
-   .. versionchanged:: 3.10
-      Removed the *loop* parameter.
+      The *ssl_handshake_timeout* and *start_serving* parameters.
+
+   .. versionchanged:: 3.7
+
+      The *path* parameter can now be a :term:`path-like object`.
 
 
 StreamReader
@@ -373,8 +373,8 @@ TCP echo server using the :func:`asyncio.start_server` function::
         server = await asyncio.start_server(
             handle_echo, '127.0.0.1', 8888)
 
-        addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
-        print(f'Serving on {addrs}')
+        addr = server.sockets[0].getsockname()
+        print(f'Serving on {addr}')
 
         async with server:
             await server.serve_forever()

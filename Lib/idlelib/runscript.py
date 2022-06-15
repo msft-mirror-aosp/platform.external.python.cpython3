@@ -14,7 +14,7 @@ import tabnanny
 import time
 import tokenize
 
-from tkinter import messagebox
+import tkinter.messagebox as tkMessageBox
 
 from idlelib.config import idleConf
 from idlelib import macosx
@@ -195,15 +195,15 @@ class ScriptBinding:
 
     def ask_save_dialog(self):
         msg = "Source Must Be Saved\n" + 5*' ' + "OK to Save?"
-        confirm = messagebox.askokcancel(title="Save Before Run or Check",
+        confirm = tkMessageBox.askokcancel(title="Save Before Run or Check",
                                            message=msg,
-                                           default=messagebox.OK,
+                                           default=tkMessageBox.OK,
                                            parent=self.editwin.text)
         return confirm
 
     def errorbox(self, title, message):
         # XXX This should really be a function of EditorWindow...
-        messagebox.showerror(title, message, parent=self.editwin.text)
+        tkMessageBox.showerror(title, message, parent=self.editwin.text)
         self.editwin.text.focus_set()
         self.perf = time.perf_counter()
 

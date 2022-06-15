@@ -11,8 +11,7 @@ from http.client import HTTPException
 import sys
 import unicodedata
 import unittest
-from test.support import (open_urlresource, requires_resource, script_helper,
-                          cpython_only, check_disallow_instantiation)
+from test.support import open_urlresource, requires_resource, script_helper
 
 
 class UnicodeMethodsTest(unittest.TestCase):
@@ -226,11 +225,6 @@ class UnicodeFunctionsTest(UnicodeDatabaseTest):
 
 class UnicodeMiscTest(UnicodeDatabaseTest):
 
-    @cpython_only
-    def test_disallow_instantiation(self):
-        # Ensure that the type disallows instantiation (bpo-43916)
-        check_disallow_instantiation(self, unicodedata.UCD)
-
     def test_failed_import_during_compiling(self):
         # Issue 4367
         # Decoding \N escapes requires the unicodedata module. If it can't be
@@ -326,7 +320,6 @@ class NormalizationTest(unittest.TestCase):
         data = [int(x, 16) for x in data.split(" ")]
         return "".join([chr(x) for x in data])
 
-    @requires_resource('network')
     def test_normalization(self):
         TESTDATAFILE = "NormalizationTest.txt"
         TESTDATAURL = f"http://www.pythontest.net/unicode/{unicodedata.unidata_version}/{TESTDATAFILE}"

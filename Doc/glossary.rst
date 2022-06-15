@@ -57,8 +57,6 @@ Glossary
 
       See :term:`variable annotation`, :term:`function annotation`, :pep:`484`
       and :pep:`526`, which describe this functionality.
-      Also see :ref:`annotations-howto`
-      for best practices on working with annotations.
 
    argument
       A value passed to a :term:`function` (or :term:`method`) when calling the
@@ -159,18 +157,6 @@ Glossary
 
       See also :term:`text file` for a file object able to read and write
       :class:`str` objects.
-
-   borrowed reference
-      In Python's C API, a borrowed reference is a reference to an object.
-      It does not modify the object reference count. It becomes a dangling
-      pointer if the object is destroyed. For example, a garbage collection can
-      remove the last :term:`strong reference` to the object and so destroy it.
-
-      Calling :c:func:`Py_INCREF` on the :term:`borrowed reference` is
-      recommended to convert it to a :term:`strong reference` in-place, except
-      when the object cannot be destroyed before the last usage of the borrowed
-      reference. The :c:func:`Py_NewRef` function can be used to create a new
-      :term:`strong reference`.
 
    bytes-like object
       An object that supports the :ref:`bufferobjects` and can
@@ -292,12 +278,12 @@ Glossary
       The decorator syntax is merely syntactic sugar, the following two
       function definitions are semantically equivalent::
 
-         def f(arg):
+         def f(...):
              ...
          f = staticmethod(f)
 
          @staticmethod
-         def f(arg):
+         def f(...):
              ...
 
       The same concept exists for classes, but is less commonly used there.  See
@@ -400,25 +386,6 @@ Glossary
    file-like object
       A synonym for :term:`file object`.
 
-   filesystem encoding and error handler
-      Encoding and error handler used by Python to decode bytes from the
-      operating system and encode Unicode to the operating system.
-
-      The filesystem encoding must guarantee to successfully decode all bytes
-      below 128. If the file system encoding fails to provide this guarantee,
-      API functions can raise :exc:`UnicodeError`.
-
-      The :func:`sys.getfilesystemencoding` and
-      :func:`sys.getfilesystemencodeerrors` functions can be used to get the
-      filesystem encoding and error handler.
-
-      The :term:`filesystem encoding and error handler` are configured at
-      Python startup by the :c:func:`PyConfig_Read` function: see
-      :c:member:`~PyConfig.filesystem_encoding` and
-      :c:member:`~PyConfig.filesystem_errors` members of :c:type:`PyConfig`.
-
-      See also the :term:`locale encoding`.
-
    finder
       An object that tries to find the :term:`loader` for a module that is
       being imported.
@@ -457,17 +424,14 @@ Glossary
 
       See :term:`variable annotation` and :pep:`484`,
       which describe this functionality.
-      Also see :ref:`annotations-howto`
-      for best practices on working with annotations.
 
    __future__
-      A :ref:`future statement <future>`, ``from __future__ import <feature>``,
-      directs the compiler to compile the current module using syntax or
-      semantics that will become standard in a future release of Python.
-      The :mod:`__future__` module documents the possible values of
-      *feature*.  By importing this module and evaluating its variables,
-      you can see when a new feature was first added to the language and
-      when it will (or did) become the default::
+      A pseudo-module which programmers can use to enable new language features
+      which are not compatible with the current interpreter.
+
+      By importing the :mod:`__future__` module and evaluating its variables,
+      you can see when a new feature was first added to the language and when it
+      becomes the default::
 
          >>> import __future__
          >>> __future__.division
@@ -520,13 +484,12 @@ Glossary
       :func:`functools.singledispatch` decorator, and :pep:`443`.
 
    generic type
-      A :term:`type` that can be parameterized; typically a
-      :ref:`container class<sequence-types>` such as :class:`list` or
-      :class:`dict`. Used for :term:`type hints <type hint>` and
+      A :term:`type` that can be parameterized; typically a container like
+      :class:`list`. Used for :term:`type hints <type hint>` and
       :term:`annotations <annotation>`.
 
-      For more details, see :ref:`generic alias types<types-genericalias>`,
-      :pep:`483`, :pep:`484`, :pep:`585`, and the :mod:`typing` module.
+      See :pep:`483` for more details, and :mod:`typing` or
+      :ref:`generic alias type <types-genericalias>` for its uses.
 
    GIL
       See :term:`global interpreter lock`.
@@ -669,11 +632,6 @@ Glossary
 
       More information can be found in :ref:`typeiter`.
 
-      .. impl-detail::
-
-         CPython does not consistently apply the requirement that an iterator
-         define :meth:`__iter__`.
-
    key function
       A key function or collation function is a callable that returns a value
       used for sorting or ordering.  For example, :func:`locale.strxfrm` is
@@ -714,18 +672,6 @@ Glossary
       code, ``if key in mapping: return mapping[key]`` can fail if another
       thread removes *key* from *mapping* after the test, but before the lookup.
       This issue can be solved with locks or by using the EAFP approach.
-
-   locale encoding
-      On Unix, it is the encoding of the LC_CTYPE locale. It can be set with
-      ``locale.setlocale(locale.LC_CTYPE, new_locale)``.
-
-      On Windows, it is the ANSI code page (ex: ``cp1252``).
-
-      ``locale.getpreferredencoding(False)`` can be used to get the locale
-      encoding.
-
-      Python uses the :term:`filesystem encoding and error handler` to convert
-      between Unicode filenames and bytes filenames.
 
    list
       A built-in Python :term:`sequence`.  Despite its name it is more akin
@@ -1123,18 +1069,6 @@ Glossary
       an :term:`expression` or one of several constructs with a keyword, such
       as :keyword:`if`, :keyword:`while` or :keyword:`for`.
 
-   strong reference
-      In Python's C API, a strong reference is a reference to an object
-      which increments the object's reference count when it is created and
-      decrements the object's reference count when it is deleted.
-
-      The :c:func:`Py_NewRef` function can be used to create a strong reference
-      to an object. Usually, the :c:func:`Py_DECREF` function must be called on
-      the strong reference before exiting the scope of the strong reference, to
-      avoid leaking one reference.
-
-      See also :term:`borrowed reference`.
-
    text encoding
       A codec which encodes Unicode strings to bytes.
 
@@ -1222,8 +1156,6 @@ Glossary
 
       See :term:`function annotation`, :pep:`484`
       and :pep:`526`, which describe this functionality.
-      Also see :ref:`annotations-howto`
-      for best practices on working with annotations.
 
    virtual environment
       A cooperatively isolated runtime environment that allows Python users

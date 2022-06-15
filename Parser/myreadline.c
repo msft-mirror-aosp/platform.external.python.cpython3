@@ -249,8 +249,10 @@ PyOS_StdioReadline(FILE *sys_stdin, FILE *sys_stdout, const char *prompt)
     if (!Py_LegacyWindowsStdioFlag && sys_stdin == stdin) {
         HANDLE hStdIn, hStdErr;
 
-        hStdIn = _Py_get_osfhandle_noraise(fileno(sys_stdin));
-        hStdErr = _Py_get_osfhandle_noraise(fileno(stderr));
+        _Py_BEGIN_SUPPRESS_IPH
+        hStdIn = (HANDLE)_get_osfhandle(fileno(sys_stdin));
+        hStdErr = (HANDLE)_get_osfhandle(fileno(stderr));
+        _Py_END_SUPPRESS_IPH
 
         if (_get_console_type(hStdIn) == 'r') {
             fflush(sys_stdout);

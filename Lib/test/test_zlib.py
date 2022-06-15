@@ -1,6 +1,5 @@
 import unittest
 from test import support
-from test.support import import_helper
 import binascii
 import copy
 import pickle
@@ -8,8 +7,7 @@ import random
 import sys
 from test.support import bigmemtest, _1G, _4G
 
-
-zlib = import_helper.import_module('zlib')
+zlib = support.import_module('zlib')
 
 requires_Compress_copy = unittest.skipUnless(
         hasattr(zlib.compressobj(), "copy"),
@@ -128,12 +126,6 @@ class ExceptionTestCase(unittest.TestCase):
             zlib.decompressobj().decompress(b'', sys.maxsize + 1)
         with self.assertRaisesRegex(OverflowError, 'int too large'):
             zlib.decompressobj().flush(sys.maxsize + 1)
-
-    @support.cpython_only
-    def test_disallow_instantiation(self):
-        # Ensure that the type disallows instantiation (bpo-43916)
-        support.check_disallow_instantiation(self, type(zlib.compressobj()))
-        support.check_disallow_instantiation(self, type(zlib.decompressobj()))
 
 
 class BaseCompressTestCase(object):

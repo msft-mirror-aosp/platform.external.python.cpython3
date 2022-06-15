@@ -1,15 +1,7 @@
 import unittest
 from test import support
-from test.support import warnings_helper
 import os
 import sys
-
-
-if support.check_sanitizer(address=True, memory=True):
-    # bpo-46633: test___all__ is skipped because importing some modules
-    # directly can trigger known problems with ASAN (like tk or crypt).
-    raise unittest.SkipTest("workaround ASAN build issues on loading tests "
-                            "like tk or crypt")
 
 
 class NoAll(RuntimeError):
@@ -23,7 +15,7 @@ class AllTest(unittest.TestCase):
 
     def check_all(self, modname):
         names = {}
-        with warnings_helper.check_warnings(
+        with support.check_warnings(
             (".* (module|package)", DeprecationWarning),
             (".* (module|package)", PendingDeprecationWarning),
             ("", ResourceWarning),
@@ -39,7 +31,7 @@ class AllTest(unittest.TestCase):
             raise NoAll(modname)
         names = {}
         with self.subTest(module=modname):
-            with warnings_helper.check_warnings(
+            with support.check_warnings(
                 ("", DeprecationWarning),
                 ("", ResourceWarning),
                 quiet=True):
@@ -76,8 +68,8 @@ class AllTest(unittest.TestCase):
             yield path, modpath + fn[:-3]
 
     def test_all(self):
-        # List of denied modules and packages
-        denylist = set([
+        # Blacklisted modules and packages
+        blacklist = set([
             # Will raise a SyntaxError when compiling the exec statement
             '__future__',
         ])
@@ -92,13 +84,13 @@ class AllTest(unittest.TestCase):
         lib_dir = os.path.dirname(os.path.dirname(__file__))
         for path, modname in self.walk_modules(lib_dir, ""):
             m = modname
-            denied = False
+            blacklisted = False
             while m:
-                if m in denylist:
-                    denied = True
+                if m in blacklist:
+                    blacklisted = True
                     break
                 m = m.rpartition('.')[0]
-            if denied:
+            if blacklisted:
                 continue
             if support.verbose:
                 print(modname)

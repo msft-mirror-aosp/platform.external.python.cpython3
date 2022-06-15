@@ -21,14 +21,14 @@ Tuple Objects
 
 .. c:function:: int PyTuple_Check(PyObject *p)
 
-   Return true if *p* is a tuple object or an instance of a subtype of the
-   tuple type.  This function always succeeds.
+   Return true if *p* is a tuple object or an instance of a subtype of the tuple
+   type.
 
 
 .. c:function:: int PyTuple_CheckExact(PyObject *p)
 
    Return true if *p* is a tuple object, but not an instance of a subtype of the
-   tuple type.  This function always succeeds.
+   tuple type.
 
 
 .. c:function:: PyObject* PyTuple_New(Py_ssize_t len)
@@ -57,7 +57,7 @@ Tuple Objects
 .. c:function:: PyObject* PyTuple_GetItem(PyObject *p, Py_ssize_t pos)
 
    Return the object at position *pos* in the tuple pointed to by *p*.  If *pos* is
-   negative or out of bounds, return ``NULL`` and set an :exc:`IndexError` exception.
+   out of bounds, return ``NULL`` and set an :exc:`IndexError` exception.
 
 
 .. c:function:: PyObject* PyTuple_GET_ITEM(PyObject *p, Py_ssize_t pos)

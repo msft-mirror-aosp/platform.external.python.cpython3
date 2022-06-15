@@ -1,8 +1,6 @@
 import unittest
 from test import support
-from test.support import os_helper
 from test.support import socket_helper
-from test.support import warnings_helper
 from test import test_urllib
 
 import os
@@ -164,6 +162,7 @@ class RequestHdrsTests(unittest.TestCase):
         self.assertEqual(find_user_pass("Some Realm",
                                         "http://example.com/spam"),
                          ('joe', 'password'))
+
         self.assertEqual(find_user_pass("Some Realm",
                                         "http://example.com/spam/spam"),
                          ('joe', 'password'))
@@ -172,29 +171,12 @@ class RequestHdrsTests(unittest.TestCase):
 
         add("c", "http://example.com/foo", "foo", "ni")
         add("c", "http://example.com/bar", "bar", "nini")
-        add("c", "http://example.com/foo/bar", "foobar", "nibar")
 
         self.assertEqual(find_user_pass("c", "http://example.com/foo"),
                          ('foo', 'ni'))
+
         self.assertEqual(find_user_pass("c", "http://example.com/bar"),
                          ('bar', 'nini'))
-        self.assertEqual(find_user_pass("c", "http://example.com/foo/"),
-                         ('foo', 'ni'))
-        self.assertEqual(find_user_pass("c", "http://example.com/foo/bar"),
-                         ('foo', 'ni'))
-        self.assertEqual(find_user_pass("c", "http://example.com/foo/baz"),
-                         ('foo', 'ni'))
-        self.assertEqual(find_user_pass("c", "http://example.com/foobar"),
-                         (None, None))
-
-        add("c", "http://example.com/baz/", "baz", "ninini")
-
-        self.assertEqual(find_user_pass("c", "http://example.com/baz"),
-                         (None, None))
-        self.assertEqual(find_user_pass("c", "http://example.com/baz/"),
-                         ('baz', 'ninini'))
-        self.assertEqual(find_user_pass("c", "http://example.com/baz/bar"),
-                         ('baz', 'ninini'))
 
         # For the same path, newer password should be considered.
 
@@ -783,7 +765,7 @@ class HandlerTests(unittest.TestCase):
         h = urllib.request.FileHandler()
         o = h.parent = MockOpener()
 
-        TESTFN = os_helper.TESTFN
+        TESTFN = support.TESTFN
         urlpath = sanepathname2url(os.path.abspath(TESTFN))
         towrite = b"hello, world\n"
         urls = [
@@ -1520,7 +1502,7 @@ class HandlerTests(unittest.TestCase):
             self.check_basic_auth(headers, realm)
 
         # no quote: expect a warning
-        with warnings_helper.check_warnings(("Basic Auth Realm was unquoted",
+        with support.check_warnings(("Basic Auth Realm was unquoted",
                                      UserWarning)):
             headers = [f'WWW-Authenticate: Basic realm={realm}']
             self.check_basic_auth(headers, realm)
@@ -1674,9 +1656,8 @@ class HandlerTests(unittest.TestCase):
         auth_prior_handler.add_password(
             None, request_url, user, password, is_authenticated=True)
 
-        self.assertTrue(pwd_manager.is_authenticated(request_url))
-        self.assertTrue(pwd_manager.is_authenticated(request_url + '/nested'))
-        self.assertFalse(pwd_manager.is_authenticated(request_url + 'plain'))
+        is_auth = pwd_manager.is_authenticated(request_url)
+        self.assertTrue(is_auth)
 
         opener = OpenerDirector()
         opener.add_handler(auth_prior_handler)
@@ -1805,6 +1786,22 @@ class MiscTests(unittest.TestCase):
         self.opener_has_handler(o, MyHTTPHandler)
         self.opener_has_handler(o, MyOtherHTTPHandler)
 
+    @unittest.skipUnless(support.is_resource_enabled('network'),
+                         'test requires network access')
+    def test_issue16464(self):
+        with socket_helper.transient_internet("http://www.example.com/"):
+            opener = urllib.request.build_opener()
+            request = urllib.request.Request("http://www.example.com/")
+            self.assertEqual(None, request.data)
+
+            opener.open(request, "1".encode("us-ascii"))
+            self.assertEqual(b"1", request.data)
+            self.assertEqual("1", request.get_header("Content-length"))
+
+            opener.open(request, "1234567890".encode("us-ascii"))
+            self.assertEqual(b"1234567890", request.data)
+            self.assertEqual("10", request.get_header("Content-length"))
+
     def test_HTTPError_interface(self):
         """
         Issue 13211 reveals that HTTPError didn't implement the URLError
@@ -1852,16 +1849,8 @@ class MiscTests(unittest.TestCase):
              ('ftp', 'joe', 'password', 'proxy.example.com')),
             # Test for no trailing '/' case
             ('http://joe:password@proxy.example.com',
-             ('http', 'joe', 'password', 'proxy.example.com')),
-            # Testcases with '/' character in username, password
-            ('http://user/name:password@localhost:22',
-             ('http', 'user/name', 'password', 'localhost:22')),
-            ('http://username:pass/word@localhost:22',
-             ('http', 'username', 'pass/word', 'localhost:22')),
-            ('http://user/name:pass/word@localhost:22',
-             ('http', 'user/name', 'pass/word', 'localhost:22')),
+             ('http', 'joe', 'password', 'proxy.example.com'))
         ]
-
 
         for tc, expected in parse_proxy_test_cases:
             self.assertEqual(_parse_proxy(tc), expected)

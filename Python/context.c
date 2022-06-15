@@ -10,6 +10,8 @@
 
 
 #define CONTEXT_FREELIST_MAXLEN 255
+static PyContext *ctx_freelist = NULL;
+static int ctx_freelist_len = 0;
 
 
 #include "clinic/context.c.h"
@@ -64,14 +66,6 @@ contextvar_set(PyContextVar *var, PyObject *val);
 
 static int
 contextvar_del(PyContextVar *var);
-
-
-static struct _Py_context_state *
-get_context_state(void)
-{
-    PyInterpreterState *interp = _PyInterpreterState_GET();
-    return &interp->context;
-}
 
 
 PyObject *
@@ -340,16 +334,11 @@ class _contextvars.Context "PyContext *" "&PyContext_Type"
 static inline PyContext *
 _context_alloc(void)
 {
-    struct _Py_context_state *state = get_context_state();
     PyContext *ctx;
-#ifdef Py_DEBUG
-    // _context_alloc() must not be called after _PyContext_Fini()
-    assert(state->numfree != -1);
-#endif
-    if (state->numfree) {
-        state->numfree--;
-        ctx = state->freelist;
-        state->freelist = (PyContext *)ctx->ctx_weakreflist;
+    if (ctx_freelist_len) {
+        ctx_freelist_len--;
+        ctx = ctx_freelist;
+        ctx_freelist = (PyContext *)ctx->ctx_weakreflist;
         ctx->ctx_weakreflist = NULL;
         _Py_NewReference((PyObject *)ctx);
     }
@@ -469,15 +458,10 @@ context_tp_dealloc(PyContext *self)
     }
     (void)context_tp_clear(self);
 
-    struct _Py_context_state *state = get_context_state();
-#ifdef Py_DEBUG
-    // _context_alloc() must not be called after _PyContext_Fini()
-    assert(state->numfree != -1);
-#endif
-    if (state->numfree < CONTEXT_FREELIST_MAXLEN) {
-        state->numfree++;
-        self->ctx_weakreflist = (PyObject *)state->freelist;
-        state->freelist = self;
+    if (ctx_freelist_len < CONTEXT_FREELIST_MAXLEN) {
+        ctx_freelist_len++;
+        self->ctx_weakreflist = (PyObject *)ctx_freelist;
+        ctx_freelist = self;
     }
     else {
         Py_TYPE(self)->tp_free(self);
@@ -703,7 +687,7 @@ static PyMappingMethods PyContext_as_mapping = {
 
 PyTypeObject PyContext_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    "_contextvars.Context",
+    "Context",
     sizeof(PyContext),
     .tp_methods = PyContext_methods,
     .tp_as_mapping = &PyContext_as_mapping,
@@ -1056,7 +1040,7 @@ static PyMethodDef PyContextVar_methods[] = {
 
 PyTypeObject PyContextVar_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    "_contextvars.ContextVar",
+    "ContextVar",
     sizeof(PyContextVar),
     .tp_methods = PyContextVar_methods,
     .tp_members = PyContextVar_members,
@@ -1197,7 +1181,7 @@ static PyMethodDef PyContextTokenType_methods[] = {
 
 PyTypeObject PyContextToken_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    "_contextvars.Token",
+    "Token",
     sizeof(PyContextToken),
     .tp_methods = PyContextTokenType_methods,
     .tp_getset = PyContextTokenType_getsetlist,
@@ -1287,12 +1271,11 @@ get_token_missing(void)
 
 
 void
-_PyContext_ClearFreeList(PyInterpreterState *interp)
+_PyContext_ClearFreeList(void)
 {
-    struct _Py_context_state *state = &interp->context;
-    for (; state->numfree; state->numfree--) {
-        PyContext *ctx = state->freelist;
-        state->freelist = (PyContext *)ctx->ctx_weakreflist;
+    for (; ctx_freelist_len; ctx_freelist_len--) {
+        PyContext *ctx = ctx_freelist;
+        ctx_freelist = (PyContext *)ctx->ctx_weakreflist;
         ctx->ctx_weakreflist = NULL;
         PyObject_GC_Del(ctx);
     }
@@ -1300,16 +1283,10 @@ _PyContext_ClearFreeList(PyInterpreterState *interp)
 
 
 void
-_PyContext_Fini(PyInterpreterState *interp)
+_PyContext_Fini(void)
 {
-    if (_Py_IsMainInterpreter(interp)) {
-        Py_CLEAR(_token_missing);
-    }
-    _PyContext_ClearFreeList(interp);
-#ifdef Py_DEBUG
-    struct _Py_context_state *state = &interp->context;
-    state->numfree = -1;
-#endif
+    Py_CLEAR(_token_missing);
+    _PyContext_ClearFreeList();
     _PyHamt_Fini();
 }
 

@@ -2,8 +2,8 @@ import sys
 import unittest
 import tkinter
 from tkinter import ttk
-from test.support import requires, gc_collect
-from tkinter.test.support import AbstractTkTest, AbstractDefaultRootTest
+from test.support import requires, run_unittest, swap_attr
+from tkinter.test.support import AbstractTkTest, destroy_default_root
 
 requires('gui')
 
@@ -18,7 +18,6 @@ class LabeledScaleTest(AbstractTkTest, unittest.TestCase):
         x = ttk.LabeledScale(self.root)
         var = x._variable._name
         x.destroy()
-        gc_collect()  # For PyPy or other GCs.
         self.assertRaises(tkinter.TclError, x.tk.globalgetvar, var)
 
         # manually created variable
@@ -31,7 +30,6 @@ class LabeledScaleTest(AbstractTkTest, unittest.TestCase):
         else:
             self.assertEqual(float(x.tk.globalgetvar(name)), myvar.get())
         del myvar
-        gc_collect()  # For PyPy or other GCs.
         self.assertRaises(tkinter.TclError, x.tk.globalgetvar, name)
 
         # checking that the tracing callback is properly removed
@@ -47,6 +45,20 @@ class LabeledScaleTest(AbstractTkTest, unittest.TestCase):
         ttk.LabeledScale(self.root, variable=myvar)
         if hasattr(sys, 'last_type'):
             self.assertNotEqual(sys.last_type, tkinter.TclError)
+
+
+    def test_initialization_no_master(self):
+        # no master passing
+        with swap_attr(tkinter, '_default_root', None), \
+             swap_attr(tkinter, '_support_default_root', True):
+            try:
+                x = ttk.LabeledScale()
+                self.assertIsNotNone(tkinter._default_root)
+                self.assertEqual(x.master, tkinter._default_root)
+                self.assertEqual(x.tk, tkinter._default_root.tk)
+                x.destroy()
+            finally:
+                destroy_default_root()
 
     def test_initialization(self):
         # master passing
@@ -173,7 +185,6 @@ class LabeledScaleTest(AbstractTkTest, unittest.TestCase):
     def test_resize(self):
         x = ttk.LabeledScale(self.root)
         x.pack(expand=True, fill='both')
-        gc_collect()  # For PyPy or other GCs.
         x.update()
 
         width, height = x.master.winfo_width(), x.master.winfo_height()
@@ -209,7 +220,6 @@ class OptionMenuTest(AbstractTkTest, unittest.TestCase):
         optmenu.destroy()
         self.assertEqual(optmenu.tk.globalgetvar(name), var.get())
         del var
-        gc_collect()  # For PyPy or other GCs.
         self.assertRaises(tkinter.TclError, optmenu.tk.globalgetvar, name)
 
 
@@ -255,7 +265,6 @@ class OptionMenuTest(AbstractTkTest, unittest.TestCase):
 
         # check that variable is updated correctly
         optmenu.pack()
-        gc_collect()  # For PyPy or other GCs.
         optmenu['menu'].invoke(0)
         self.assertEqual(optmenu._variable.get(), items[0])
 
@@ -301,28 +310,8 @@ class OptionMenuTest(AbstractTkTest, unittest.TestCase):
         optmenu.destroy()
         optmenu2.destroy()
 
-    def test_trace_variable(self):
-        # prior to bpo45160, tracing a variable would cause the callback to be made twice
-        success = []
-        items = ('a', 'b', 'c')
-        textvar = tkinter.StringVar(self.root)
-        def cb_test(*args):
-            success.append(textvar.get())
-        optmenu = ttk.OptionMenu(self.root, textvar, "a", *items)
-        optmenu.pack()
-        cb_name = textvar.trace_add("write", cb_test)
-        optmenu['menu'].invoke(1)
-        self.assertEqual(success, ['b'])
-        self.assertEqual(textvar.get(), 'b')
-        textvar.trace_remove("write", cb_name)
-        optmenu.destroy()
 
-
-class DefaultRootTest(AbstractDefaultRootTest, unittest.TestCase):
-
-    def test_labeledscale(self):
-        self._test_widget(ttk.LabeledScale)
-
+tests_gui = (LabeledScaleTest, OptionMenuTest)
 
 if __name__ == "__main__":
-    unittest.main()
+    run_unittest(*tests_gui)

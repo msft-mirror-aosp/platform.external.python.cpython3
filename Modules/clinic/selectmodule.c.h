@@ -92,7 +92,7 @@ select_poll_register(pollObject *self, PyObject *const *args, Py_ssize_t nargs)
     if (!_PyArg_CheckPositional("register", nargs, 1, 2)) {
         goto exit;
     }
-    if (!_PyLong_FileDescriptor_Converter(args[0], &fd)) {
+    if (!fildes_converter(args[0], &fd)) {
         goto exit;
     }
     if (nargs < 2) {
@@ -140,7 +140,7 @@ select_poll_modify(pollObject *self, PyObject *const *args, Py_ssize_t nargs)
     if (!_PyArg_CheckPositional("modify", nargs, 2, 2)) {
         goto exit;
     }
-    if (!_PyLong_FileDescriptor_Converter(args[0], &fd)) {
+    if (!fildes_converter(args[0], &fd)) {
         goto exit;
     }
     if (!_PyLong_UnsignedShort_Converter(args[1], &eventmask)) {
@@ -174,7 +174,7 @@ select_poll_unregister(pollObject *self, PyObject *arg)
     PyObject *return_value = NULL;
     int fd;
 
-    if (!_PyLong_FileDescriptor_Converter(arg, &fd)) {
+    if (!fildes_converter(arg, &fd)) {
         goto exit;
     }
     return_value = select_poll_unregister_impl(self, fd);
@@ -192,10 +192,6 @@ PyDoc_STRVAR(select_poll_poll__doc__,
 "--\n"
 "\n"
 "Polls the set of registered file descriptors.\n"
-"\n"
-"  timeout\n"
-"    The maximum time to wait in milliseconds, or else None (or a negative\n"
-"    value) to wait indefinitely.\n"
 "\n"
 "Returns a list containing any descriptors that have events or errors to\n"
 "report, as a list of (fd, event) 2-tuples.");
@@ -260,7 +256,7 @@ select_devpoll_register(devpollObject *self, PyObject *const *args, Py_ssize_t n
     if (!_PyArg_CheckPositional("register", nargs, 1, 2)) {
         goto exit;
     }
-    if (!_PyLong_FileDescriptor_Converter(args[0], &fd)) {
+    if (!fildes_converter(args[0], &fd)) {
         goto exit;
     }
     if (nargs < 2) {
@@ -310,7 +306,7 @@ select_devpoll_modify(devpollObject *self, PyObject *const *args, Py_ssize_t nar
     if (!_PyArg_CheckPositional("modify", nargs, 1, 2)) {
         goto exit;
     }
-    if (!_PyLong_FileDescriptor_Converter(args[0], &fd)) {
+    if (!fildes_converter(args[0], &fd)) {
         goto exit;
     }
     if (nargs < 2) {
@@ -348,7 +344,7 @@ select_devpoll_unregister(devpollObject *self, PyObject *arg)
     PyObject *return_value = NULL;
     int fd;
 
-    if (!_PyLong_FileDescriptor_Converter(arg, &fd)) {
+    if (!fildes_converter(arg, &fd)) {
         goto exit;
     }
     return_value = select_devpoll_unregister_impl(self, fd);
@@ -366,10 +362,6 @@ PyDoc_STRVAR(select_devpoll_poll__doc__,
 "--\n"
 "\n"
 "Polls the set of registered file descriptors.\n"
-"\n"
-"  timeout\n"
-"    The maximum time to wait in milliseconds, or else None (or a negative\n"
-"    value) to wait indefinitely.\n"
 "\n"
 "Returns a list containing any descriptors that have events or errors to\n"
 "report, as a list of (fd, event) 2-tuples.");
@@ -539,6 +531,11 @@ select_epoll(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         goto skip_optional_pos;
     }
     if (fastargs[0]) {
+        if (PyFloat_Check(fastargs[0])) {
+            PyErr_SetString(PyExc_TypeError,
+                            "integer argument expected, got float" );
+            goto exit;
+        }
         sizehint = _PyLong_AsInt(fastargs[0]);
         if (sizehint == -1 && PyErr_Occurred()) {
             goto exit;
@@ -546,6 +543,11 @@ select_epoll(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         if (!--noptargs) {
             goto skip_optional_pos;
         }
+    }
+    if (PyFloat_Check(fastargs[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
     }
     flags = _PyLong_AsInt(fastargs[1]);
     if (flags == -1 && PyErr_Occurred()) {
@@ -626,6 +628,11 @@ select_epoll_fromfd(PyTypeObject *type, PyObject *arg)
     PyObject *return_value = NULL;
     int fd;
 
+    if (PyFloat_Check(arg)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
     fd = _PyLong_AsInt(arg);
     if (fd == -1 && PyErr_Occurred()) {
         goto exit;
@@ -676,11 +683,16 @@ select_epoll_register(pyEpoll_Object *self, PyObject *const *args, Py_ssize_t na
     if (!args) {
         goto exit;
     }
-    if (!_PyLong_FileDescriptor_Converter(args[0], &fd)) {
+    if (!fildes_converter(args[0], &fd)) {
         goto exit;
     }
     if (!noptargs) {
         goto skip_optional_pos;
+    }
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
     }
     eventmask = (unsigned int)PyLong_AsUnsignedLongMask(args[1]);
     if (eventmask == (unsigned int)-1 && PyErr_Occurred()) {
@@ -729,7 +741,12 @@ select_epoll_modify(pyEpoll_Object *self, PyObject *const *args, Py_ssize_t narg
     if (!args) {
         goto exit;
     }
-    if (!_PyLong_FileDescriptor_Converter(args[0], &fd)) {
+    if (!fildes_converter(args[0], &fd)) {
+        goto exit;
+    }
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
         goto exit;
     }
     eventmask = (unsigned int)PyLong_AsUnsignedLongMask(args[1]);
@@ -774,7 +791,7 @@ select_epoll_unregister(pyEpoll_Object *self, PyObject *const *args, Py_ssize_t 
     if (!args) {
         goto exit;
     }
-    if (!_PyLong_FileDescriptor_Converter(args[0], &fd)) {
+    if (!fildes_converter(args[0], &fd)) {
         goto exit;
     }
     return_value = select_epoll_unregister_impl(self, fd);
@@ -832,6 +849,11 @@ select_epoll_poll(pyEpoll_Object *self, PyObject *const *args, Py_ssize_t nargs,
         if (!--noptargs) {
             goto skip_optional_pos;
         }
+    }
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
     }
     maxevents = _PyLong_AsInt(args[1]);
     if (maxevents == -1 && PyErr_Occurred()) {
@@ -941,11 +963,11 @@ select_kqueue(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     PyObject *return_value = NULL;
 
-    if ((type == _selectstate_by_type(type)->kqueue_queue_Type) &&
+    if ((type == _selectstate_global->kqueue_queue_Type) &&
         !_PyArg_NoPositional("kqueue", args)) {
         goto exit;
     }
-    if ((type == _selectstate_by_type(type)->kqueue_queue_Type) &&
+    if ((type == _selectstate_global->kqueue_queue_Type) &&
         !_PyArg_NoKeywords("kqueue", kwargs)) {
         goto exit;
     }
@@ -1023,6 +1045,11 @@ select_kqueue_fromfd(PyTypeObject *type, PyObject *arg)
     PyObject *return_value = NULL;
     int fd;
 
+    if (PyFloat_Check(arg)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
     fd = _PyLong_AsInt(arg);
     if (fd == -1 && PyErr_Occurred()) {
         goto exit;
@@ -1071,6 +1098,11 @@ select_kqueue_control(kqueue_queue_Object *self, PyObject *const *args, Py_ssize
         goto exit;
     }
     changelist = args[0];
+    if (PyFloat_Check(args[1])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
     maxevents = _PyLong_AsInt(args[1]);
     if (maxevents == -1 && PyErr_Occurred()) {
         goto exit;
@@ -1187,4 +1219,4 @@ exit:
 #ifndef SELECT_KQUEUE_CONTROL_METHODDEF
     #define SELECT_KQUEUE_CONTROL_METHODDEF
 #endif /* !defined(SELECT_KQUEUE_CONTROL_METHODDEF) */
-/*[clinic end generated code: output=a8fc031269d28454 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=ef42c3485a8fe3a0 input=a9049054013a1b77]*/

@@ -2,7 +2,7 @@
 import re
 
 from tkinter import StringVar, BooleanVar, TclError
-from tkinter import messagebox
+import tkinter.messagebox as tkMessageBox
 
 def get(root):
     '''Return the singleton SearchEngine instance for the process.
@@ -96,7 +96,7 @@ class SearchEngine:
             msg = msg + "\nPattern: " + str(pat)
         if col is not None:
             msg = msg + "\nOffset: " + str(col)
-        messagebox.showerror("Regular expression error",
+        tkMessageBox.showerror("Regular expression error",
                                msg, master=self.root)
 
     def search_text(self, text, prog=None, ok=0):

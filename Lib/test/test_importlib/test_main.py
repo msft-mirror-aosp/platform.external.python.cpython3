@@ -1,9 +1,10 @@
+# coding: utf-8
+
 import re
 import json
 import pickle
 import textwrap
 import unittest
-import warnings
 import importlib.metadata
 
 try:
@@ -13,14 +14,10 @@ except ImportError:
 
 from . import fixtures
 from importlib.metadata import (
-    Distribution,
-    EntryPoint,
-    PackageNotFoundError,
-    distributions,
-    entry_points,
-    metadata,
-    version,
-)
+    Distribution, EntryPoint,
+    PackageNotFoundError, distributions,
+    entry_points, metadata, version,
+    )
 
 
 class BasicTests(fixtures.DistInfoPkg, unittest.TestCase):
@@ -35,16 +32,6 @@ class BasicTests(fixtures.DistInfoPkg, unittest.TestCase):
         with self.assertRaises(PackageNotFoundError):
             Distribution.from_name('does-not-exist')
 
-    def test_package_not_found_mentions_metadata(self):
-        # When a package is not found, that could indicate that the
-        # packgae is not installed or that it is installed without
-        # metadata. Ensure the exception mentions metadata to help
-        # guide users toward the cause. See #124.
-        with self.assertRaises(PackageNotFoundError) as ctx:
-            Distribution.from_name('does-not-exist')
-
-        assert "metadata" in str(ctx.exception)
-
     def test_new_style_classes(self):
         self.assertIsInstance(Distribution, type)
 
@@ -57,11 +44,13 @@ class ImportTests(fixtures.DistInfoPkg, unittest.TestCase):
             importlib.import_module('does_not_exist')
 
     def test_resolve(self):
-        ep = entry_points(group='entries')['main']
+        entries = dict(entry_points()['entries'])
+        ep = entries['main']
         self.assertEqual(ep.load().__name__, "main")
 
     def test_entrypoint_with_colon_in_name(self):
-        ep = entry_points(group='entries')['ns:sub']
+        entries = dict(entry_points()['entries'])
+        ep = entries['ns:sub']
         self.assertEqual(ep.value, 'mod:main')
 
     def test_resolve_without_attr(self):
@@ -69,11 +58,12 @@ class ImportTests(fixtures.DistInfoPkg, unittest.TestCase):
             name='ep',
             value='importlib.metadata',
             group='grp',
-        )
+            )
         assert ep.load() is importlib.metadata
 
 
-class NameNormalizationTests(fixtures.OnSysPath, fixtures.SiteDir, unittest.TestCase):
+class NameNormalizationTests(
+        fixtures.OnSysPath, fixtures.SiteDir, unittest.TestCase):
     @staticmethod
     def pkg_with_dashes(site_dir):
         """
@@ -83,13 +73,15 @@ class NameNormalizationTests(fixtures.OnSysPath, fixtures.SiteDir, unittest.Test
         metadata_dir = site_dir / 'my_pkg.dist-info'
         metadata_dir.mkdir()
         metadata = metadata_dir / 'METADATA'
-        with metadata.open('w', encoding='utf-8') as strm:
+        with metadata.open('w') as strm:
             strm.write('Version: 1.0\n')
         return 'my-pkg'
 
     def test_dashes_in_dist_name_found_as_underscores(self):
-        # For a package with a dash in the name, the dist-info metadata
-        # uses underscores in the name. Ensure the metadata loads.
+        """
+        For a package with a dash in the name, the dist-info metadata
+        uses underscores in the name. Ensure the metadata loads.
+        """
         pkg_name = self.pkg_with_dashes(self.site_dir)
         assert version(pkg_name) == '1.0'
 
@@ -102,12 +94,14 @@ class NameNormalizationTests(fixtures.OnSysPath, fixtures.SiteDir, unittest.Test
         metadata_dir = site_dir / 'CherryPy.dist-info'
         metadata_dir.mkdir()
         metadata = metadata_dir / 'METADATA'
-        with metadata.open('w', encoding='utf-8') as strm:
+        with metadata.open('w') as strm:
             strm.write('Version: 1.0\n')
         return 'CherryPy'
 
     def test_dist_name_found_as_any_case(self):
-        # Ensure the metadata loads when queried with any case.
+        """
+        Ensure the metadata loads when queried with any case.
+        """
         pkg_name = self.pkg_with_mixed_case(self.site_dir)
         assert version(pkg_name) == '1.0'
         assert version(pkg_name.lower()) == '1.0'
@@ -125,7 +119,7 @@ class NonASCIITests(fixtures.OnSysPath, fixtures.SiteDir, unittest.TestCase):
         metadata_dir.mkdir()
         metadata = metadata_dir / 'METADATA'
         with metadata.open('w', encoding='utf-8') as fp:
-            fp.write('Description: pôrˈtend')
+            fp.write('Description: pôrˈtend\n')
         return 'portend'
 
     @staticmethod
@@ -138,15 +132,11 @@ class NonASCIITests(fixtures.OnSysPath, fixtures.SiteDir, unittest.TestCase):
         metadata_dir.mkdir()
         metadata = metadata_dir / 'METADATA'
         with metadata.open('w', encoding='utf-8') as fp:
-            fp.write(
-                textwrap.dedent(
-                    """
+            fp.write(textwrap.dedent("""
                 Name: portend
 
                 pôrˈtend
-                """
-                ).strip()
-            )
+                """).lstrip())
         return 'portend'
 
     def test_metadata_loads(self):
@@ -157,15 +147,27 @@ class NonASCIITests(fixtures.OnSysPath, fixtures.SiteDir, unittest.TestCase):
     def test_metadata_loads_egg_info(self):
         pkg_name = self.pkg_with_non_ascii_description_egg_info(self.site_dir)
         meta = metadata(pkg_name)
-        assert meta['Description'] == 'pôrˈtend'
+        assert meta.get_payload() == 'pôrˈtend\n'
 
 
-class DiscoveryTests(fixtures.EggInfoPkg, fixtures.DistInfoPkg, unittest.TestCase):
+class DiscoveryTests(fixtures.EggInfoPkg,
+                     fixtures.DistInfoPkg,
+                     unittest.TestCase):
+
     def test_package_discovery(self):
         dists = list(distributions())
-        assert all(isinstance(dist, Distribution) for dist in dists)
-        assert any(dist.metadata['Name'] == 'egginfo-pkg' for dist in dists)
-        assert any(dist.metadata['Name'] == 'distinfo-pkg' for dist in dists)
+        assert all(
+            isinstance(dist, Distribution)
+            for dist in dists
+            )
+        assert any(
+            dist.metadata['Name'] == 'egginfo-pkg'
+            for dist in dists
+            )
+        assert any(
+            dist.metadata['Name'] == 'distinfo-pkg'
+            for dist in dists
+            )
 
     def test_invalid_usage(self):
         with self.assertRaises(ValueError):
@@ -235,14 +237,15 @@ class TestEntryPoints(unittest.TestCase):
         assert "'name'" in repr(self.ep)
 
     def test_hashable(self):
-        # EntryPoints should be hashable.
+        """EntryPoints should be hashable"""
         hash(self.ep)
 
     def test_json_dump(self):
-        # json should not expect to be able to dump an EntryPoint.
+        """
+        json should not expect to be able to dump an EntryPoint
+        """
         with self.assertRaises(Exception):
-            with warnings.catch_warnings(record=True):
-                json.dumps(self.ep)
+            json.dumps(self.ep)
 
     def test_module(self):
         assert self.ep.module == 'value'
@@ -250,24 +253,17 @@ class TestEntryPoints(unittest.TestCase):
     def test_attr(self):
         assert self.ep.attr is None
 
-    def test_sortable(self):
-        # EntryPoint objects are sortable, but result is undefined.
-        sorted(
-            [
-                EntryPoint('b', 'val', 'group'),
-                EntryPoint('a', 'val', 'group'),
-            ]
-        )
-
 
 class FileSystem(
-    fixtures.OnSysPath, fixtures.SiteDir, fixtures.FileBuilder, unittest.TestCase
-):
+        fixtures.OnSysPath, fixtures.SiteDir, fixtures.FileBuilder,
+        unittest.TestCase):
     def test_unicode_dir_on_sys_path(self):
-        # Ensure a Unicode subdirectory of a directory on sys.path
-        # does not crash.
+        """
+        Ensure a Unicode subdirectory of a directory on sys.path
+        does not crash.
+        """
         fixtures.build_files(
             {self.unicode_filename(): {}},
             prefix=self.site_dir,
-        )
+            )
         list(distributions())

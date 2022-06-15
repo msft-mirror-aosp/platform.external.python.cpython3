@@ -92,9 +92,14 @@ EVPXOF_digest(EVPobject *self, PyObject *const *args, Py_ssize_t nargs, PyObject
     if (!args) {
         goto exit;
     }
+    if (PyFloat_Check(args[0])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
     {
         Py_ssize_t ival = -1;
-        PyObject *iobj = _PyNumber_Index(args[0]);
+        PyObject *iobj = PyNumber_Index(args[0]);
         if (iobj != NULL) {
             ival = PyLong_AsSsize_t(iobj);
             Py_DECREF(iobj);
@@ -139,9 +144,14 @@ EVPXOF_hexdigest(EVPobject *self, PyObject *const *args, Py_ssize_t nargs, PyObj
     if (!args) {
         goto exit;
     }
+    if (PyFloat_Check(args[0])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
     {
         Py_ssize_t ival = -1;
-        PyObject *iobj = _PyNumber_Index(args[0]);
+        PyObject *iobj = PyNumber_Index(args[0]);
         if (iobj != NULL) {
             ival = PyLong_AsSsize_t(iobj);
             Py_DECREF(iobj);
@@ -926,6 +936,11 @@ pbkdf2_hmac(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject 
         _PyArg_BadArgument("pbkdf2_hmac", "argument 'salt'", "contiguous buffer", args[2]);
         goto exit;
     }
+    if (PyFloat_Check(args[3])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
+    }
     iterations = PyLong_AsLong(args[3]);
     if (iterations == -1 && PyErr_Occurred()) {
         goto exit;
@@ -950,7 +965,7 @@ exit:
     return return_value;
 }
 
-#if defined(PY_OPENSSL_HAS_SCRYPT)
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L && !defined(OPENSSL_NO_SCRYPT) && !defined(LIBRESSL_VERSION_NUMBER))
 
 PyDoc_STRVAR(_hashlib_scrypt__doc__,
 "scrypt($module, /, password, *, salt=None, n=None, r=None, p=None,\n"
@@ -1040,6 +1055,11 @@ _hashlib_scrypt(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
         }
     }
     if (args[5]) {
+        if (PyFloat_Check(args[5])) {
+            PyErr_SetString(PyExc_TypeError,
+                            "integer argument expected, got float" );
+            goto exit;
+        }
         maxmem = PyLong_AsLong(args[5]);
         if (maxmem == -1 && PyErr_Occurred()) {
             goto exit;
@@ -1047,6 +1067,11 @@ _hashlib_scrypt(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObj
         if (!--noptargs) {
             goto skip_optional_kwonly;
         }
+    }
+    if (PyFloat_Check(args[6])) {
+        PyErr_SetString(PyExc_TypeError,
+                        "integer argument expected, got float" );
+        goto exit;
     }
     dklen = PyLong_AsLong(args[6]);
     if (dklen == -1 && PyErr_Occurred()) {
@@ -1068,7 +1093,7 @@ exit:
     return return_value;
 }
 
-#endif /* defined(PY_OPENSSL_HAS_SCRYPT) */
+#endif /* (OPENSSL_VERSION_NUMBER > 0x10100000L && !defined(OPENSSL_NO_SCRYPT) && !defined(LIBRESSL_VERSION_NUMBER)) */
 
 PyDoc_STRVAR(_hashlib_hmac_singleshot__doc__,
 "hmac_digest($module, /, key, msg, digest)\n"
@@ -1081,7 +1106,7 @@ PyDoc_STRVAR(_hashlib_hmac_singleshot__doc__,
 
 static PyObject *
 _hashlib_hmac_singleshot_impl(PyObject *module, Py_buffer *key,
-                              Py_buffer *msg, PyObject *digest);
+                              Py_buffer *msg, const char *digest);
 
 static PyObject *
 _hashlib_hmac_singleshot(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
@@ -1092,7 +1117,7 @@ _hashlib_hmac_singleshot(PyObject *module, PyObject *const *args, Py_ssize_t nar
     PyObject *argsbuf[3];
     Py_buffer key = {NULL, NULL};
     Py_buffer msg = {NULL, NULL};
-    PyObject *digest;
+    const char *digest;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 3, 3, 0, argsbuf);
     if (!args) {
@@ -1112,7 +1137,19 @@ _hashlib_hmac_singleshot(PyObject *module, PyObject *const *args, Py_ssize_t nar
         _PyArg_BadArgument("hmac_digest", "argument 'msg'", "contiguous buffer", args[1]);
         goto exit;
     }
-    digest = args[2];
+    if (!PyUnicode_Check(args[2])) {
+        _PyArg_BadArgument("hmac_digest", "argument 'digest'", "str", args[2]);
+        goto exit;
+    }
+    Py_ssize_t digest_length;
+    digest = PyUnicode_AsUTF8AndSize(args[2], &digest_length);
+    if (digest == NULL) {
+        goto exit;
+    }
+    if (strlen(digest) != (size_t)digest_length) {
+        PyErr_SetString(PyExc_ValueError, "embedded null character");
+        goto exit;
+    }
     return_value = _hashlib_hmac_singleshot_impl(module, &key, &msg, digest);
 
 exit:
@@ -1139,7 +1176,7 @@ PyDoc_STRVAR(_hashlib_hmac_new__doc__,
 
 static PyObject *
 _hashlib_hmac_new_impl(PyObject *module, Py_buffer *key, PyObject *msg_obj,
-                       PyObject *digestmod);
+                       const char *digestmod);
 
 static PyObject *
 _hashlib_hmac_new(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
@@ -1151,7 +1188,7 @@ _hashlib_hmac_new(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
     Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
     Py_buffer key = {NULL, NULL};
     PyObject *msg_obj = NULL;
-    PyObject *digestmod = NULL;
+    const char *digestmod = NULL;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 1, 3, 0, argsbuf);
     if (!args) {
@@ -1173,7 +1210,19 @@ _hashlib_hmac_new(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyO
             goto skip_optional_pos;
         }
     }
-    digestmod = args[2];
+    if (!PyUnicode_Check(args[2])) {
+        _PyArg_BadArgument("hmac_new", "argument 'digestmod'", "str", args[2]);
+        goto exit;
+    }
+    Py_ssize_t digestmod_length;
+    digestmod = PyUnicode_AsUTF8AndSize(args[2], &digestmod_length);
+    if (digestmod == NULL) {
+        goto exit;
+    }
+    if (strlen(digestmod) != (size_t)digestmod_length) {
+        PyErr_SetString(PyExc_ValueError, "embedded null character");
+        goto exit;
+    }
 skip_optional_pos:
     return_value = _hashlib_hmac_new_impl(module, &key, msg_obj, digestmod);
 
@@ -1275,6 +1324,8 @@ _hashlib_HMAC_hexdigest(HMACobject *self, PyObject *Py_UNUSED(ignored))
     return _hashlib_HMAC_hexdigest_impl(self);
 }
 
+#if !defined(LIBRESSL_VERSION_NUMBER)
+
 PyDoc_STRVAR(_hashlib_get_fips_mode__doc__,
 "get_fips_mode($module, /)\n"
 "--\n"
@@ -1309,6 +1360,8 @@ _hashlib_get_fips_mode(PyObject *module, PyObject *Py_UNUSED(ignored))
 exit:
     return return_value;
 }
+
+#endif /* !defined(LIBRESSL_VERSION_NUMBER) */
 
 PyDoc_STRVAR(_hashlib_compare_digest__doc__,
 "compare_digest($module, a, b, /)\n"
@@ -1385,4 +1438,8 @@ exit:
 #ifndef _HASHLIB_SCRYPT_METHODDEF
     #define _HASHLIB_SCRYPT_METHODDEF
 #endif /* !defined(_HASHLIB_SCRYPT_METHODDEF) */
-/*[clinic end generated code: output=162369cb9d43f1cc input=a9049054013a1b77]*/
+
+#ifndef _HASHLIB_GET_FIPS_MODE_METHODDEF
+    #define _HASHLIB_GET_FIPS_MODE_METHODDEF
+#endif /* !defined(_HASHLIB_GET_FIPS_MODE_METHODDEF) */
+/*[clinic end generated code: output=b6b280e46bf0b139 input=a9049054013a1b77]*/

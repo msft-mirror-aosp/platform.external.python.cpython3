@@ -1780,12 +1780,7 @@ static PyTypeObject ChannelIDtype = {
     0,                              /* tp_getattro */
     0,                              /* tp_setattro */
     0,                              /* tp_as_buffer */
-    // Use Py_TPFLAGS_DISALLOW_INSTANTIATION so the type cannot be instantiated
-    // from Python code.  We do this because there is a strong relationship
-    // between channel IDs and the channel lifecycle, so this limitation avoids
-    // related complications. Use the _channel_id() function instead.
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE
-        | Py_TPFLAGS_DISALLOW_INSTANTIATION, /* tp_flags */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
     channelid_doc,                  /* tp_doc */
     0,                              /* tp_traverse */
     0,                              /* tp_clear */
@@ -1796,6 +1791,19 @@ static PyTypeObject ChannelIDtype = {
     0,                              /* tp_methods */
     0,                              /* tp_members */
     channelid_getsets,              /* tp_getset */
+    0,                              /* tp_base */
+    0,                              /* tp_dict */
+    0,                              /* tp_descr_get */
+    0,                              /* tp_descr_set */
+    0,                              /* tp_dictoffset */
+    0,                              /* tp_init */
+    0,                              /* tp_alloc */
+    // Note that we do not set tp_new to channelid_new.  Instead we
+    // set it to NULL, meaning it cannot be instantiated from Python
+    // code.  We do this because there is a strong relationship between
+    // channel IDs and the channel lifecycle, so this limitation avoids
+    // related complications.
+    NULL,                           /* tp_new */
 };
 
 
@@ -1839,7 +1847,7 @@ _is_running(PyInterpreterState *interp)
         return 0;
     }
 
-    int executing = _PyFrame_IsExecuting(frame);
+    int executing = (int)(frame->f_executing);
     Py_DECREF(frame);
 
     return executing;
@@ -1931,20 +1939,6 @@ _run_script_in_interpreter(PyInterpreterState *interp, const char *codestr,
         return -1;
     }
 
-#ifdef EXPERIMENTAL_ISOLATED_SUBINTERPRETERS
-    // Switch to interpreter.
-    PyThreadState *new_tstate = PyInterpreterState_ThreadHead(interp);
-    PyThreadState *save1 = PyEval_SaveThread();
-
-    (void)PyThreadState_Swap(new_tstate);
-
-    // Run the script.
-    _sharedexception *exc = NULL;
-    int result = _run_script(interp, codestr, shared, &exc);
-
-    // Switch back.
-    PyEval_RestoreThread(save1);
-#else
     // Switch to interpreter.
     PyThreadState *save_tstate = NULL;
     if (interp != PyInterpreterState_Get()) {
@@ -1962,7 +1956,6 @@ _run_script_in_interpreter(PyInterpreterState *interp, const char *codestr,
     if (save_tstate != NULL) {
         PyThreadState_Swap(save_tstate);
     }
-#endif
 
     // Propagate any exception out to the caller.
     if (exc != NULL) {
@@ -2017,7 +2010,7 @@ interp_create(PyObject *self, PyObject *args, PyObject *kwds)
     }
 
     // Create and initialize the new interpreter.
-    PyThreadState *save_tstate = PyThreadState_Get();
+    PyThreadState *save_tstate = PyThreadState_Swap(NULL);
     // XXX Possible GILState issues?
     PyThreadState *tstate = _Py_NewInterpreter(isolated);
     PyThreadState_Swap(save_tstate);

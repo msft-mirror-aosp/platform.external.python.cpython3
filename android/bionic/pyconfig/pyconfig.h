@@ -17,12 +17,6 @@
    support for AIX C++ shared extension modules. */
 /* #undef AIX_GENUINE_CPLUSPLUS */
 
-/* The normal alignment of `long', in bytes. */
-#define ALIGNOF_LONG 8
-
-/* The normal alignment of `size_t', in bytes. */
-#define ALIGNOF_SIZE_T 8
-
 /* Alternative SOABI used in debug build to load C extensions built in release
    mode */
 /* #undef ALT_SOABI */
@@ -44,9 +38,6 @@
 
 /* Define if --enable-ipv6 is specified */
 #define ENABLE_IPV6 1
-
-/* Better isolate subinterpreters, experimental build mode. */
-/* #undef EXPERIMENTAL_ISOLATED_SUBINTERPRETERS */
 
 /* Define to 1 if your system stores words within floats with the most
    significant word first */
@@ -122,7 +113,7 @@
 /* Define if `unsetenv` does not return an int. */
 /* #undef HAVE_BROKEN_UNSETENV */
 
-/* Has builtin __atomic_load_n() and __atomic_store_n() functions */
+/* Has builtin atomics */
 #define HAVE_BUILTIN_ATOMIC 1
 
 /* Define to 1 if you have the 'chflags' function. */
@@ -145,9 +136,6 @@
 
 /* Define to 1 if you have the `clock_settime' function. */
 #define HAVE_CLOCK_SETTIME 1
-
-/* Define to 1 if you have the `close_range' function. */
-/* #undef HAVE_CLOSE_RANGE */
 
 /* Define if the C compiler supports computed gotos. */
 #define HAVE_COMPUTED_GOTOS 1
@@ -294,9 +282,6 @@
 /* Define to 1 if you have the `dup3' function. */
 #define HAVE_DUP3 1
 
-/* Define if you have the '_dyld_shared_cache_contains_path' function. */
-/* #undef HAVE_DYLD_SHARED_CACHE_CONTAINS_PATH */
-
 /* Defined when any dynamic module loading is enabled. */
 #define HAVE_DYNAMIC_LOADING 1
 
@@ -317,9 +302,6 @@
 
 /* Define to 1 if you have the <errno.h> header file. */
 #define HAVE_ERRNO_H 1
-
-/* Define if you have the 'eventfd' function. */
-#define HAVE_EVENTFD 1
 
 /* Define to 1 if you have the `execv' function. */
 #define HAVE_EXECV 1
@@ -619,7 +601,7 @@
 /* Define to 1 if you have the <libintl.h> header file. */
 /* #undef HAVE_LIBINTL_H */
 
-/* Define to build the readline module. */
+/* Define if you have the readline library (-lreadline). */
 /* #undef HAVE_LIBREADLINE */
 
 /* Define to 1 if you have the `resolv' library (-lresolv). */
@@ -631,17 +613,11 @@
 /* Define to 1 if you have the <libutil.h> header file. */
 /* #undef HAVE_LIBUTIL_H */
 
-/* Define to 1 if you have the `uuid' library (-luuid). */
-/* #undef HAVE_LIBUUID */
-
 /* Define if you have the 'link' function. */
 #define HAVE_LINK 1
 
 /* Define to 1 if you have the `linkat' function. */
 #define HAVE_LINKAT 1
-
-/* Define to 1 if you have the <linux/auxvec.h> header file. */
-#define HAVE_LINUX_AUXVEC_H 1
 
 /* Define to 1 if you have the <linux/can/bcm.h> header file. */
 #define HAVE_LINUX_CAN_BCM_H 1
@@ -757,10 +733,6 @@
 /* Define to 1 if you have the `nice' function. */
 #define HAVE_NICE 1
 
-/* Define if the internal form of wchar_t in non-Unicode locales is not
-   Unicode. */
-/* #undef HAVE_NON_UNICODE_WCHAR_T_REPRESENTATION */
-
 /* Define to 1 if you have the `openat' function. */
 #define HAVE_OPENAT 1
 
@@ -808,6 +780,9 @@
 
 /* Define if you have the 'prlimit' functions. */
 #define HAVE_PRLIMIT 1
+
+/* Define if you have the '_dyld_shared_cache_contains_path' function. */
+/* #undef HAVE_DYLD_SHARED_CACHE_CONTAINS_PATH */
 
 /* Define to 1 if you have the <process.h> header file. */
 /* #undef HAVE_PROCESS_H */
@@ -867,10 +842,10 @@
 /* #undef HAVE_RL_APPEND_HISTORY */
 
 /* Define if you can turn off readline's signal handling. */
-/* #undef HAVE_RL_CATCH_SIGNAL */
+#define HAVE_RL_CATCH_SIGNAL 1
 
 /* Define if you have readline 2.2 */
-/* #undef HAVE_RL_COMPLETION_APPEND_CHARACTER */
+#define HAVE_RL_COMPLETION_APPEND_CHARACTER 1
 
 /* Define if you have readline 4.0 */
 /* #undef HAVE_RL_COMPLETION_DISPLAY_MATCHES_HOOK */
@@ -879,7 +854,7 @@
 /* #undef HAVE_RL_COMPLETION_MATCHES */
 
 /* Define if you have rl_completion_suppress_append */
-/* #undef HAVE_RL_COMPLETION_SUPPRESS_APPEND */
+#define HAVE_RL_COMPLETION_SUPPRESS_APPEND 1
 
 /* Define if you have readline 4.0 */
 /* #undef HAVE_RL_PRE_INPUT_HOOK */
@@ -910,9 +885,6 @@
 
 /* Define to 1 if you have the `sched_setscheduler' function. */
 #define HAVE_SCHED_SETSCHEDULER 1
-
-/* Define to 1 if you have the `sem_clockwait' function. */
-/* #undef HAVE_SEM_CLOCKWAIT */
 
 /* Define to 1 if you have the `sem_getvalue' function. */
 #define HAVE_SEM_GETVALUE 1
@@ -1040,9 +1012,6 @@
 /* Define to 1 if you have the <spawn.h> header file. */
 #define HAVE_SPAWN_H 1
 
-/* Define to 1 if you have the `splice' function. */
-#define HAVE_SPLICE 1
-
 /* Define if your compiler provides ssize_t */
 #define HAVE_SSIZE_T 1
 
@@ -1067,6 +1036,9 @@
 
 /* Has stdatomic.h with atomic_int and atomic_uintptr_t */
 #define HAVE_STD_ATOMIC 1
+
+/* Define to 1 if you have the `strdup' function. */
+#define HAVE_STRDUP 1
 
 /* Define to 1 if you have the `strftime' function. */
 #define HAVE_STRFTIME 1
@@ -1146,9 +1118,6 @@
 
 /* Define to 1 if you have the <sys/epoll.h> header file. */
 #define HAVE_SYS_EPOLL_H 1
-
-/* Define to 1 if you have the <sys/eventfd.h> header file. */
-#define HAVE_SYS_EVENTFD_H 1
 
 /* Define to 1 if you have the <sys/event.h> header file. */
 /* #undef HAVE_SYS_EVENT_H */
@@ -1335,9 +1304,6 @@
 /* Define to 1 if you have the <uuid/uuid.h> header file. */
 /* #undef HAVE_UUID_UUID_H */
 
-/* Define to 1 if you have the `vfork' function. */
-#define HAVE_VFORK 1
-
 /* Define to 1 if you have the `wait3' function. */
 /* #undef HAVE_WAIT3 */
 
@@ -1371,6 +1337,9 @@
 
 /* Define to 1 if you have the `writev' function. */
 #define HAVE_WRITEV 1
+
+/* Define if libssl has X509_VERIFY_PARAM_set1_host and related function */
+/* #undef HAVE_X509_VERIFY_PARAM_SET1_HOST */
 
 /* Define if the zlib library has inflateCopy */
 #define HAVE_ZLIB_COPY 1
@@ -1525,9 +1494,6 @@
    (which you can't on SCO ODT 3.0). */
 #define SYS_SELECT_WITH_SYS_TIME 1
 
-/* Custom thread stack size depending on chosen sanitizer runtimes. */
-/* #undef THREAD_STACK_SIZE */
-
 /* Library needed by timemodule.c: librt may be needed for clock_gettime() */
 /* #undef TIMEMODULE_LIB */
 
@@ -1579,9 +1545,6 @@
    linker (dyld) instead of the old-style (NextStep) dynamic linker (rld).
    Dyld is necessary to support frameworks. */
 /* #undef WITH_DYLD */
-
-/* Define to build the readline module against Editline. */
-/* #undef WITH_EDITLINE */
 
 /* Define to 1 if libintl is needed for locale functions. */
 /* #undef WITH_LIBINTL */
@@ -1665,6 +1628,11 @@
 
 /* Define on FreeBSD to activate all library features */
 #define __BSD_VISIBLE 1
+
+/* Define to 1 if type `char' is unsigned and you are not using gcc.  */
+#ifndef __CHAR_UNSIGNED__
+/* # undef __CHAR_UNSIGNED__ */
+#endif
 
 /* Define to 'long' if <time.h> doesn't define. */
 /* #undef clock_t */

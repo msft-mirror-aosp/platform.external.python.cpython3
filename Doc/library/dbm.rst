@@ -216,7 +216,7 @@ supported.
       contains them all::
 
          k = db.firstkey()
-         while k is not None:
+         while k != None:
              print(k)
              k = db.nextkey(k)
 

@@ -480,8 +480,7 @@ If you have an object ``x``, you can view its JSON string representation with a
 simple line of code::
 
    >>> import json
-   >>> x = [1, 'simple', 'list']
-   >>> json.dumps(x)
+   >>> json.dumps([1, 'simple', 'list'])
    '[1, "simple", "list"]'
 
 Another variant of the :func:`~json.dumps` function, called :func:`~json.dump`,

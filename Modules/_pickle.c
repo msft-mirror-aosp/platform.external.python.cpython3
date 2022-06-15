@@ -9,7 +9,6 @@
 #endif
 
 #include "Python.h"
-#include "pycore_moduleobject.h"  // _PyModule_GetState()
 #include "structmember.h"         // PyMemberDef
 
 PyDoc_STRVAR(pickle_module_doc,
@@ -183,7 +182,7 @@ static struct PyModuleDef _picklemodule;
 static PickleState *
 _Pickle_GetState(PyObject *module)
 {
-    return (PickleState *)_PyModule_GetState(module);
+    return (PickleState *)PyModule_GetState(module);
 }
 
 /* Find the module instance imported in the currently running sub-interpreter
@@ -443,8 +442,8 @@ Pdata_dealloc(Pdata *self)
     while (--i >= 0) {
         Py_DECREF(self->data[i]);
     }
-    PyMem_Free(self->data);
-    PyObject_Free(self);
+    PyMem_FREE(self->data);
+    PyObject_Del(self);
 }
 
 static PyTypeObject Pdata_Type = {
@@ -466,7 +465,7 @@ Pdata_New(void)
     self->mark_set = 0;
     self->fence = 0;
     self->allocated = 8;
-    self->data = PyMem_Malloc(self->allocated * sizeof(PyObject *));
+    self->data = PyMem_MALLOC(self->allocated * sizeof(PyObject *));
     if (self->data)
         return (PyObject *)self;
     Py_DECREF(self);
@@ -727,7 +726,7 @@ static PyTypeObject Unpickler_Type;
 static PyMemoTable *
 PyMemoTable_New(void)
 {
-    PyMemoTable *memo = PyMem_Malloc(sizeof(PyMemoTable));
+    PyMemoTable *memo = PyMem_MALLOC(sizeof(PyMemoTable));
     if (memo == NULL) {
         PyErr_NoMemory();
         return NULL;
@@ -736,9 +735,9 @@ PyMemoTable_New(void)
     memo->mt_used = 0;
     memo->mt_allocated = MT_MINSIZE;
     memo->mt_mask = MT_MINSIZE - 1;
-    memo->mt_table = PyMem_Malloc(MT_MINSIZE * sizeof(PyMemoEntry));
+    memo->mt_table = PyMem_MALLOC(MT_MINSIZE * sizeof(PyMemoEntry));
     if (memo->mt_table == NULL) {
-        PyMem_Free(memo);
+        PyMem_FREE(memo);
         PyErr_NoMemory();
         return NULL;
     }
@@ -759,10 +758,10 @@ PyMemoTable_Copy(PyMemoTable *self)
     new->mt_mask = self->mt_mask;
     /* The table we get from _New() is probably smaller than we wanted.
        Free it and allocate one that's the right size. */
-    PyMem_Free(new->mt_table);
+    PyMem_FREE(new->mt_table);
     new->mt_table = PyMem_NEW(PyMemoEntry, self->mt_allocated);
     if (new->mt_table == NULL) {
-        PyMem_Free(new);
+        PyMem_FREE(new);
         PyErr_NoMemory();
         return NULL;
     }
@@ -801,8 +800,8 @@ PyMemoTable_Del(PyMemoTable *self)
         return;
     PyMemoTable_Clear(self);
 
-    PyMem_Free(self->mt_table);
-    PyMem_Free(self);
+    PyMem_FREE(self->mt_table);
+    PyMem_FREE(self);
 }
 
 /* Since entries cannot be deleted from this hashtable, _PyMemoTable_Lookup()
@@ -881,7 +880,7 @@ _PyMemoTable_ResizeTable(PyMemoTable *self, size_t min_size)
     }
 
     /* Deallocate the old table. */
-    PyMem_Free(oldtable);
+    PyMem_FREE(oldtable);
     return 0;
 }
 
@@ -1583,7 +1582,7 @@ _Unpickler_MemoCleanup(UnpicklerObject *self)
     while (--i >= 0) {
         Py_XDECREF(memo[i]);
     }
-    PyMem_Free(memo);
+    PyMem_FREE(memo);
 }
 
 static UnpicklerObject *
@@ -1716,7 +1715,7 @@ memo_get(PicklerObject *self, PyObject *key)
     if (!self->bin) {
         pdata[0] = GET;
         PyOS_snprintf(pdata + 1, sizeof(pdata) - 1,
-                      "%zd\n", *value);
+                      "%" PY_FORMAT_SIZE_T "d\n", *value);
         len = strlen(pdata);
     }
     else {
@@ -1773,7 +1772,7 @@ memo_put(PicklerObject *self, PyObject *obj)
     else if (!self->bin) {
         pdata[0] = PUT;
         PyOS_snprintf(pdata + 1, sizeof(pdata) - 1,
-                      "%zd\n", idx);
+                      "%" PY_FORMAT_SIZE_T "d\n", idx);
         len = strlen(pdata);
     }
     else {
@@ -2005,21 +2004,26 @@ fast_save_enter(PicklerObject *self, PyObject *obj)
             self->fast_nesting = -1;
             return 0;
         }
-        int r = PyDict_Contains(self->fast_memo, key);
-        if (r > 0) {
+        if (PyDict_GetItemWithError(self->fast_memo, key)) {
+            Py_DECREF(key);
             PyErr_Format(PyExc_ValueError,
                          "fast mode: can't pickle cyclic objects "
                          "including object type %.200s at %p",
                          Py_TYPE(obj)->tp_name, obj);
-        }
-        else if (r == 0) {
-            r = PyDict_SetItem(self->fast_memo, key, Py_None);
-        }
-        Py_DECREF(key);
-        if (r != 0) {
             self->fast_nesting = -1;
             return 0;
         }
+        if (PyErr_Occurred()) {
+            Py_DECREF(key);
+            self->fast_nesting = -1;
+            return 0;
+        }
+        if (PyDict_SetItem(self->fast_memo, key, Py_None) < 0) {
+            Py_DECREF(key);
+            self->fast_nesting = -1;
+            return 0;
+        }
+        Py_DECREF(key);
     }
     return 1;
 }
@@ -4527,7 +4531,7 @@ dump(PicklerObject *self, PyObject *obj)
      * call when setting the reducer_override attribute of the Pickler instance
      * to a bound method of the same instance. This is important as the Pickler
      * instance holds a reference to each object it has pickled (through its
-     * memo): thus, these objects won't be garbage-collected as long as the
+     * memo): thus, these objects wont be garbage-collected as long as the
      * Pickler itself is not collected. */
     Py_CLEAR(self->reducer_override);
     return status;
@@ -5908,75 +5912,118 @@ load_inst(UnpicklerObject *self)
     return 0;
 }
 
-static void
-newobj_unpickling_error(const char * msg, int use_kwargs, PyObject *arg)
+static int
+load_newobj(UnpicklerObject *self)
 {
+    PyObject *args = NULL;
+    PyObject *clsraw = NULL;
+    PyTypeObject *cls;          /* clsraw cast to its true type */
+    PyObject *obj;
     PickleState *st = _Pickle_GetGlobalState();
-    PyErr_Format(st->UnpicklingError, msg,
-                 use_kwargs ? "NEWOBJ_EX" : "NEWOBJ",
-                 Py_TYPE(arg)->tp_name);
+
+    /* Stack is ... cls argtuple, and we want to call
+     * cls.__new__(cls, *argtuple).
+     */
+    PDATA_POP(self->stack, args);
+    if (args == NULL)
+        goto error;
+    if (!PyTuple_Check(args)) {
+        PyErr_SetString(st->UnpicklingError,
+                        "NEWOBJ expected an arg " "tuple.");
+        goto error;
+    }
+
+    PDATA_POP(self->stack, clsraw);
+    cls = (PyTypeObject *)clsraw;
+    if (cls == NULL)
+        goto error;
+    if (!PyType_Check(cls)) {
+        PyErr_SetString(st->UnpicklingError, "NEWOBJ class argument "
+                        "isn't a type object");
+        goto error;
+    }
+    if (cls->tp_new == NULL) {
+        PyErr_SetString(st->UnpicklingError, "NEWOBJ class argument "
+                        "has NULL tp_new");
+        goto error;
+    }
+
+    /* Call __new__. */
+    obj = cls->tp_new(cls, args, NULL);
+    if (obj == NULL)
+        goto error;
+
+    Py_DECREF(args);
+    Py_DECREF(clsraw);
+    PDATA_PUSH(self->stack, obj, -1);
+    return 0;
+
+  error:
+    Py_XDECREF(args);
+    Py_XDECREF(clsraw);
+    return -1;
 }
 
 static int
-load_newobj(UnpicklerObject *self, int use_kwargs)
+load_newobj_ex(UnpicklerObject *self)
 {
-    PyObject *cls, *args, *kwargs = NULL;
+    PyObject *cls, *args, *kwargs;
     PyObject *obj;
+    PickleState *st = _Pickle_GetGlobalState();
 
-    /* Stack is ... cls args [kwargs], and we want to call
-     * cls.__new__(cls, *args, **kwargs).
-     */
-    if (use_kwargs) {
-        PDATA_POP(self->stack, kwargs);
-        if (kwargs == NULL) {
-            return -1;
-        }
+    PDATA_POP(self->stack, kwargs);
+    if (kwargs == NULL) {
+        return -1;
     }
     PDATA_POP(self->stack, args);
     if (args == NULL) {
-        Py_XDECREF(kwargs);
+        Py_DECREF(kwargs);
         return -1;
     }
     PDATA_POP(self->stack, cls);
     if (cls == NULL) {
-        Py_XDECREF(kwargs);
+        Py_DECREF(kwargs);
         Py_DECREF(args);
         return -1;
     }
 
     if (!PyType_Check(cls)) {
-        newobj_unpickling_error("%s class argument must be a type, not %.200s",
-                                use_kwargs, cls);
+        PyErr_Format(st->UnpicklingError,
+                     "NEWOBJ_EX class argument must be a type, not %.200s",
+                     Py_TYPE(cls)->tp_name);
         goto error;
     }
+
     if (((PyTypeObject *)cls)->tp_new == NULL) {
-        newobj_unpickling_error("%s class argument '%.200s' doesn't have __new__",
-                                use_kwargs, cls);
+        PyErr_SetString(st->UnpicklingError,
+                        "NEWOBJ_EX class argument doesn't have __new__");
         goto error;
     }
     if (!PyTuple_Check(args)) {
-        newobj_unpickling_error("%s args argument must be a tuple, not %.200s",
-                                use_kwargs, args);
+        PyErr_Format(st->UnpicklingError,
+                     "NEWOBJ_EX args argument must be a tuple, not %.200s",
+                     Py_TYPE(args)->tp_name);
         goto error;
     }
-    if (use_kwargs && !PyDict_Check(kwargs)) {
-        newobj_unpickling_error("%s kwargs argument must be a dict, not %.200s",
-                                use_kwargs, kwargs);
+    if (!PyDict_Check(kwargs)) {
+        PyErr_Format(st->UnpicklingError,
+                     "NEWOBJ_EX kwargs argument must be a dict, not %.200s",
+                     Py_TYPE(kwargs)->tp_name);
         goto error;
     }
 
     obj = ((PyTypeObject *)cls)->tp_new((PyTypeObject *)cls, args, kwargs);
-    if (obj == NULL) {
-        goto error;
-    }
-    Py_XDECREF(kwargs);
+    Py_DECREF(kwargs);
     Py_DECREF(args);
     Py_DECREF(cls);
+    if (obj == NULL) {
+        return -1;
+    }
     PDATA_PUSH(self->stack, obj, -1);
     return 0;
 
 error:
-    Py_XDECREF(kwargs);
+    Py_DECREF(kwargs);
     Py_DECREF(args);
     Py_DECREF(cls);
     return -1;
@@ -6540,7 +6587,7 @@ do_setitems(UnpicklerObject *self, Py_ssize_t x)
         return 0;
     if ((len - x) % 2 != 0) {
         PickleState *st = _Pickle_GetGlobalState();
-        /* Corrupt or hostile pickle -- we never write one like this. */
+        /* Currupt or hostile pickle -- we never write one like this. */
         PyErr_SetString(st->UnpicklingError,
                         "odd number of items for SETITEMS");
         return -1;
@@ -6909,8 +6956,8 @@ load(UnpicklerObject *self)
         OP(FROZENSET, load_frozenset)
         OP(OBJ, load_obj)
         OP(INST, load_inst)
-        OP_ARG(NEWOBJ, load_newobj, 0)
-        OP_ARG(NEWOBJ_EX, load_newobj, 1)
+        OP(NEWOBJ, load_newobj)
+        OP(NEWOBJ_EX, load_newobj_ex)
         OP(GLOBAL, load_global)
         OP(STACK_GLOBAL, load_stack_global)
         OP(APPEND, load_append)
@@ -7545,7 +7592,7 @@ Unpickler_set_memo(UnpicklerObject *self, PyObject *obj, void *Py_UNUSED(ignored
         for (size_t i = new_memo_size - 1; i != SIZE_MAX; i--) {
             Py_XDECREF(new_memo[i]);
         }
-        PyMem_Free(new_memo);
+        PyMem_FREE(new_memo);
     }
     return -1;
 }
