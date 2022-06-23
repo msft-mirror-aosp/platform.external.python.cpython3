@@ -20,7 +20,11 @@ cd `dirname ${BASH_SOURCE[0]}`
 
 ANDROID_BUILD_TOP=$(cd ../../../..; pwd)
 
-DIR=`uname | tr 'A-Z' 'a-z'`_x86_64
+if [ $(uname) == 'Darwin' ]; then
+  DIR=darwin
+else
+  DIR=linux_x86_64
+fi
 mkdir -p $DIR/pyconfig
 cd $DIR
 
@@ -40,10 +44,25 @@ mkdir tmp
 cd tmp
 ../../../configure
 
-if [ $DIR == "darwin_x86_64" ]; then
+if [ $DIR == "darwin" ]; then
   # preadv and pwritev are not safe on <11, which we still target
   sed -ibak "s%#define HAVE_PREADV 1%/* #undef HAVE_PREADV */%" pyconfig.h
   sed -ibak "s%#define HAVE_PWRITEV 1%/* #undef HAVE_PWRITEV */%" pyconfig.h
+  # mkfifoat and mknodat are not safe on <13, which we still target
+  sed -ibak "s%#define HAVE_MKNODAT 1%/* #undef HAVE_MKNODAT */%" pyconfig.h
+  sed -ibak "s%#define HAVE_MKFIFOAT 1%/* #undef HAVE_MKFIFOAT */%" pyconfig.h
+
+  if [ $(machine) != "x86_64h" ]; then
+    echo "This script expects to be run on an X86_64 machine"
+    exit 1
+  fi
+
+  # Changes to support darwin_arm64
+  sed -ibak 's%#define HAVE_FINITE 1%#ifdef __x86_64__\n#define HAVE_FINITE 1\n#endif%' pyconfig.h
+  sed -ibak 's%#define HAVE_GAMMA 1%#ifdef __x86_64__\n#define HAVE_GAMMA 1\n#endif%' pyconfig.h
+  sed -ibak 's%#define HAVE_GCC_ASM_FOR_X64 1%#ifdef __x86_64__\n#define HAVE_GCC_ASM_FOR_X64 1\n#endif%' pyconfig.h
+  sed -ibak 's%#define HAVE_GCC_ASM_FOR_X87 1%#ifdef __x86_64__\n#define HAVE_GCC_ASM_FOR_X87 1\n#endif%' pyconfig.h
+  sed -ibak 's%#define SIZEOF_LONG_DOUBLE .*%#ifdef __x86_64__\n#define SIZEOF_LONG_DOUBLE 16\n#else\n#define SIZEOF_LONG_DOUBLE 8\n#endif%' pyconfig.h
 fi
 
 if [ $DIR == "linux_x86_64" ]; then
