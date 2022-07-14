@@ -113,7 +113,6 @@ cpython3_cc_defaults {
         "-fwrapv",
         "-O3",
         "-Wall",
-        "-Wstrict-prototypes",
         "-DPy_BUILD_CORE",
         "-Werror",
         "-Wno-invalid-source-encoding",
