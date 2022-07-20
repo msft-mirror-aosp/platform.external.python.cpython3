@@ -23,7 +23,11 @@ ANDROID_BUILD_TOP=$(cd ../../../..; pwd)
 if [ $(uname) == 'Darwin' ]; then
   DIR=darwin
 else
-  DIR=linux_x86_64
+  if [ $(uname -m) == 'aarch64' ]; then
+      DIR=linux_arm64
+  else
+      DIR=linux_x86_64
+  fi
 fi
 mkdir -p $DIR/pyconfig
 cd $DIR
@@ -34,6 +38,11 @@ if [ $DIR == "linux_x86_64" ]; then
   export CC="$ANDROID_BUILD_TOP/prebuilts/clang/host/linux-x86/$CLANG_VERSION/bin/clang"
   export CFLAGS="--sysroot=$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8/sysroot"
   export LDFLAGS="--sysroot=$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8/sysroot -B$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8/lib/gcc/x86_64-linux/4.8.3 -L$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8/lib/gcc/x86_64-linux/4.8.3 -L$ANDROID_BUILD_TOP/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8/x86_64-linux/lib64"
+elif [ $DIR == "linux_arm64" ]; then
+  #export CC="$ANDROID_BUILD_TOP/prebuilts/clang/host/linux-x86/$CLANG_VERSION/bin/clang"
+  export CC=clang
+  export CFLAGS="--sysroot=$ANDROID_BUILD_TOP/prebuilts/build-tools/sysroots/aarch64-linux-musl"
+  export LDFLAGS="--sysroot=$ANDROID_BUILD_TOP/prebuilts/build-tools/sysroots/aarch64-linux-musl -rtlib=compiler-rt -fuse-ld=lld --unwindlib=none"
 fi
 
 #
