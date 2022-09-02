@@ -59,8 +59,9 @@ license {
 
 build = [
     "Android-bionic.bp",
+    "Android-linux_arm64.bp",
     "Android-linux_x86_64.bp",
-    "Android-darwin_x86_64.bp",
+    "Android-darwin.bp",
 ]
 
 soong_config_module_type {
@@ -113,7 +114,6 @@ cpython3_cc_defaults {
         "-fwrapv",
         "-O3",
         "-Wall",
-        "-Wstrict-prototypes",
         "-DPy_BUILD_CORE",
         "-Werror",
         "-Wno-invalid-source-encoding",
@@ -156,8 +156,8 @@ cpython3_cc_defaults {
             stl: "libc++_static",
         },
         // Regenerate include dirs with android_regen.sh
-        darwin_x86_64: {
-            local_include_dirs: ["android/darwin_x86_64/pyconfig"],
+        darwin: {
+            local_include_dirs: ["android/darwin/pyconfig"],
             cflags: [
                 "-Wno-deprecated-declarations",
                 "-Wno-pointer-arith",
@@ -176,6 +176,9 @@ cpython3_cc_defaults {
         linux_musl_x86: {
             enabled: false,
         },
+        linux_musl_arm: {
+            enabled: false,
+        },
         linux_glibc_x86_64: {
             local_include_dirs: ["android/linux_x86_64/pyconfig"],
             cflags: ["-DSOABI=\"cpython-310android-x86_64-linux-gnu\""],
@@ -183,6 +186,10 @@ cpython3_cc_defaults {
         linux_musl_x86_64: {
             local_include_dirs: ["android/linux_x86_64/pyconfig"],
             cflags: ["-DSOABI=\"cpython-310android-x86_64-linux-gnu\""],
+        },
+        linux_musl_arm64: {
+            local_include_dirs: ["android/linux_arm64/pyconfig"],
+            cflags: ["-DSOABI=\"cpython-310android-arm64-linux-gnu\""],
         },
         windows: {
             enabled: false,
@@ -333,7 +340,7 @@ cc_library_static {
                 "-DABIFLAGS=\"\"",
             ],
         },
-        darwin_x86_64: {
+        darwin: {
             cflags: [
                 "-DPLATFORM=\"darwin\"",
                 "-DABIFLAGS=\"\"",
@@ -436,8 +443,11 @@ cc_library_static {
         musl_x86_64: {
             srcs: ["android/linux_x86_64/config.c"],
         },
+        musl_arm64: {
+            srcs: ["android/linux_arm64/config.c"],
+        },
         darwin: {
-            srcs: ["android/darwin_x86_64/config.c"],
+            srcs: ["android/darwin/config.c"],
         },
     },
 }
@@ -528,9 +538,16 @@ cc_library_static {
                 "libopenssl_crypto",
             ],
         },
+        musl_arm64: {
+            srcs: [":py3-c-modules-linux_arm64"],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
+        },
         darwin: {
             cflags: ["-D__APPLE_USE_RFC_3542"],
-            srcs: [":py3-c-modules-darwin_x86_64"],
+            srcs: [":py3-c-modules-darwin"],
             static_libs: [
                 "libopenssl_ssl",
                 "libopenssl_crypto",
