@@ -499,7 +499,9 @@ cc_library_static {
     cflags: [
         "-DPy_BUILD_CORE_BUILTIN",
         "-DUSE_PYEXPAT_CAPI",
+        "-DSQLITE_OMIT_LOAD_EXTENSION",
     ],
+    shared_libs: ["libsqlite"],
     static_libs: [
         "libexpat",
         "libz",
