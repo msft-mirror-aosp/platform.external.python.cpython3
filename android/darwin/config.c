@@ -23,6 +23,10 @@ extern "C" {
 #endif
 
 
+extern PyObject* PyInit__posixshmem(void);
+extern PyObject* PyInit__scproxy(void);
+extern PyObject* PyInit__ssl(void);
+extern PyObject* PyInit__hashlib(void);
 extern PyObject* PyInit_array(void);
 extern PyObject* PyInit_cmath(void);
 extern PyObject* PyInit_math(void);
@@ -108,6 +112,10 @@ extern PyObject* PyInit__string(void);
 
 struct _inittab _PyImport_Inittab[] = {
 
+    {"_posixshmem", PyInit__posixshmem},
+    {"_scproxy", PyInit__scproxy},
+    {"_ssl", PyInit__ssl},
+    {"_hashlib", PyInit__hashlib},
     {"array", PyInit_array},
     {"cmath", PyInit_cmath},
     {"math", PyInit_math},
