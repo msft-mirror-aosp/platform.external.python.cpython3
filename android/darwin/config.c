@@ -23,6 +23,10 @@ extern "C" {
 #endif
 
 
+extern PyObject* PyInit__posixshmem(void);
+extern PyObject* PyInit__scproxy(void);
+extern PyObject* PyInit__ssl(void);
+extern PyObject* PyInit__hashlib(void);
 extern PyObject* PyInit_array(void);
 extern PyObject* PyInit_cmath(void);
 extern PyObject* PyInit_math(void);
@@ -73,6 +77,7 @@ extern PyObject* PyInit__sha256(void);
 extern PyObject* PyInit__sha512(void);
 extern PyObject* PyInit__sha3(void);
 extern PyObject* PyInit__struct(void);
+extern PyObject* PyInit__sqlite3(void);
 extern PyObject* PyInit_posix(void);
 extern PyObject* PyInit_errno(void);
 extern PyObject* PyInit_pwd(void);
@@ -107,6 +112,10 @@ extern PyObject* PyInit__string(void);
 
 struct _inittab _PyImport_Inittab[] = {
 
+    {"_posixshmem", PyInit__posixshmem},
+    {"_scproxy", PyInit__scproxy},
+    {"_ssl", PyInit__ssl},
+    {"_hashlib", PyInit__hashlib},
     {"array", PyInit_array},
     {"cmath", PyInit_cmath},
     {"math", PyInit_math},
@@ -157,6 +166,7 @@ struct _inittab _PyImport_Inittab[] = {
     {"_sha512", PyInit__sha512},
     {"_sha3", PyInit__sha3},
     {"_struct", PyInit__struct},
+    {"_sqlite3", PyInit__sqlite3},
     {"posix", PyInit_posix},
     {"errno", PyInit_errno},
     {"pwd", PyInit_pwd},
