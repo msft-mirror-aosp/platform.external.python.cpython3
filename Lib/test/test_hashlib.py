@@ -221,6 +221,10 @@ class HashLibTestCase(unittest.TestCase):
     def test_algorithms_available(self):
         self.assertTrue(set(hashlib.algorithms_guaranteed).
                             issubset(hashlib.algorithms_available))
+        # all available algorithms must be loadable, bpo-47101
+        self.assertNotIn("undefined", hashlib.algorithms_available)
+        for name in hashlib.algorithms_available:
+            digest = hashlib.new(name, usedforsecurity=False)
 
     def test_usedforsecurity_true(self):
         hashlib.new("sha256", usedforsecurity=True)
@@ -490,6 +494,15 @@ class HashLibTestCase(unittest.TestCase):
     @bigmemtest(size=_4G - 1, memuse=1, dry_run=False)
     def test_case_md5_uintmax(self, size):
         self.check('md5', b'A'*size, '28138d306ff1b8281f1a9067e1a1a2b3')
+
+    @unittest.skipIf(sys.maxsize < _4G - 1, 'test cannot run on 32-bit systems')
+    @bigmemtest(size=_4G - 1, memuse=1, dry_run=False)
+    def test_sha3_update_overflow(self, size):
+        """Regression test for gh-98517 CVE-2022-37454."""
+        h = hashlib.sha3_224()
+        h.update(b'\x01')
+        h.update(b'\x01'*0xffff_ffff)
+        self.assertEqual(h.hexdigest(), '80762e8ce6700f114fec0f621fd97c4b9c00147fa052215294cceeed')
 
     # use the three examples from Federal Information Processing Standards
     # Publication 180-1, Secure Hash Standard,  1995 April 17
