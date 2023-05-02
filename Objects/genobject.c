@@ -403,8 +403,11 @@ gen_close(PyGenObject *gen, PyObject *args)
 
 
 PyDoc_STRVAR(throw_doc,
-"throw(typ[,val[,tb]]) -> raise exception in generator,\n\
-return next yielded value or raise StopIteration.");
+"throw(value)\n\
+throw(type[,value[,tb]])\n\
+\n\
+Raise exception in generator, return next yielded value or raise\n\
+StopIteration.");
 
 static PyObject *
 _gen_throw(PyGenObject *gen, int close_on_genexit,
@@ -436,20 +439,25 @@ _gen_throw(PyGenObject *gen, int close_on_genexit,
             /* `yf` is a generator or a coroutine. */
             PyThreadState *tstate = _PyThreadState_GET();
             PyFrameObject *f = tstate->frame;
+            PyFrameObject *gf = gen->gi_frame;
 
             /* Since we are fast-tracking things by skipping the eval loop,
                we need to update the current frame so the stack trace
                will be reported correctly to the user. */
             /* XXX We should probably be updating the current frame
                somewhere in ceval.c. */
-            tstate->frame = gen->gi_frame;
+            assert(gf->f_back == NULL);
+            Py_XINCREF(f);
+            gf->f_back = f;
+            tstate->frame = gf;
             /* Close the generator that we are currently iterating with
                'yield from' or awaiting on with 'await'. */
-            PyFrameState state = gen->gi_frame->f_state;
-            gen->gi_frame->f_state = FRAME_EXECUTING;
+            PyFrameState state = gf->f_state;
+            gf->f_state = FRAME_EXECUTING;
             ret = _gen_throw((PyGenObject *)yf, close_on_genexit,
                              typ, val, tb);
-            gen->gi_frame->f_state = state;
+            gf->f_state = state;
+            Py_CLEAR(gf->f_back);
             tstate->frame = f;
         } else {
             /* `yf` is an iterator or a coroutine-like object. */
@@ -1001,8 +1009,11 @@ PyDoc_STRVAR(coro_send_doc,
 return next iterated value or raise StopIteration.");
 
 PyDoc_STRVAR(coro_throw_doc,
-"throw(typ[,val[,tb]]) -> raise exception in coroutine,\n\
-return next iterated value or raise StopIteration.");
+"throw(value)\n\
+throw(type[,value[,traceback]])\n\
+\n\
+Raise exception in coroutine, return next iterated value or raise\n\
+StopIteration.");
 
 PyDoc_STRVAR(coro_close_doc,
 "close() -> raise GeneratorExit inside coroutine.");
