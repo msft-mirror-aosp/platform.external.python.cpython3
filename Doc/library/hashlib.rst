@@ -391,7 +391,7 @@ Constructor functions also accept the following tree hashing parameters:
   BLAKE2s, 0 in sequential mode).
 
 * *last_node*: boolean indicating whether the processed node is the last
-  one (`False` for sequential mode).
+  one (``False`` for sequential mode).
 
 .. figure:: hashlib-blake2-tree.png
    :alt: Explanation of tree mode parameters.
@@ -627,7 +627,7 @@ function:
     hash function used in the protocol summarily stops this type of attack.
 
     (`The Skein Hash Function Family
-    <http://www.skein-hash.info/sites/default/files/skein1.3.pdf>`_,
+    <https://www.schneier.com/wp-content/uploads/2016/02/skein.pdf>`_,
     p. 21)
 
 BLAKE2 can be personalized by passing bytes to the *person* argument::
