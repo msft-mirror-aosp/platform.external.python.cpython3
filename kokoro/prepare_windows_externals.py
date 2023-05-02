@@ -110,7 +110,7 @@ def remove_modules_from_pcbuild_proj():
 def build_using_cmake(out: Path, src: Path) -> None:
     create_new_dir(out)
     cmake = TOP / 'prebuilts/cmake/windows-x86/bin/cmake.exe'
-    run_cmd([cmake, src, '-G', 'Visual Studio 15 2017 Win64'], cwd=out)
+    run_cmd([cmake, src, '-G', 'Visual Studio 17 2022', '-A', 'x64'], cwd=out)
     run_cmd([cmake, '--build', '.', '--config', 'Release'], cwd=out)
 
 
@@ -173,8 +173,11 @@ def main() -> None:
     # updates its xz dependency.)
     #
     # [1] https://git.tukaani.org/?p=xz.git;a=commit;h=82388980187b0e3794d187762054200bbdcc9a53
+    #
+    # Use vs2019 because there is no vs2022 header currently. (The existing vs2013, vs2017, and
+    # vs2019 headers are all the same anyway.)
     xz = TOP / 'toolchain/xz'
-    shutil.copy2(xz / 'windows/vs2017/config.h',
+    shutil.copy2(xz / 'windows/vs2019/config.h',
                  xz / 'windows/config.h')
 
     patch_python_for_licenses()

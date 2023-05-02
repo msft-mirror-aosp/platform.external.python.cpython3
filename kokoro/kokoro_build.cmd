@@ -20,7 +20,19 @@ set PYTHON_SRC=%~dp0..
 :: (It could leave Cygwin at the very end, but that's less of a problem.)
 set PATH=%PATH:C:\cygwin64\bin;=%
 
+:: When we're actually running in the Kokoro environment, the git checkouts are
+:: not owned by the current user, so when the Python build scripts query info
+:: about them, git fails. Fix this by disabling git's safe directory checking.
+IF DEFINED KOKORO_JOB_NAME (git config --global --add safe.directory *)
+
 IF NOT DEFINED KOKORO_BUILD_ID (set KOKORO_BUILD_ID=dev)
+
+:: Create the parent directories of the destination directory. Ordinarily, the
+:: "md" invocation in build.cmd would automatically create these parent
+:: directories, but it doesn't seem to work inside Kokoro's Docker-based Windows
+:: VM, so create them manually instead. See http://b/278137784#comment2.
+md "%TOP%\out" 2>NUL
+md "%TOP%\out\python3" 2>NUL
 
 call %~dp0build.cmd "%PYTHON_SRC%" "%TOP%\out\python3\artifact"
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
