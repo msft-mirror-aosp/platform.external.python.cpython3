@@ -18,9 +18,13 @@ and Tasks.
 Coroutines
 ==========
 
+**Source code:** :source:`Lib/asyncio/coroutines.py`
+
+----------------------------------------------------
+
 :term:`Coroutines <coroutine>` declared with the async/await syntax is the
 preferred way of writing asyncio applications.  For example, the following
-snippet of code (requires Python 3.7+) prints "hello", waits 1 second,
+snippet of code prints "hello", waits 1 second,
 and then prints "world"::
 
     >>> import asyncio
@@ -247,6 +251,10 @@ Running an asyncio Program
 Creating Tasks
 ==============
 
+**Source code:** :source:`Lib/asyncio/tasks.py`
+
+-----------------------------------------------
+
 .. function:: create_task(coro, *, name=None)
 
    Wrap the *coro* :ref:`coroutine <coroutine>` into a :class:`Task`
@@ -259,25 +267,27 @@ Creating Tasks
    :exc:`RuntimeError` is raised if there is no running loop in
    current thread.
 
-   This function has been **added in Python 3.7**.  Prior to
-   Python 3.7, the low-level :func:`asyncio.ensure_future` function
-   can be used instead::
-
-       async def coro():
-           ...
-
-       # In Python 3.7+
-       task = asyncio.create_task(coro())
-       ...
-
-       # This works in all Python versions but is less readable
-       task = asyncio.ensure_future(coro())
-       ...
-
    .. important::
 
       Save a reference to the result of this function, to avoid
-      a task disappearing mid execution.
+      a task disappearing mid-execution. The event loop only keeps
+      weak references to tasks. A task that isn't referenced elsewhere
+      may get garbage collected at any time, even before it's done.
+      For reliable "fire-and-forget" background tasks, gather them in
+      a collection::
+
+          background_tasks = set()
+
+          for i in range(10):
+              task = asyncio.create_task(some_coro(param=i))
+
+              # Add task to the set. This creates a strong reference.
+              background_tasks.add(task)
+
+              # To prevent keeping references to finished tasks forever,
+              # make each task remove its own reference from the set after
+              # completion:
+              task.add_done_callback(background_tasks.discard)
 
    .. versionadded:: 3.7
 
@@ -439,7 +449,8 @@ Shielding From Cancellation
 
    The statement::
 
-       res = await shield(something())
+       task = asyncio.create_task(something())
+       res = await shield(task)
 
    is equivalent to::
 
@@ -458,10 +469,18 @@ Shielding From Cancellation
    the ``shield()`` function should be combined with a try/except
    clause, as follows::
 
+       task = asyncio.create_task(something())
        try:
-           res = await shield(something())
+           res = await shield(task)
        except CancelledError:
            res = None
+
+   .. important::
+
+      Save a reference to tasks passed to this function, to avoid
+      a task disappearing mid-execution. The event loop only keeps
+      weak references to tasks. A task that isn't referenced elsewhere
+      may get garbage collected at any time, even before it's done.
 
    .. versionchanged:: 3.10
       Removed the *loop* parameter.
@@ -635,9 +654,6 @@ Waiting Primitives
    Raises :exc:`asyncio.TimeoutError` if the timeout occurs before
    all Futures are done.
 
-   .. versionchanged:: 3.10
-      Removed the *loop* parameter.
-
    Example::
 
        for coro in as_completed(aws):
@@ -696,17 +712,17 @@ Running in Threads
        # blocking_io complete at 19:50:54
        # finished main at 19:50:54
 
-   Directly calling `blocking_io()` in any coroutine would block the event loop
+   Directly calling ``blocking_io()`` in any coroutine would block the event loop
    for its duration, resulting in an additional 1 second of run time. Instead,
-   by using `asyncio.to_thread()`, we can run it in a separate thread without
+   by using ``asyncio.to_thread()``, we can run it in a separate thread without
    blocking the event loop.
 
    .. note::
 
-      Due to the :term:`GIL`, `asyncio.to_thread()` can typically only be used
+      Due to the :term:`GIL`, ``asyncio.to_thread()`` can typically only be used
       to make IO-bound functions non-blocking. However, for extension modules
       that release the GIL or alternative Python implementations that don't
-      have one, `asyncio.to_thread()` can also be used for CPU-bound functions.
+      have one, ``asyncio.to_thread()`` can also be used for CPU-bound functions.
 
    .. versionadded:: 3.9
 
@@ -983,7 +999,7 @@ Task Object
       The *limit* argument is passed to :meth:`get_stack` directly.
 
       The *file* argument is an I/O stream to which the output
-      is written; by default output is written to :data:`sys.stderr`.
+      is written; by default output is written to :data:`sys.stdout`.
 
    .. method:: get_coro()
 
