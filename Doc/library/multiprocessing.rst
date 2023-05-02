@@ -43,6 +43,16 @@ will print to standard output ::
    [1, 4, 9]
 
 
+.. seealso::
+
+   :class:`concurrent.futures.ProcessPoolExecutor` offers a higher level interface
+   to push tasks to a background process without blocking execution of the
+   calling process. Compared to using the :class:`~multiprocessing.pool.Pool`
+   interface directly, the :mod:`concurrent.futures` API more readily allows
+   the submission of work to the underlying process pool to be separated from
+   waiting for the results.
+
+
 The :class:`Process` class
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -96,7 +106,7 @@ Depending on the platform, :mod:`multiprocessing` supports three ways
 to start a process.  These *start methods* are
 
   *spawn*
-    The parent process starts a fresh python interpreter process.  The
+    The parent process starts a fresh Python interpreter process.  The
     child process will only inherit those resources necessary to run
     the process object's :meth:`~Process.run` method.  In particular,
     unnecessary file descriptors and handles from the parent process
@@ -132,8 +142,8 @@ to start a process.  These *start methods* are
    subprocess. See :issue:`33725`.
 
 .. versionchanged:: 3.4
-   *spawn* added on all unix platforms, and *forkserver* added for
-   some unix platforms.
+   *spawn* added on all Unix platforms, and *forkserver* added for
+   some Unix platforms.
    Child processes no longer inherit all of the parents inheritable
    handles on Windows.
 
@@ -647,7 +657,6 @@ The :mod:`multiprocessing` package mostly replicates the API of the
    Example usage of some of the methods of :class:`Process`:
 
    .. doctest::
-      :options: +ELLIPSIS
 
        >>> import multiprocessing, time, signal
        >>> p = multiprocessing.Process(target=time.sleep, args=(1000,))
@@ -1648,6 +1657,7 @@ different machines. A manager object controls a server process which manages
 proxies.
 
 .. function:: multiprocessing.Manager()
+   :module:
 
    Returns a started :class:`~multiprocessing.managers.SyncManager` object which
    can be used for sharing objects between processes.  The returned manager
@@ -2585,9 +2595,9 @@ Address Formats
   filesystem.
 
 * An ``'AF_PIPE'`` address is a string of the form
-  :samp:`r'\\\\.\\pipe\\{PipeName}'`.  To use :func:`Client` to connect to a named
+  :samp:`r'\\\\\\.\\pipe\\\\{PipeName}'`.  To use :func:`Client` to connect to a named
   pipe on a remote computer called *ServerName* one should use an address of the
-  form :samp:`r'\\\\{ServerName}\\pipe\\{PipeName}'` instead.
+  form :samp:`r'\\\\\\\\{ServerName}\\pipe\\\\{PipeName}'` instead.
 
 Note that any string beginning with two backslashes is assumed by default to be
 an ``'AF_PIPE'`` address rather than an ``'AF_UNIX'`` address.
@@ -2909,6 +2919,8 @@ Global variables
 
     However, global variables which are just module level constants cause no
     problems.
+
+.. _multiprocessing-safe-main-import:
 
 Safe importing of main module
 

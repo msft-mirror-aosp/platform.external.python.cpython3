@@ -371,6 +371,18 @@ class CAPITest(unittest.TestCase):
         self.assertRaises(TypeError, _testcapi.get_mapping_values, bad_mapping)
         self.assertRaises(TypeError, _testcapi.get_mapping_items, bad_mapping)
 
+    def test_mapping_has_key(self):
+        dct = {'a': 1}
+        self.assertTrue(_testcapi.mapping_has_key(dct, 'a'))
+        self.assertFalse(_testcapi.mapping_has_key(dct, 'b'))
+
+        class SubDict(dict):
+            pass
+
+        dct2 = SubDict({'a': 1})
+        self.assertTrue(_testcapi.mapping_has_key(dct2, 'a'))
+        self.assertFalse(_testcapi.mapping_has_key(dct2, 'b'))
+
     @unittest.skipUnless(hasattr(_testcapi, 'negative_refcount'),
                          'need _testcapi.negative_refcount')
     def test_negative_refcount(self):
@@ -824,6 +836,20 @@ class TestThreadState(unittest.TestCase):
         t = threading.Thread(target=target)
         t.start()
         t.join()
+
+    @threading_helper.reap_threads
+    def test_gilstate_ensure_no_deadlock(self):
+        # See https://github.com/python/cpython/issues/96071
+        code = textwrap.dedent(f"""
+            import _testcapi
+
+            def callback():
+                print('callback called')
+
+            _testcapi._test_thread_state(callback)
+            """)
+        ret = assert_python_ok('-X', 'tracemalloc', '-c', code)
+        self.assertIn(b'callback called', ret.out)
 
 
 class Test_testcapi(unittest.TestCase):
