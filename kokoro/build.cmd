@@ -31,6 +31,7 @@ if %ERRORLEVEL% neq 0 goto :end
 
 echo ## Running prepare_windows_externals.py to configure XML files and build libffi...
 py -3 %PYTHON_SRC%\kokoro\prepare_windows_externals.py
+if %ERRORLEVEL% neq 0 goto :end
 
 :: Find msbuild.exe. (The batch file sets %MSBUILD%.)
 call %PYTHON_SRC%\PCbuild\find_msbuild.bat
@@ -49,7 +50,8 @@ echo ## Building python...
   -property:IncludeSSL=false ^
   -property:IncludeTkinter=false ^
   -property:UseTestMarker= ^
-  -property:GIT=git.exe
+  -property:GIT=git.exe ^
+  -property:PythonForBuild=python.exe
 if %ERRORLEVEL% neq 0 goto :end
 
 echo ## Packaging python...
