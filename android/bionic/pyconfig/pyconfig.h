@@ -1131,6 +1131,9 @@
 /* Define to 1 if you have the <sys/audioio.h> header file. */
 /* #undef HAVE_SYS_AUDIOIO_H */
 
+/* Define to 1 if you have the <sys/auxv.h> header file. */
+#define HAVE_SYS_AUXV_H 1
+
 /* Define to 1 if you have the <sys/bsdtty.h> header file. */
 /* #undef HAVE_SYS_BSDTTY_H */
 
