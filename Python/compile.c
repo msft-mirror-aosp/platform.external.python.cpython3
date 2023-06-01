@@ -2691,6 +2691,7 @@ compiler_jump_if(struct compiler *c, expr_ty e, basicblock *next, int cond)
         return 1;
     }
     case Compare_kind: {
+        SET_LOC(c, e);
         Py_ssize_t i, n = asdl_seq_LEN(e->v.Compare.ops) - 1;
         if (n > 0) {
             if (!check_compare(c, e)) {
@@ -2925,6 +2926,8 @@ compiler_async_for(struct compiler *c, stmt_ty s)
     /* Success block for __anext__ */
     VISIT(c, expr, s->v.AsyncFor.target);
     VISIT_SEQ(c, stmt, s->v.AsyncFor.body);
+    /* Mark jump as artificial */
+    c->u->u_lineno = -1;
     ADDOP_JUMP(c, JUMP_ABSOLUTE, start);
 
     compiler_pop_fblock(c, FOR_LOOP, start);
@@ -3027,12 +3030,14 @@ static int
 compiler_break(struct compiler *c)
 {
     struct fblockinfo *loop = NULL;
+    int origin_loc = c->u->u_lineno;
     /* Emit instruction with line number */
     ADDOP(c, NOP);
     if (!compiler_unwind_fblock_stack(c, 0, &loop)) {
         return 0;
     }
     if (loop == NULL) {
+        c->u->u_lineno = origin_loc;
         return compiler_error(c, "'break' outside loop");
     }
     if (!compiler_unwind_fblock(c, loop, 0)) {
@@ -3047,12 +3052,14 @@ static int
 compiler_continue(struct compiler *c)
 {
     struct fblockinfo *loop = NULL;
+    int origin_loc = c->u->u_lineno;
     /* Emit instruction with line number */
     ADDOP(c, NOP);
     if (!compiler_unwind_fblock_stack(c, 0, &loop)) {
         return 0;
     }
     if (loop == NULL) {
+        c->u->u_lineno = origin_loc;
         return compiler_error(c, "'continue' not properly in loop");
     }
     ADDOP_JUMP(c, JUMP_ABSOLUTE, loop->fb_block);
@@ -6603,9 +6610,16 @@ static int
 assemble_emit_linetable_pair(struct assembler *a, int bdelta, int ldelta)
 {
     Py_ssize_t len = PyBytes_GET_SIZE(a->a_lnotab);
-    if (a->a_lnotab_off + 2 >= len) {
-        if (_PyBytes_Resize(&a->a_lnotab, len * 2) < 0)
+    if (a->a_lnotab_off > INT_MAX - 2) {
+        goto overflow;
+    }
+    if (a->a_lnotab_off >= len - 2) {
+        if (len > INT_MAX / 2) {
+            goto overflow;
+        }
+        if (_PyBytes_Resize(&a->a_lnotab, len * 2) < 0) {
             return 0;
+        }
     }
     unsigned char *lnotab = (unsigned char *) PyBytes_AS_STRING(a->a_lnotab);
     lnotab += a->a_lnotab_off;
@@ -6613,6 +6627,9 @@ assemble_emit_linetable_pair(struct assembler *a, int bdelta, int ldelta)
     *lnotab++ = bdelta;
     *lnotab++ = ldelta;
     return 1;
+overflow:
+    PyErr_SetString(PyExc_OverflowError, "line number table is too long");
+    return 0;
 }
 
 /* Appends a range to the end of the line number table. See
@@ -6685,14 +6702,17 @@ assemble_emit(struct assembler *a, struct instr *i)
     int size, arg = 0;
     Py_ssize_t len = PyBytes_GET_SIZE(a->a_bytecode);
     _Py_CODEUNIT *code;
-
     arg = i->i_oparg;
     size = instrsize(arg);
     if (i->i_lineno && !assemble_lnotab(a, i))
         return 0;
+    if (a->a_offset > INT_MAX - size) {
+        goto overflow;
+    }
     if (a->a_offset + size >= len / (int)sizeof(_Py_CODEUNIT)) {
-        if (len > PY_SSIZE_T_MAX / 2)
-            return 0;
+        if (len > INT_MAX / 2) {
+            goto overflow;
+        }
         if (_PyBytes_Resize(&a->a_bytecode, len * 2) < 0)
             return 0;
     }
@@ -6700,6 +6720,9 @@ assemble_emit(struct assembler *a, struct instr *i)
     a->a_offset += size;
     write_op_arg(code, i->i_opcode, arg, size);
     return 1;
+overflow:
+    PyErr_SetString(PyExc_OverflowError, "bytecode is too long");
+    return 0;
 }
 
 static void
@@ -6950,13 +6973,6 @@ makecode(struct compiler *c, struct assembler *a, PyObject *consts)
         Py_DECREF(consts);
         goto error;
     }
-    if (maxdepth > MAX_ALLOWED_STACK_USE) {
-        PyErr_Format(PyExc_SystemError,
-                     "excessive stack use: stack is %d deep",
-                     maxdepth);
-        Py_DECREF(consts);
-        goto error;
-    }
     co = PyCode_NewWithPosOnlyArgs(posonlyargcount+posorkeywordargcount,
                                    posonlyargcount, kwonlyargcount, nlocals_int,
                                    maxdepth, flags, a->a_bytecode, consts, names,
@@ -7098,6 +7114,7 @@ assemble(struct compiler *c, int addNone)
     int j, nblocks;
     PyCodeObject *co = NULL;
     PyObject *consts = NULL;
+    memset(&a, 0, sizeof(struct assembler));
 
     /* Make sure every block that falls off the end returns None.
        XXX NEXT_BLOCK() isn't quite right, because if the last
