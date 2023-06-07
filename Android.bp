@@ -131,6 +131,9 @@ cpython3_cc_defaults {
         android_arm64: {
             cflags: ["-DSOABI=\"cpython-310android-arm64-android-bionic\""],
         },
+        android_riscv64: {
+            cflags: ["-DSOABI=\"cpython-310android-riscv64-android-bionic\""],
+        },
         android_x86: {
             cflags: ["-DSOABI=\"cpython-310android-x86-android-bionic\""],
         },
