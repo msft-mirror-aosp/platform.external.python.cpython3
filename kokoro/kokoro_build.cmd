@@ -20,6 +20,12 @@ set PYTHON_SRC=%~dp0..
 :: (It could leave Cygwin at the very end, but that's less of a problem.)
 set PATH=%PATH:C:\cygwin64\bin;=%
 
+:: The Kokoro image has two copies of MSBuild installed. Prefer the one in
+:: C:\VS\MSBuild over the one in
+:: "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild"
+:: See https://yaqs.corp.google.com/eng/q/8657098259782696960#a1.
+if exist C:\VS\MSBuild\Current\Bin\amd64\MSBuild.exe (set "PATH=C:\VS\MSBuild\Current\Bin\amd64;%PATH%")
+
 :: When we're actually running in the Kokoro environment, the git checkouts are
 :: not owned by the current user, so when the Python build scripts query info
 :: about them, git fails. Fix this by disabling git's safe directory checking.
