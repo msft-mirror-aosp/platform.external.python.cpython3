@@ -367,7 +367,9 @@
 /* #undef HAVE_FEXECVE */
 
 /* Define to 1 if you have the `finite' function. */
+#ifdef __x86_64__
 #define HAVE_FINITE 1
+#endif
 
 /* Define to 1 if you have the `flock' function. */
 #define HAVE_FLOCK 1
@@ -421,17 +423,23 @@
 #define HAVE_GAI_STRERROR 1
 
 /* Define to 1 if you have the `gamma' function. */
+#ifdef __x86_64__
 #define HAVE_GAMMA 1
+#endif
 
 /* Define if we can use gcc inline assembler to get and set mc68881 fpcr */
 /* #undef HAVE_GCC_ASM_FOR_MC68881 */
 
 /* Define if we can use x64 gcc inline assembler */
+#ifdef __x86_64__
 #define HAVE_GCC_ASM_FOR_X64 1
+#endif
 
 /* Define if we can use gcc inline assembler to get and set x87 control word
    */
+#ifdef __x86_64__
 #define HAVE_GCC_ASM_FOR_X87 1
+#endif
 
 /* Define if your compiler provides __uint128_t */
 #define HAVE_GCC_UINT128_T 1
@@ -1474,7 +1482,11 @@
 #define SIZEOF_LONG 8
 
 /* The size of `long double', as computed by sizeof. */
+#ifdef __x86_64__
 #define SIZEOF_LONG_DOUBLE 16
+#else
+#define SIZEOF_LONG_DOUBLE 8
+#endif
 
 /* The size of `long long', as computed by sizeof. */
 #define SIZEOF_LONG_LONG 8
