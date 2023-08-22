@@ -358,18 +358,18 @@ Turtle motion
    .. doctest::
       :skipif: _tkinter is None
 
-       >>> tp = turtle.pos()
-       >>> tp
-       (0.00,0.00)
-       >>> turtle.setpos(60,30)
-       >>> turtle.pos()
-       (60.00,30.00)
-       >>> turtle.setpos((20,80))
-       >>> turtle.pos()
-       (20.00,80.00)
-       >>> turtle.setpos(tp)
-       >>> turtle.pos()
-       (0.00,0.00)
+      >>> tp = turtle.pos()
+      >>> tp
+      (0.00,0.00)
+      >>> turtle.setpos(60,30)
+      >>> turtle.pos()
+      (60.00,30.00)
+      >>> turtle.setpos((20,80))
+      >>> turtle.pos()
+      (20.00,80.00)
+      >>> turtle.setpos(tp)
+      >>> turtle.pos()
+      (0.00,0.00)
 
 
 .. function:: setx(x)
@@ -919,23 +919,23 @@ Color control
    .. doctest::
       :skipif: _tkinter is None
 
-       >>> colormode()
-       1.0
-       >>> turtle.pencolor()
-       'red'
-       >>> turtle.pencolor("brown")
-       >>> turtle.pencolor()
-       'brown'
-       >>> tup = (0.2, 0.8, 0.55)
-       >>> turtle.pencolor(tup)
-       >>> turtle.pencolor()
-       (0.2, 0.8, 0.5490196078431373)
-       >>> colormode(255)
-       >>> turtle.pencolor()
-       (51.0, 204.0, 140.0)
-       >>> turtle.pencolor('#32c18f')
-       >>> turtle.pencolor()
-       (50.0, 193.0, 143.0)
+      >>> colormode()
+      1.0
+      >>> turtle.pencolor()
+      'red'
+      >>> turtle.pencolor("brown")
+      >>> turtle.pencolor()
+      'brown'
+      >>> tup = (0.2, 0.8, 0.55)
+      >>> turtle.pencolor(tup)
+      >>> turtle.pencolor()
+      (0.2, 0.8, 0.5490196078431373)
+      >>> colormode(255)
+      >>> turtle.pencolor()
+      (51.0, 204.0, 140.0)
+      >>> turtle.pencolor('#32c18f')
+      >>> turtle.pencolor()
+      (50.0, 193.0, 143.0)
 
 
 .. function:: fillcolor(*args)
@@ -968,17 +968,17 @@ Color control
    .. doctest::
       :skipif: _tkinter is None
 
-       >>> turtle.fillcolor("violet")
-       >>> turtle.fillcolor()
-       'violet'
-       >>> turtle.pencolor()
-       (50.0, 193.0, 143.0)
-       >>> turtle.fillcolor((50, 193, 143))  # Integers, not floats
-       >>> turtle.fillcolor()
-       (50.0, 193.0, 143.0)
-       >>> turtle.fillcolor('#ffffff')
-       >>> turtle.fillcolor()
-       (255.0, 255.0, 255.0)
+      >>> turtle.fillcolor("violet")
+      >>> turtle.fillcolor()
+      'violet'
+      >>> turtle.pencolor()
+      (50.0, 193.0, 143.0)
+      >>> turtle.fillcolor((50, 193, 143))  # Integers, not floats
+      >>> turtle.fillcolor()
+      (50.0, 193.0, 143.0)
+      >>> turtle.fillcolor('#ffffff')
+      >>> turtle.fillcolor()
+      (255.0, 255.0, 255.0)
 
 
 .. function:: color(*args)
@@ -1007,12 +1007,12 @@ Color control
    .. doctest::
       :skipif: _tkinter is None
 
-       >>> turtle.color("red", "green")
-       >>> turtle.color()
-       ('red', 'green')
-       >>> color("#285078", "#a0c8f0")
-       >>> color()
-       ((40.0, 80.0, 120.0), (160.0, 200.0, 240.0))
+      >>> turtle.color("red", "green")
+      >>> turtle.color()
+      ('red', 'green')
+      >>> color("#285078", "#a0c8f0")
+      >>> color()
+      ((40.0, 80.0, 120.0), (160.0, 200.0, 240.0))
 
 
 See also: Screen method :func:`colormode`.
@@ -1034,11 +1034,11 @@ Filling
    .. doctest::
       :skipif: _tkinter is None
 
-       >>> turtle.begin_fill()
-       >>> if turtle.filling():
-       ...    turtle.pensize(5)
-       ... else:
-       ...    turtle.pensize(3)
+      >>> turtle.begin_fill()
+      >>> if turtle.filling():
+      ...    turtle.pensize(5)
+      ... else:
+      ...    turtle.pensize(3)
 
 
 
@@ -1244,11 +1244,11 @@ Appearance
    .. doctest::
       :skipif: _tkinter is None
 
-       >>> turtle.shape("circle")
-       >>> turtle.shapesize(5,2)
-       >>> turtle.shearfactor(0.5)
-       >>> turtle.shearfactor()
-       0.5
+      >>> turtle.shape("circle")
+      >>> turtle.shapesize(5,2)
+      >>> turtle.shearfactor(0.5)
+      >>> turtle.shearfactor()
+      0.5
 
 
 .. function:: tilt(angle)
@@ -1617,11 +1617,11 @@ Window control
    ``"nopic"``, delete background image, if present.  If *picname* is ``None``,
    return the filename of the current backgroundimage. ::
 
-       >>> screen.bgpic()
-       'nopic'
-       >>> screen.bgpic("landscape.gif")
-       >>> screen.bgpic()
-       "landscape.gif"
+      >>> screen.bgpic()
+      'nopic'
+      >>> screen.bgpic("landscape.gif")
+      >>> screen.bgpic()
+      "landscape.gif"
 
 
 .. function:: clear()
@@ -1898,7 +1898,7 @@ Input methods
    Pop up a dialog window for input of a number. title is the title of the
    dialog window, prompt is a text mostly describing what numerical information
    to input. default: default value, minval: minimum value for input,
-   maxval: maximum value for input
+   maxval: maximum value for input.
    The number input must be in the range minval .. maxval if these are
    given. If not, a hint is issued and the dialog remains open for
    correction.
@@ -1942,7 +1942,7 @@ Settings and special methods
    :param cmode: one of the values 1.0 or 255
 
    Return the colormode or set it to 1.0 or 255.  Subsequently *r*, *g*, *b*
-   values of color triples have to be in the range 0..\ *cmode*.
+   values of color triples have to be in the range 0..*cmode*.
 
    .. doctest::
       :skipif: _tkinter is None
@@ -2006,7 +2006,7 @@ Settings and special methods
 
           >>> screen.register_shape("triangle", ((5,-3), (0,5), (-5,-3)))
 
-   (3) *name* is an arbitrary string and shape is a (compound) :class:`Shape`
+   (3) *name* is an arbitrary string and *shape* is a (compound) :class:`Shape`
        object: Install the corresponding compound shape.
 
    Add a turtle shape to TurtleScreen's shapelist.  Only thusly registered
@@ -2028,16 +2028,16 @@ Settings and special methods
 
    Return the height of the turtle window. ::
 
-       >>> screen.window_height()
-       480
+      >>> screen.window_height()
+      480
 
 
 .. function:: window_width()
 
    Return the width of the turtle window. ::
 
-       >>> screen.window_width()
-       640
+      >>> screen.window_width()
+      640
 
 
 .. _screenspecific:
@@ -2218,12 +2218,12 @@ facilities:
          in the range 0..colormode or a 3-tuple of such numbers.
 
 
-           >>> screen.bgcolor("orange")
-           >>> screen.bgcolor()
-           "orange"
-           >>> screen.bgcolor(0.5,0,0.5)
-           >>> screen.bgcolor()
-           "#800080"
+         >>> screen.bgcolor("orange")
+         >>> screen.bgcolor()
+         "orange"
+         >>> screen.bgcolor(0.5,0,0.5)
+         >>> screen.bgcolor()
+         "#800080"
 
      >>> help(Turtle.penup)
      Help on method penup in module turtle:
@@ -2355,12 +2355,12 @@ Short explanation of selected entries:
   auto``.
 - If you set e.g. ``language = italian`` the docstringdict
   :file:`turtle_docstringdict_italian.py` will be loaded at import time (if
-  present on the import path, e.g. in the same directory as :mod:`turtle`.
+  present on the import path, e.g. in the same directory as :mod:`turtle`).
 - The entries *exampleturtle* and *examplescreen* define the names of these
   objects as they occur in the docstrings.  The transformation of
   method-docstrings to function-docstrings will delete these names from the
   docstrings.
-- *using_IDLE*: Set this to ``True`` if you regularly work with IDLE and its -n
+- *using_IDLE*: Set this to ``True`` if you regularly work with IDLE and its ``-n``
   switch ("no subprocess").  This will prevent :func:`exitonclick` to enter the
   mainloop.
 

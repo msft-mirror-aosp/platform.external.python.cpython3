@@ -460,12 +460,46 @@ Querying the error indicator
          }
 
 
+.. c:function:: PyObject* PyErr_GetHandledException(void)
+
+   Retrieve the active exception instance, as would be returned by :func:`sys.exception`.
+   This refers to an exception that was *already caught*, not to an exception that was
+   freshly raised. Returns a new reference to the exception or ``NULL``.
+   Does not modify the interpreter's exception state.
+
+   .. note::
+
+      This function is not normally used by code that wants to handle exceptions.
+      Rather, it can be used when code needs to save and restore the exception
+      state temporarily.  Use :c:func:`PyErr_SetHandledException` to restore or
+      clear the exception state.
+
+   .. versionadded:: 3.11
+
+.. c:function:: void PyErr_SetHandledException(PyObject *exc)
+
+   Set the active exception, as known from ``sys.exception()``.  This refers
+   to an exception that was *already caught*, not to an exception that was
+   freshly raised.
+   To clear the exception state, pass ``NULL``.
+
+   .. note::
+
+      This function is not normally used by code that wants to handle exceptions.
+      Rather, it can be used when code needs to save and restore the exception
+      state temporarily.  Use :c:func:`PyErr_GetHandledException` to get the exception
+      state.
+
+   .. versionadded:: 3.11
+
 .. c:function:: void PyErr_GetExcInfo(PyObject **ptype, PyObject **pvalue, PyObject **ptraceback)
 
-   Retrieve the exception info, as known from ``sys.exc_info()``.  This refers
-   to an exception that was *already caught*, not to an exception that was
-   freshly raised.  Returns new references for the three objects, any of which
-   may be ``NULL``.  Does not modify the exception info state.
+   Retrieve the old-style representation of the exception info, as known from
+   :func:`sys.exc_info`.  This refers to an exception that was *already caught*,
+   not to an exception that was freshly raised.  Returns new references for the
+   three objects, any of which may be ``NULL``.  Does not modify the exception
+   info state.  This function is kept for backwards compatibility. Prefer using
+   :c:func:`PyErr_GetHandledException`.
 
    .. note::
 
@@ -483,7 +517,8 @@ Querying the error indicator
    to an exception that was *already caught*, not to an exception that was
    freshly raised.  This function steals the references of the arguments.
    To clear the exception state, pass ``NULL`` for all three arguments.
-   For general rules about the three arguments, see :c:func:`PyErr_Restore`.
+   This function is kept for backwards compatibility. Prefer using
+   :c:func:`PyErr_SetHandledException`.
 
    .. note::
 
@@ -494,6 +529,12 @@ Querying the error indicator
 
    .. versionadded:: 3.3
 
+   .. versionchanged:: 3.11
+      The ``type`` and ``traceback`` arguments are no longer used and
+      can be NULL. The interpreter now derives them from the exception
+      instance (the ``value`` argument). The function still steals
+      references of all three arguments.
+
 
 Signal Handling
 ===============
@@ -502,7 +543,7 @@ Signal Handling
 .. c:function:: int PyErr_CheckSignals()
 
    .. index::
-      module: signal
+      pair: module; signal
       single: SIGINT
       single: KeyboardInterrupt (built-in exception)
 
@@ -533,7 +574,7 @@ Signal Handling
 .. c:function:: void PyErr_SetInterrupt()
 
    .. index::
-      module: signal
+      pair: module; signal
       single: SIGINT
       single: KeyboardInterrupt (built-in exception)
 
@@ -548,7 +589,7 @@ Signal Handling
 .. c:function:: int PyErr_SetInterruptEx(int signum)
 
    .. index::
-      module: signal
+      pair: module; signal
       single: KeyboardInterrupt (built-in exception)
 
    Simulate the effect of a signal arriving. The next time
@@ -675,27 +716,6 @@ The following functions are used to create and modify Unicode exceptions from C.
    Create a :class:`UnicodeDecodeError` object with the attributes *encoding*,
    *object*, *length*, *start*, *end* and *reason*. *encoding* and *reason* are
    UTF-8 encoded strings.
-
-.. c:function:: PyObject* PyUnicodeEncodeError_Create(const char *encoding, const Py_UNICODE *object, Py_ssize_t length, Py_ssize_t start, Py_ssize_t end, const char *reason)
-
-   Create a :class:`UnicodeEncodeError` object with the attributes *encoding*,
-   *object*, *length*, *start*, *end* and *reason*. *encoding* and *reason* are
-   UTF-8 encoded strings.
-
-   .. deprecated:: 3.3 3.11
-
-      ``Py_UNICODE`` is deprecated since Python 3.3. Please migrate to
-      ``PyObject_CallFunction(PyExc_UnicodeEncodeError, "sOnns", ...)``.
-
-.. c:function:: PyObject* PyUnicodeTranslateError_Create(const Py_UNICODE *object, Py_ssize_t length, Py_ssize_t start, Py_ssize_t end, const char *reason)
-
-   Create a :class:`UnicodeTranslateError` object with the attributes *object*,
-   *length*, *start*, *end* and *reason*. *reason* is a UTF-8 encoded string.
-
-   .. deprecated:: 3.3 3.11
-
-      ``Py_UNICODE`` is deprecated since Python 3.3. Please migrate to
-      ``PyObject_CallFunction(PyExc_UnicodeTranslateError, "Onns", ...)``.
 
 .. c:function:: PyObject* PyUnicodeDecodeError_GetEncoding(PyObject *exc)
                 PyObject* PyUnicodeEncodeError_GetEncoding(PyObject *exc)

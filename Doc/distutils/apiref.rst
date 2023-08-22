@@ -1021,7 +1021,7 @@ directories.
 
    Files in *src* that begin with :file:`.nfs` are skipped (more information on
    these files is available in answer D2 of the `NFS FAQ page
-   <http://nfs.sourceforge.net/#section_d>`_).
+   <https://nfs.sourceforge.net/#section_d>`_).
 
    .. versionchanged:: 3.3.1
       NFS files are ignored.
@@ -1850,22 +1850,6 @@ Subclasses of :class:`Command` must define the following methods.
 
 
 .. % todo
-
-
-:mod:`distutils.command.bdist_msi` --- Build a Microsoft Installer binary package
-=================================================================================
-
-.. module:: distutils.command.bdist_msi
-   :synopsis: Build a binary distribution as a Windows MSI file
-
-.. class:: bdist_msi
-
-.. deprecated:: 3.9
-   Use bdist_wheel (wheel packages) instead.
-
-   Builds a `Windows Installer`_ (.msi) binary package.
-
-   .. _Windows Installer: https://msdn.microsoft.com/en-us/library/cc185688(VS.85).aspx
 
 
 :mod:`distutils.command.bdist_rpm` --- Build a binary distribution as a Redhat RPM and SRPM
