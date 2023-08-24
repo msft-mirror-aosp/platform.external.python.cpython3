@@ -56,7 +56,6 @@ SUCCESSFUL_FUTURE = create_future(state=FINISHED, result=42)
 
 INITIALIZER_STATUS = 'uninitialized'
 
-
 def mul(x, y):
     return x * y
 
@@ -978,7 +977,7 @@ class ThreadPoolExecutorTest(ThreadPoolMixin, ExecutorTest, BaseTestCase):
                 with contextlib.closing(
                     pool.map(log_n_wait, ["second", "third"], timeout=0)
                 ) as gen:
-                    with self.assertRaises(futures.TimeoutError):
+                    with self.assertRaises(TimeoutError):
                         next(gen)
             finally:
                 stop_event.set()
@@ -1103,6 +1102,55 @@ class ProcessPoolExecutorTest(ExecutorTest):
         executor.submit(mul, 0, 9)
         self.assertLessEqual(len(executor._processes), 3)
         executor.shutdown()
+
+    def test_max_tasks_per_child(self):
+        context = self.get_context()
+        if context.get_start_method(allow_none=False) == "fork":
+            with self.assertRaises(ValueError):
+                self.executor_type(1, mp_context=context, max_tasks_per_child=3)
+            return
+        # not using self.executor as we need to control construction.
+        # arguably this could go in another class w/o that mixin.
+        executor = self.executor_type(
+                1, mp_context=context, max_tasks_per_child=3)
+        f1 = executor.submit(os.getpid)
+        original_pid = f1.result()
+        # The worker pid remains the same as the worker could be reused
+        f2 = executor.submit(os.getpid)
+        self.assertEqual(f2.result(), original_pid)
+        self.assertEqual(len(executor._processes), 1)
+        f3 = executor.submit(os.getpid)
+        self.assertEqual(f3.result(), original_pid)
+
+        # A new worker is spawned, with a statistically different pid,
+        # while the previous was reaped.
+        f4 = executor.submit(os.getpid)
+        new_pid = f4.result()
+        self.assertNotEqual(original_pid, new_pid)
+        self.assertEqual(len(executor._processes), 1)
+
+        executor.shutdown()
+
+    def test_max_tasks_per_child_defaults_to_spawn_context(self):
+        # not using self.executor as we need to control construction.
+        # arguably this could go in another class w/o that mixin.
+        executor = self.executor_type(1, max_tasks_per_child=3)
+        self.assertEqual(executor._mp_context.get_start_method(), "spawn")
+
+    def test_max_tasks_early_shutdown(self):
+        context = self.get_context()
+        if context.get_start_method(allow_none=False) == "fork":
+            raise unittest.SkipTest("Incompatible with the fork start method.")
+        # not using self.executor as we need to control construction.
+        # arguably this could go in another class w/o that mixin.
+        executor = self.executor_type(
+                3, mp_context=context, max_tasks_per_child=1)
+        futures = []
+        for i in range(6):
+            futures.append(executor.submit(mul, i, i))
+        executor.shutdown()
+        for i, future in enumerate(futures):
+            self.assertEqual(future.result(), mul(i, i))
 
 
 create_executor_tests(ProcessPoolExecutorTest,

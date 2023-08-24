@@ -310,7 +310,7 @@ non-empty format specification typically modifies the result.
 The general form of a *standard format specifier* is:
 
 .. productionlist:: format-spec
-   format_spec: [[`fill`]`align`][`sign`][#][0][`width`][`grouping_option`][.`precision`][`type`]
+   format_spec: [[`fill`]`align`][`sign`]["z"]["#"]["0"][`width`][`grouping_option`]["." `precision`][`type`]
    fill: <any character>
    align: "<" | ">" | "=" | "^"
    sign: "+" | "-" | " "
@@ -380,6 +380,15 @@ following:
    |         | positive numbers, and a minus sign on negative numbers.  |
    +---------+----------------------------------------------------------+
 
+
+.. index:: single: z; in string formatting
+
+The ``'z'`` option coerces negative zero floating-point values to positive
+zero after rounding to the format precision.  This option is only valid for
+floating-point presentation types.
+
+.. versionchanged:: 3.11
+   Added the ``'z'`` option (see also :pep:`682`).
 
 .. index:: single: # (hash); in string formatting
 
@@ -785,6 +794,22 @@ these rules.  The methods of :class:`Template` are:
       templates containing dangling delimiters, unmatched braces, or
       placeholders that are not valid Python identifiers.
 
+
+   .. method:: is_valid()
+
+      Returns false if the template has invalid placeholders that will cause
+      :meth:`substitute` to raise :exc:`ValueError`.
+
+      .. versionadded:: 3.11
+
+
+   .. method:: get_identifiers()
+
+      Returns a list of the valid identifiers in the template, in the order
+      they first appear, ignoring any invalid identifiers.
+
+      .. versionadded:: 3.11
+
    :class:`Template` instances also provide one public data attribute:
 
    .. attribute:: template
@@ -870,6 +895,9 @@ rule:
 
 * *invalid* -- This group matches any other delimiter pattern (usually a single
   delimiter), and it should appear last in the regular expression.
+
+The methods on this class will raise :exc:`ValueError` if the pattern matches
+the template without one of these named groups matching.
 
 
 Helper functions

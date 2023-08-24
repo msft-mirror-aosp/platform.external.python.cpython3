@@ -569,9 +569,6 @@ expression.  Currently the following are explicitly supported:
 * Simple symbolic constants like ``sys.maxsize``, which must
   start with the name of the module
 
-In case you're curious, this is implemented in  ``from_builtin()``
-in ``Lib/inspect.py``.
-
 (In the future, this may need to get even more elaborate,
 to allow full expressions like ``CONSTANT - 1``.)
 
@@ -1028,19 +1025,36 @@ you're not permitted to use:
 Using a return converter
 ------------------------
 
-By default the impl function Argument Clinic generates for you returns ``PyObject *``.
-But your C function often computes some C type, then converts it into the ``PyObject *``
+By default, the impl function Argument Clinic generates for you returns
+:c:type:`PyObject * <PyObject>`.
+But your C function often computes some C type,
+then converts it into the :c:type:`!PyObject *`
 at the last moment.  Argument Clinic handles converting your inputs from Python types
 into native C types—why not have it convert your return value from a native C type
 into a Python type too?
 
 That's what a "return converter" does.  It changes your impl function to return
 some C type, then adds code to the generated (non-impl) function to handle converting
-that value into the appropriate ``PyObject *``.
+that value into the appropriate :c:type:`!PyObject *`.
 
 The syntax for return converters is similar to that of parameter converters.
 You specify the return converter like it was a return annotation on the
-function itself.  Return converters behave much the same as parameter converters;
+function itself, using ``->`` notation.
+
+For example:
+
+.. code-block:: c
+
+   /*[clinic input]
+   add -> int
+
+       a: int
+       b: int
+       /
+
+   [clinic start generated code]*/
+
+Return converters behave much the same as parameter converters;
 they take arguments, the arguments are all keyword-only, and if you're not changing
 any of the default arguments you can omit the parentheses.
 
@@ -1061,19 +1075,17 @@ Currently Argument Clinic supports only a few return converters:
 .. code-block:: none
 
     bool
-    int
-    unsigned int
-    long
-    unsigned int
-    size_t
-    Py_ssize_t
-    float
     double
-    DecodeFSDefault
+    float
+    int
+    long
+    Py_ssize_t
+    size_t
+    unsigned int
+    unsigned long
 
-None of these take parameters.  For the first three, return -1 to indicate
-error.  For ``DecodeFSDefault``, the return type is ``const char *``; return a ``NULL``
-pointer to indicate an error.
+None of these take parameters.
+For all of these, return ``-1`` to indicate error.
 
 (There's also an experimental ``NoneType`` converter, which lets you
 return ``Py_None`` on success or ``NULL`` on failure, without having
@@ -1254,15 +1266,15 @@ The ``defining_class`` converter is not compatible with ``__init__`` and ``__new
 methods, which cannot use the ``METH_METHOD`` convention.
 
 It is not possible to use ``defining_class`` with slot methods.  In order to
-fetch the module state from such methods, use ``_PyType_GetModuleByDef`` to
-look up the module and then :c:func:`PyModule_GetState` to fetch the module
+fetch the module state from such methods, use :c:func:`PyType_GetModuleByDef`
+to look up the module and then :c:func:`PyModule_GetState` to fetch the module
 state.  Example from the ``setattro`` slot method in
 ``Modules/_threadmodule.c``::
 
     static int
     local_setattro(localobject *self, PyObject *name, PyObject *v)
     {
-        PyObject *module = _PyType_GetModuleByDef(Py_TYPE(self), &thread_module);
+        PyObject *module = PyType_GetModuleByDef(Py_TYPE(self), &thread_module);
         thread_module_state *state = get_thread_state(module);
         ...
     }

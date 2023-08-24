@@ -258,7 +258,7 @@ Module functions
 
 .. function:: connect(database, timeout=5.0, detect_types=0, \
                       isolation_level="DEFERRED", check_same_thread=True, \
-                      factory=sqlite3.Connection, cached_statements=100, \
+                      factory=sqlite3.Connection, cached_statements=128, \
                       uri=False)
 
    Open a connection to an SQLite database.
@@ -307,14 +307,14 @@ Module functions
        to avoid data corruption.
        See :attr:`threadsafety` for more information.
 
-   :param Connection factory:
+   :param ~sqlite3.Connection factory:
        A custom subclass of :class:`Connection` to create the connection with,
        if not the default :class:`Connection` class.
 
    :param int cached_statements:
        The number of statements that :mod:`!sqlite3`
        should internally cache for this connection, to avoid parsing overhead.
-       By default, 100 statements.
+       By default, 128 statements.
 
    :param bool uri:
        If set to ``True``, *database* is interpreted as a
@@ -325,7 +325,7 @@ Module functions
        The query string allows passing parameters to SQLite,
        enabling various :ref:`sqlite3-uri-tricks`.
 
-   :rtype: Connection
+   :rtype: ~sqlite3.Connection
 
    .. audit-event:: sqlite3.connect database sqlite3.connect
    .. audit-event:: sqlite3.connect/handle connection_handle sqlite3.connect
@@ -365,9 +365,32 @@ Module functions
    Enable or disable callback tracebacks.
    By default you will not get any tracebacks in user-defined functions,
    aggregates, converters, authorizer callbacks etc. If you want to debug them,
-   you can call this function with *flag* set to ``True``. Afterwards, you will
-   get tracebacks from callbacks on ``sys.stderr``. Use ``False`` to
-   disable the feature again.
+   you can call this function with *flag* set to ``True``. Afterwards, you
+   will get tracebacks from callbacks on :data:`sys.stderr`. Use ``False``
+   to disable the feature again.
+
+   Register an :func:`unraisable hook handler <sys.unraisablehook>` for an
+   improved debug experience:
+
+   .. testsetup:: sqlite3.trace
+
+      import sqlite3
+
+   .. doctest:: sqlite3.trace
+
+      >>> sqlite3.enable_callback_tracebacks(True)
+      >>> con = sqlite3.connect(":memory:")
+      >>> def evil_trace(stmt):
+      ...     5/0
+      >>> con.set_trace_callback(evil_trace)
+      >>> def debug(unraisable):
+      ...     print(f"{unraisable.exc_value!r} in callback {unraisable.object.__name__}")
+      ...     print(f"Error message: {unraisable.err_msg}")
+      >>> import sys
+      >>> sys.unraisablehook = debug
+      >>> cur = con.execute("SELECT 1")
+      ZeroDivisionError('division by zero') in callback evil_trace
+      Error message: None
 
 .. function:: register_adapter(type, adapter, /)
 
@@ -469,22 +492,41 @@ Module constants
 
 .. data:: threadsafety
 
-   Integer constant required by the DB-API, stating the level of thread safety
-   the :mod:`!sqlite3` module supports. Currently hard-coded to ``1``, meaning
-   *"Threads may share the module, but not connections."* However, this may not
-   always be true. You can check the underlying SQLite library's compile-time
-   threaded mode using the following query::
+   Integer constant required by the DB-API 2.0, stating the level of thread
+   safety the :mod:`!sqlite3` module supports. This attribute is set based on
+   the default `threading mode <https://sqlite.org/threadsafe.html>`_ the
+   underlying SQLite library is compiled with. The SQLite threading modes are:
 
-     import sqlite3
-     con = sqlite3.connect(":memory:")
-     con.execute("""
-         select * from pragma_compile_options
-         where compile_options like 'THREADSAFE=%'
-     """).fetchall()
+     1. **Single-thread**: In this mode, all mutexes are disabled and SQLite is
+        unsafe to use in more than a single thread at once.
+     2. **Multi-thread**: In this mode, SQLite can be safely used by multiple
+        threads provided that no single database connection is used
+        simultaneously in two or more threads.
+     3. **Serialized**: In serialized mode, SQLite can be safely used by
+        multiple threads with no restriction.
 
-   Note that the `SQLITE_THREADSAFE levels
-   <https://sqlite.org/compile.html#threadsafe>`_ do not match the DB-API 2.0
-   ``threadsafety`` levels.
+   The mappings from SQLite threading modes to DB-API 2.0 threadsafety levels
+   are as follows:
+
+   +------------------+-----------------+----------------------+-------------------------------+
+   | SQLite threading | `threadsafety`_ | `SQLITE_THREADSAFE`_ | DB-API 2.0 meaning            |
+   | mode             |                 |                      |                               |
+   +==================+=================+======================+===============================+
+   | single-thread    | 0               | 0                    | Threads may not share the     |
+   |                  |                 |                      | module                        |
+   +------------------+-----------------+----------------------+-------------------------------+
+   | multi-thread     | 1               | 2                    | Threads may share the module, |
+   |                  |                 |                      | but not connections           |
+   +------------------+-----------------+----------------------+-------------------------------+
+   | serialized       | 3               | 1                    | Threads may share the module, |
+   |                  |                 |                      | connections and cursors       |
+   +------------------+-----------------+----------------------+-------------------------------+
+
+   .. _threadsafety: https://peps.python.org/pep-0249/#threadsafety
+   .. _SQLITE_THREADSAFE: https://sqlite.org/compile.html#threadsafe
+
+   .. versionchanged:: 3.11
+      Set *threadsafety* dynamically instead of hard-coding it to ``1``.
 
 .. data:: version
 
@@ -522,6 +564,41 @@ Connection objects
       The cursor method accepts a single optional parameter *factory*. If
       supplied, this must be a callable returning an instance of :class:`Cursor`
       or its subclasses.
+
+   .. method:: blobopen(table, column, row, /, *, readonly=False, name="main")
+
+      Open a :class:`Blob` handle to an existing
+      :abbr:`BLOB (Binary Large OBject)`.
+
+      :param str table:
+          The name of the table where the blob is located.
+
+      :param str column:
+          The name of the column where the blob is located.
+
+      :param str row:
+          The name of the row where the blob is located.
+
+      :param bool readonly:
+          Set to ``True`` if the blob should be opened without write
+          permissions.
+          Defaults to ``False``.
+
+      :param str name:
+          The name of the database where the blob is located.
+          Defaults to ``"main"``.
+
+      :raises OperationalError:
+          When trying to open a blob in a ``WITHOUT ROWID`` table.
+
+      :rtype: Blob
+
+      .. note::
+
+         The blob size cannot be changed using the :class:`Blob` class.
+         Use the SQL function ``zeroblob`` to create a blob with a fixed size.
+
+      .. versionadded:: 3.11
 
    .. method:: commit()
 
@@ -655,6 +732,92 @@ Connection objects
          3
 
 
+   .. method:: create_window_function(name, num_params, aggregate_class, /)
+
+      Create or remove a user-defined aggregate window function.
+
+      :param str name:
+          The name of the SQL aggregate window function to create or remove.
+
+      :param int num_params:
+          The number of arguments the SQL aggregate window function can accept.
+          If ``-1``, it may take any number of arguments.
+
+      :param aggregate_class:
+          A class that must implement the following methods:
+
+          * ``step()``: Add a row to the current window.
+          * ``value()``: Return the current value of the aggregate.
+          * ``inverse()``: Remove a row from the current window.
+          * ``finalize()``: Return the final result of the aggregate as
+            :ref:`a type natively supported by SQLite <sqlite3-types>`.
+
+          The number of arguments that the ``step()`` and ``value()`` methods
+          must accept is controlled by *num_params*.
+
+          Set to ``None`` to remove an existing SQL aggregate window function.
+
+      :raises NotSupportedError:
+          If used with a version of SQLite older than 3.25.0,
+          which does not support aggregate window functions.
+
+      :type aggregate_class: :term:`class` | None
+
+      .. versionadded:: 3.11
+
+      Example:
+
+      .. testcode::
+
+         # Example taken from https://www.sqlite.org/windowfunctions.html#udfwinfunc
+         class WindowSumInt:
+             def __init__(self):
+                 self.count = 0
+
+             def step(self, value):
+                 """Add a row to the current window."""
+                 self.count += value
+
+             def value(self):
+                 """Return the current value of the aggregate."""
+                 return self.count
+
+             def inverse(self, value):
+                 """Remove a row from the current window."""
+                 self.count -= value
+
+             def finalize(self):
+                 """Return the final value of the aggregate.
+
+                 Any clean-up actions should be placed here.
+                 """
+                 return self.count
+
+
+         con = sqlite3.connect(":memory:")
+         cur = con.execute("CREATE TABLE test(x, y)")
+         values = [
+             ("a", 4),
+             ("b", 5),
+             ("c", 3),
+             ("d", 8),
+             ("e", 1),
+         ]
+         cur.executemany("INSERT INTO test VALUES(?, ?)", values)
+         con.create_window_function("sumint", 1, WindowSumInt)
+         cur.execute("""
+             SELECT x, sumint(y) OVER (
+                 ORDER BY x ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING
+             ) AS sum_y
+             FROM test ORDER BY x
+         """)
+         print(cur.fetchall())
+
+      .. testoutput::
+         :hide:
+
+         [('a', 9), ('b', 12), ('c', 16), ('d', 12), ('e', 9)]
+
    .. method:: create_collation(name, callable)
 
       Create a collation named *name* using the collating function *callable*.
@@ -695,6 +858,10 @@ Connection objects
 
       Remove a collation function by setting *callable* to ``None``.
 
+      .. versionchanged:: 3.11
+         The collation name can contain any Unicode character.  Earlier, only
+         ASCII characters were allowed.
+
 
    .. method:: interrupt()
 
@@ -721,6 +888,11 @@ Connection objects
       Please consult the SQLite documentation about the possible values for the first
       argument and the meaning of the second and third argument depending on the first
       one. All necessary constants are available in the :mod:`!sqlite3` module.
+
+      Passing ``None`` as *authorizer_callback* will disable the authorizer.
+
+      .. versionchanged:: 3.11
+         Added support for disabling the authorizer using ``None``.
 
 
    .. method:: set_progress_handler(progress_handler, n)
@@ -863,7 +1035,7 @@ Connection objects
       Works even if the database is being accessed by other clients
       or concurrently by the same connection.
 
-      :param Connection target:
+      :param ~sqlite3.Connection target:
           The database connection to save the backup to.
 
       :param int pages:
@@ -920,6 +1092,124 @@ Connection objects
          src.backup(dst)
 
       .. versionadded:: 3.7
+
+   .. method:: getlimit(category, /)
+
+      Get a connection runtime limit.
+
+      :param int category:
+         The `SQLite limit category`_ to be queried.
+
+      :rtype: int
+
+      :raises ProgrammingError:
+         If *category* is not recognised by the underlying SQLite library.
+
+      Example, query the maximum length of an SQL statement
+      for :class:`Connection` ``con`` (the default is 1000000000):
+
+      .. testsetup:: sqlite3.limits
+
+         import sqlite3
+         con = sqlite3.connect(":memory:")
+         con.setlimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH, 1_000_000_000)
+         con.setlimit(sqlite3.SQLITE_LIMIT_ATTACHED, 10)
+
+      .. doctest:: sqlite3.limits
+
+         >>> con.getlimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH)
+         1000000000
+
+      .. versionadded:: 3.11
+
+
+   .. method:: setlimit(category, limit, /)
+
+      Set a connection runtime limit.
+      Attempts to increase a limit above its hard upper bound are silently
+      truncated to the hard upper bound. Regardless of whether or not the limit
+      was changed, the prior value of the limit is returned.
+
+      :param int category:
+         The `SQLite limit category`_ to be set.
+
+      :param int limit:
+         The value of the new limit.
+         If negative, the current limit is unchanged.
+
+      :rtype: int
+
+      :raises ProgrammingError:
+         If *category* is not recognised by the underlying SQLite library.
+
+      Example, limit the number of attached databases to 1
+      for :class:`Connection` ``con`` (the default limit is 10):
+
+      .. doctest:: sqlite3.limits
+
+         >>> con.setlimit(sqlite3.SQLITE_LIMIT_ATTACHED, 1)
+         10
+         >>> con.getlimit(sqlite3.SQLITE_LIMIT_ATTACHED)
+         1
+
+      .. versionadded:: 3.11
+
+   .. _SQLite limit category: https://www.sqlite.org/c3ref/c_limit_attached.html
+
+
+   .. method:: serialize(*, name="main")
+
+      Serialize a database into a :class:`bytes` object.  For an
+      ordinary on-disk database file, the serialization is just a copy of the
+      disk file.  For an in-memory database or a "temp" database, the
+      serialization is the same sequence of bytes which would be written to
+      disk if that database were backed up to disk.
+
+      :param str name:
+         The database name to be serialized.
+         Defaults to ``"main"``.
+
+      :rtype: bytes
+
+      .. note::
+
+         This method is only available if the underlying SQLite library has the
+         serialize API.
+
+      .. versionadded:: 3.11
+
+
+   .. method:: deserialize(data, /, *, name="main")
+
+      Deserialize a :meth:`serialized <serialize>` database into a
+      :class:`Connection`.
+      This method causes the database connection to disconnect from database
+      *name*, and reopen *name* as an in-memory database based on the
+      serialization contained in *data*.
+
+      :param bytes data:
+         A serialized database.
+
+      :param str name:
+         The database name to deserialize into.
+         Defaults to ``"main"``.
+
+      :raises OperationalError:
+         If the database connection is currently involved in a read
+         transaction or a backup operation.
+
+      :raises DatabaseError:
+         If *data* does not contain a valid SQLite database.
+
+      :raises OverflowError:
+         If :func:`len(data) <len>` is larger than ``2**63 - 1``.
+
+      .. note::
+
+         This method is only available if the underlying SQLite library has the
+         deserialize API.
+
+      .. versionadded:: 3.11
 
    .. attribute:: in_transaction
 
@@ -1000,6 +1290,7 @@ Connection objects
       Return the total number of database rows that have been modified, inserted, or
       deleted since the database connection was opened.
 
+
 .. _sqlite3-cursor-objects:
 
 Cursor objects
@@ -1058,7 +1349,7 @@ Cursor objects
          See :ref:`sqlite3-placeholders`.
       :type parameters: :class:`dict` | :term:`sequence`
 
-      :raises Warning:
+      :raises ProgrammingError:
          If *sql* contains more than one SQL statement.
 
       If :attr:`~Connection.isolation_level` is not ``None``,
@@ -1072,12 +1363,12 @@ Cursor objects
 
       For every item in *parameters*,
       repeatedly execute the :ref:`parameterized <sqlite3-placeholders>`
-      SQL statement *sql*.
+      :abbr:`DML (Data Manipulation Language)` SQL statement *sql*.
 
       Uses the same implicit transaction handling as :meth:`~Cursor.execute`.
 
       :param str sql:
-         A single SQL :abbr:`DML (Data Manipulation Language)` statement.
+         A single SQL DML statement.
 
       :param parameters:
          An :term:`!iterable` of parameters to bind with
@@ -1086,10 +1377,8 @@ Cursor objects
       :type parameters: :term:`iterable`
 
       :raises ProgrammingError:
-         If *sql* is not a DML statment.
-
-      :raises Warning:
-         If *sql* contains more than one SQL statement.
+         If *sql* contains more than one SQL statement,
+         or is not a DML statment.
 
       Example:
 
@@ -1101,6 +1390,13 @@ Cursor objects
          ]
          # cur is an sqlite3.Cursor object
          cur.executemany("INSERT INTO data VALUES(?)", rows)
+
+      .. note::
+
+         Any resulting rows are discarded,
+         including DML statements with `RETURNING clauses`_.
+
+      .. _RETURNING clauses: https://www.sqlite.org/lang_returning.html
 
    .. method:: executescript(sql_script, /)
 
@@ -1220,7 +1516,10 @@ Cursor objects
       ``INSERT``, ``UPDATE``, ``DELETE``, and ``REPLACE`` statements;
       is ``-1`` for other statements,
       including :abbr:`CTE (Common Table Expression)` queries.
-      It is only updated by the :meth:`execute` and :meth:`executemany` methods.
+      It is only updated by the :meth:`execute` and :meth:`executemany` methods,
+      after the statement has run to completion.
+      This means that any resulting rows must be fetched in order for
+      :attr:`!rowcount` to be updated.
 
    .. attribute:: row_factory
 
@@ -1271,6 +1570,83 @@ Row objects
       Added support of slicing.
 
 
+.. _sqlite3-blob-objects:
+
+Blob objects
+^^^^^^^^^^^^
+
+.. versionadded:: 3.11
+
+.. class:: Blob
+
+   A :class:`Blob` instance is a :term:`file-like object`
+   that can read and write data in an SQLite :abbr:`BLOB (Binary Large OBject)`.
+   Call :func:`len(blob) <len>` to get the size (number of bytes) of the blob.
+   Use indices and :term:`slices <slice>` for direct access to the blob data.
+
+   Use the :class:`Blob` as a :term:`context manager` to ensure that the blob
+   handle is closed after use.
+
+   .. testcode::
+
+      con = sqlite3.connect(":memory:")
+      con.execute("CREATE TABLE test(blob_col blob)")
+      con.execute("INSERT INTO test(blob_col) VALUES(zeroblob(13))")
+
+      # Write to our blob, using two write operations:
+      with con.blobopen("test", "blob_col", 1) as blob:
+          blob.write(b"hello, ")
+          blob.write(b"world.")
+          # Modify the first and last bytes of our blob
+          blob[0] = ord("H")
+          blob[-1] = ord("!")
+
+      # Read the contents of our blob
+      with con.blobopen("test", "blob_col", 1) as blob:
+          greeting = blob.read()
+
+      print(greeting)  # outputs "b'Hello, world!'"
+
+   .. testoutput::
+      :hide:
+
+      b'Hello, world!'
+
+   .. method:: close()
+
+      Close the blob.
+
+      The blob will be unusable from this point onward.  An
+      :class:`~sqlite3.Error` (or subclass) exception will be raised if any
+      further operation is attempted with the blob.
+
+   .. method:: read(length=-1, /)
+
+      Read *length* bytes of data from the blob at the current offset position.
+      If the end of the blob is reached, the data up to
+      :abbr:`EOF (End of File)` will be returned.  When *length* is not
+      specified, or is negative, :meth:`~Blob.read` will read until the end of
+      the blob.
+
+   .. method:: write(data, /)
+
+      Write *data* to the blob at the current offset.  This function cannot
+      change the blob length.  Writing beyond the end of the blob will raise
+      :exc:`ValueError`.
+
+   .. method:: tell()
+
+      Return the current access position of the blob.
+
+   .. method:: seek(offset, origin=os.SEEK_SET, /)
+
+      Set the current access position of the blob to *offset*.  The *origin*
+      argument defaults to :data:`os.SEEK_SET` (absolute blob positioning).
+      Other values for *origin* are :data:`os.SEEK_CUR` (seek relative to the
+      current position) and :data:`os.SEEK_END` (seek relative to the blob’s
+      end).
+
+
 PrepareProtocol objects
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1290,9 +1666,9 @@ The exception hierarchy is defined by the DB-API 2.0 (:pep:`249`).
 
 .. exception:: Warning
 
-   This exception is raised by :mod:`!sqlite3` if an SQL query is not a
-   :class:`string <str>`, or if multiple statements are passed to
-   :meth:`~Cursor.execute` or :meth:`~Cursor.executemany`.
+   This exception is not currently raised by the :mod:`!sqlite3` module,
+   but may be raised by applications using :mod:`!sqlite3`,
+   for example if a user-defined function truncates data while inserting.
    ``Warning`` is a subclass of :exc:`Exception`.
 
 .. exception:: Error
@@ -1301,10 +1677,28 @@ The exception hierarchy is defined by the DB-API 2.0 (:pep:`249`).
    Use this to catch all errors with one single :keyword:`except` statement.
    ``Error`` is a subclass of :exc:`Exception`.
 
+   If the exception originated from within the SQLite library,
+   the following two attributes are added to the exception:
+
+   .. attribute:: sqlite_errorcode
+
+      The numeric error code from the
+      `SQLite API <https://sqlite.org/rescode.html>`_
+
+      .. versionadded:: 3.11
+
+   .. attribute:: sqlite_errorname
+
+      The symbolic name of the numeric error code
+      from the `SQLite API <https://sqlite.org/rescode.html>`_
+
+      .. versionadded:: 3.11
+
 .. exception:: InterfaceError
 
-   This exception is raised by :mod:`!sqlite3` for fetch across rollback,
-   or if :mod:`!sqlite3` is unable to bind parameters.
+   Exception raised for misuse of the low-level SQLite C API.
+   In other words, if this exception is raised, it probably indicates a bug in the
+   :mod:`!sqlite3` module.
    ``InterfaceError`` is a subclass of :exc:`Error`.
 
 .. exception:: DatabaseError
@@ -1343,8 +1737,8 @@ The exception hierarchy is defined by the DB-API 2.0 (:pep:`249`).
 .. exception:: ProgrammingError
 
    Exception raised for :mod:`!sqlite3` API programming errors,
-   for example trying to operate on a closed :class:`Connection`,
-   or trying to execute non-DML statements with :meth:`~Cursor.executemany`.
+   for example supplying the wrong number of bindings to a query,
+   or trying to operate on a closed :class:`Connection`.
    ``ProgrammingError`` is a subclass of :exc:`DatabaseError`.
 
 .. exception:: NotSupportedError
