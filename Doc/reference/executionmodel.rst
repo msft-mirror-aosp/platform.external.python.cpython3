@@ -67,7 +67,7 @@ The following constructs bind names:
 
   + :keyword:`for` loop header,
   + after :keyword:`!as` in a :keyword:`with` statement, :keyword:`except`
-    clause or in the as-pattern in structural pattern matching,
+    clause, :keyword:`except* <except_star>` clause, or in the as-pattern in structural pattern matching,
   + in a capture pattern in structural pattern matching
 
 * :keyword:`import` statements.
@@ -151,7 +151,7 @@ to previously bound variables in the nearest enclosing function scope.
 :exc:`SyntaxError` is raised at compile time if the given name does not
 exist in any enclosing function scope.
 
-.. index:: module: __main__
+.. index:: pair: module; __main__
 
 The namespace for a module is automatically created the first time a module is
 imported.  The main module for a script is always called :mod:`__main__`.

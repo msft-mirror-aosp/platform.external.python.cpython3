@@ -15,7 +15,7 @@ operating system::
 
    >>> import os
    >>> os.getcwd()      # Return the current working directory
-   'C:\\Python310'
+   'C:\\Python311'
    >>> os.chdir('/server/accesslogs')   # Change current working directory
    >>> os.system('mkdir today')   # Run the command mkdir in the system shell
    0
@@ -24,7 +24,7 @@ Be sure to use the ``import os`` style instead of ``from os import *``.  This
 will keep :func:`os.open` from shadowing the built-in :func:`open` function which
 operates much differently.
 
-.. index:: builtin: help
+.. index:: pair: built-in function; help
 
 The built-in :func:`dir` and :func:`help` functions are useful as interactive
 aids for working with large modules like :mod:`os`::

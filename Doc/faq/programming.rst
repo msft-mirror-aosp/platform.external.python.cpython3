@@ -61,7 +61,7 @@ Yes.
 `Pyflakes <https://github.com/PyCQA/pyflakes>`_ do basic checking that will
 help you catch bugs sooner.
 
-Static type checkers such as `Mypy <http://mypy-lang.org/>`_,
+Static type checkers such as `Mypy <https://mypy-lang.org/>`_,
 `Pyre <https://pyre-check.org/>`_, and
 `Pytype <https://github.com/google/pytype>`_ can check type hints in Python
 source code.
@@ -1321,12 +1321,24 @@ Or, you can use an extension that provides a matrix datatype; `NumPy
 <https://numpy.org/>`_ is the best known.
 
 
-How do I apply a method to a sequence of objects?
--------------------------------------------------
+How do I apply a method or function to a sequence of objects?
+-------------------------------------------------------------
 
-Use a list comprehension::
+To call a method or function and accumulate the return values is a list,
+a :term:`list comprehension` is an elegant solution::
 
    result = [obj.method() for obj in mylist]
+
+   result = [function(obj) for obj in mylist]
+
+To just run the method or function without saving the return values,
+a plain :keyword:`for` loop will suffice::
+
+   for obj in mylist:
+       obj.method()
+
+   for obj in mylist:
+       function(obj)
 
 .. _faq-augmented-assignment-tuple-error:
 
@@ -1948,6 +1960,8 @@ The classes can be used like this:
     'blog-why-python-rocks'
 
 
+.. _faq-cache-method-calls:
+
 How do I cache method calls?
 ----------------------------
 
@@ -2003,9 +2017,9 @@ relevant instance attributes are mutable, the *cached_property* approach
 can't be made to work because it cannot detect changes to the
 attributes.
 
-The *lru_cache* approach can be made to work, but the class needs to define the
-*__eq__* and *__hash__* methods so the cache can detect relevant attribute
-updates::
+To make the *lru_cache* approach work when the *station_id* is mutable,
+the class needs to define the :meth:`~object.__eq__` and :meth:`~object.__hash__`
+methods so that the cache can detect relevant attribute updates::
 
     class Weather:
         "Example with a mutable station identifier"

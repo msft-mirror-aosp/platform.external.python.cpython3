@@ -336,7 +336,7 @@ favourite beverage and carry on.
 If your logging needs are simple, then use the above examples to incorporate
 logging into your own scripts, and if you run into problems or don't
 understand something, please post a question on the comp.lang.python Usenet
-group (available at https://groups.google.com/forum/#!forum/comp.lang.python) and you
+group (available at https://groups.google.com/g/comp.lang.python) and you
 should receive help before too long.
 
 Still here? You can carry on reading the next few sections, which provide a
@@ -415,6 +415,7 @@ The flow of log event information in loggers and handlers is illustrated in the
 following diagram.
 
 .. image:: logging_flow.png
+   :class: invert-in-dark-mode
 
 Loggers
 ^^^^^^^
@@ -831,6 +832,13 @@ etc. then the code::
 should have the desired effect. If an organisation produces a number of
 libraries, then the logger name specified can be 'orgname.foo' rather than
 just 'foo'.
+
+.. note:: It is strongly advised that you *do not log to the root logger*
+   in your library. Instead, use a logger with a unique and easily
+   identifiable name, such as the ``__name__`` for your library's top-level package
+   or module. Logging to the root logger will make it difficult or impossible for
+   the application developer to configure the logging verbosity or handlers of
+   your library as they wish.
 
 .. note:: It is strongly advised that you *do not add any handlers other
    than* :class:`~logging.NullHandler` *to your library's loggers*. This is
