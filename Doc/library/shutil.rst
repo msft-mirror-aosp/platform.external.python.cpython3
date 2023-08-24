@@ -292,7 +292,7 @@ Directory and files operations
    .. versionadded:: 3.8
       The *dirs_exist_ok* parameter.
 
-.. function:: rmtree(path, ignore_errors=False, onerror=None)
+.. function:: rmtree(path, ignore_errors=False, onerror=None, *, dir_fd=None)
 
    .. index:: single: directory; deleting
 
@@ -301,6 +301,9 @@ Directory and files operations
    from failed removals will be ignored; if false or omitted, such errors are
    handled by calling a handler specified by *onerror* or, if that is omitted,
    they raise an exception.
+
+   This function can support :ref:`paths relative to directory descriptors
+   <dir_fd>`.
 
    .. note::
 
@@ -321,7 +324,7 @@ Directory and files operations
    *excinfo*, will be the exception information returned by
    :func:`sys.exc_info`.  Exceptions raised by *onerror* will not be caught.
 
-   .. audit-event:: shutil.rmtree path shutil.rmtree
+   .. audit-event:: shutil.rmtree path,dir_fd shutil.rmtree
 
    .. versionchanged:: 3.3
       Added a symlink attack resistant version that is used automatically
@@ -330,6 +333,9 @@ Directory and files operations
    .. versionchanged:: 3.8
       On Windows, will no longer delete the contents of a directory junction
       before removing the junction.
+
+   .. versionchanged:: 3.11
+      The *dir_fd* parameter.
 
    .. attribute:: rmtree.avoids_symlink_attacks
 
@@ -620,7 +626,7 @@ provided.  They rely on the :mod:`zipfile` and :mod:`tarfile` modules.
    Remove the archive format *name* from the list of supported formats.
 
 
-.. function:: unpack_archive(filename[, extract_dir[, format]])
+.. function:: unpack_archive(filename[, extract_dir[, format[, filter]]])
 
    Unpack an archive. *filename* is the full path of the archive.
 
@@ -634,6 +640,15 @@ provided.  They rely on the :mod:`zipfile` and :mod:`tarfile` modules.
    registered for that extension.  In case none is found,
    a :exc:`ValueError` is raised.
 
+   The keyword-only *filter* argument, which was added in Python 3.11.4,
+   is passed to the underlying unpacking function.
+   For zip files, *filter* is not accepted.
+   For tar files, it is recommended to set it to ``'data'``,
+   unless using features specific to tar and UNIX-like filesystems.
+   (See :ref:`tarfile-extraction-filter` for details.)
+   The ``'data'`` filter will become the default for tar files
+   in Python 3.14.
+
    .. audit-event:: shutil.unpack_archive filename,extract_dir,format shutil.unpack_archive
 
    .. warning::
@@ -646,6 +661,9 @@ provided.  They rely on the :mod:`zipfile` and :mod:`tarfile` modules.
    .. versionchanged:: 3.7
       Accepts a :term:`path-like object` for *filename* and *extract_dir*.
 
+   .. versionchanged:: 3.11.4
+      Added the *filter* argument.
+
 .. function:: register_unpack_format(name, extensions, function[, extra_args[, description]])
 
    Registers an unpack format. *name* is the name of the format and
@@ -653,11 +671,14 @@ provided.  They rely on the :mod:`zipfile` and :mod:`tarfile` modules.
    ``.zip`` for Zip files.
 
    *function* is the callable that will be used to unpack archives. The
-   callable will receive the path of the archive, followed by the directory
-   the archive must be extracted to.
+   callable will receive:
 
-   When provided, *extra_args* is a sequence of ``(name, value)`` tuples that
-   will be passed as keywords arguments to the callable.
+   - the path of the archive, as a positional argument;
+   - the directory the archive must be extracted to, as a positional argument;
+   - possibly a *filter* keyword argument, if it was given to
+     :func:`unpack_archive`;
+   - additional keyword arguments, specified by *extra_args* as a sequence
+     of ``(name, value)`` tuples.
 
    *description* can be provided to describe the format, and will be returned
    by the :func:`get_unpack_formats` function.
@@ -786,6 +807,10 @@ Querying the size of the output terminal
    `Other Environment Variables`_.
 
    .. versionadded:: 3.3
+
+   .. versionchanged:: 3.11
+      The ``fallback`` values are also used if :func:`os.get_terminal_size`
+      returns zeroes.
 
 .. _`fcopyfile`:
    http://www.manpagez.com/man/3/copyfile/

@@ -481,7 +481,7 @@ Expressions
    Comparison operator tokens.
 
 
-.. class:: Call(func, args, keywords, starargs, kwargs)
+.. class:: Call(func, args, keywords)
 
    A function call. ``func`` is the function, which will often be a
    :class:`Name` or :class:`Attribute` object. Of the arguments:
@@ -491,7 +491,7 @@ Expressions
      arguments passed by keyword.
 
    When creating a ``Call`` node, ``args`` and ``keywords`` are required, but
-   they can be empty lists. ``starargs`` and ``kwargs`` are optional.
+   they can be empty lists.
 
    .. doctest::
 
@@ -1167,6 +1167,37 @@ Control flow
             type_ignores=[])
 
 
+.. class:: TryStar(body, handlers, orelse, finalbody)
+
+   ``try`` blocks which are followed by ``except*`` clauses. The attributes are the
+   same as for :class:`Try` but the :class:`ExceptHandler` nodes in ``handlers``
+   are interpreted as ``except*`` blocks rather then ``except``.
+
+   .. doctest::
+
+        >>> print(ast.dump(ast.parse("""
+        ... try:
+        ...    ...
+        ... except* Exception:
+        ...    ...
+        ... """), indent=4))
+        Module(
+            body=[
+                TryStar(
+                    body=[
+                        Expr(
+                            value=Constant(value=Ellipsis))],
+                    handlers=[
+                        ExceptHandler(
+                            type=Name(id='Exception', ctx=Load()),
+                            body=[
+                                Expr(
+                                    value=Constant(value=Ellipsis))])],
+                    orelse=[],
+                    finalbody=[])],
+            type_ignores=[])
+
+
 .. class:: ExceptHandler(type, name, body)
 
    A single ``except`` clause. ``type`` is the exception type it will match,
@@ -1787,7 +1818,7 @@ Function and class definitions
             type_ignores=[])
 
 
-.. class:: ClassDef(name, bases, keywords, starargs, kwargs, body, decorator_list)
+.. class:: ClassDef(name, bases, keywords, body, decorator_list)
 
    A class definition.
 
@@ -1795,10 +1826,7 @@ Function and class definitions
    * ``bases`` is a list of nodes for explicitly specified base classes.
    * ``keywords`` is a list of :class:`keyword` nodes, principally for 'metaclass'.
      Other keywords will be passed to the metaclass, as per `PEP-3115
-     <https://www.python.org/dev/peps/pep-3115/>`_.
-   * ``starargs`` and ``kwargs`` are each a single node, as in a function call.
-     starargs will be expanded to join the list of base classes, and kwargs will
-     be passed to the metaclass.
+     <https://peps.python.org/pep-3115/>`_.
    * ``body`` is a list of nodes representing the code within the class
      definition.
    * ``decorator_list`` is a list of nodes, as in :class:`FunctionDef`.

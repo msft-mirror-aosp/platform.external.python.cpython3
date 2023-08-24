@@ -25,7 +25,7 @@ PyDoc_STRVAR(objects_converter__doc__,
 "\n");
 
 #define OBJECTS_CONVERTER_METHODDEF    \
-    {"objects_converter", (PyCFunction)(void(*)(void))objects_converter, METH_FASTCALL, objects_converter__doc__},
+    {"objects_converter", _PyCFunction_CAST(objects_converter), METH_FASTCALL, objects_converter__doc__},
 
 static PyObject *
 objects_converter_impl(PyObject *module, PyObject *a, PyObject *b);
@@ -145,7 +145,7 @@ PyDoc_STRVAR(bool_converter__doc__,
 "\n");
 
 #define BOOL_CONVERTER_METHODDEF    \
-    {"bool_converter", (PyCFunction)(void(*)(void))bool_converter, METH_FASTCALL, bool_converter__doc__},
+    {"bool_converter", _PyCFunction_CAST(bool_converter), METH_FASTCALL, bool_converter__doc__},
 
 static PyObject *
 bool_converter_impl(PyObject *module, int a, int b, int c);
@@ -197,7 +197,7 @@ PyDoc_STRVAR(char_converter__doc__,
 "\n");
 
 #define CHAR_CONVERTER_METHODDEF    \
-    {"char_converter", (PyCFunction)(void(*)(void))char_converter, METH_FASTCALL, char_converter__doc__},
+    {"char_converter", _PyCFunction_CAST(char_converter), METH_FASTCALL, char_converter__doc__},
 
 static PyObject *
 char_converter_impl(PyObject *module, char a, char b, char c, char d, char e,
@@ -421,7 +421,7 @@ PyDoc_STRVAR(unsigned_char_converter__doc__,
 "\n");
 
 #define UNSIGNED_CHAR_CONVERTER_METHODDEF    \
-    {"unsigned_char_converter", (PyCFunction)(void(*)(void))unsigned_char_converter, METH_FASTCALL, unsigned_char_converter__doc__},
+    {"unsigned_char_converter", _PyCFunction_CAST(unsigned_char_converter), METH_FASTCALL, unsigned_char_converter__doc__},
 
 static PyObject *
 unsigned_char_converter_impl(PyObject *module, unsigned char a,
@@ -507,7 +507,7 @@ PyDoc_STRVAR(short_converter__doc__,
 "\n");
 
 #define SHORT_CONVERTER_METHODDEF    \
-    {"short_converter", (PyCFunction)(void(*)(void))short_converter, METH_FASTCALL, short_converter__doc__},
+    {"short_converter", _PyCFunction_CAST(short_converter), METH_FASTCALL, short_converter__doc__},
 
 static PyObject *
 short_converter_impl(PyObject *module, short a);
@@ -556,7 +556,7 @@ PyDoc_STRVAR(unsigned_short_converter__doc__,
 "\n");
 
 #define UNSIGNED_SHORT_CONVERTER_METHODDEF    \
-    {"unsigned_short_converter", (PyCFunction)(void(*)(void))unsigned_short_converter, METH_FASTCALL, unsigned_short_converter__doc__},
+    {"unsigned_short_converter", _PyCFunction_CAST(unsigned_short_converter), METH_FASTCALL, unsigned_short_converter__doc__},
 
 static PyObject *
 unsigned_short_converter_impl(PyObject *module, unsigned short a,
@@ -605,7 +605,7 @@ PyDoc_STRVAR(int_converter__doc__,
 "\n");
 
 #define INT_CONVERTER_METHODDEF    \
-    {"int_converter", (PyCFunction)(void(*)(void))int_converter, METH_FASTCALL, int_converter__doc__},
+    {"int_converter", _PyCFunction_CAST(int_converter), METH_FASTCALL, int_converter__doc__},
 
 static PyObject *
 int_converter_impl(PyObject *module, int a, int b, int c);
@@ -663,7 +663,7 @@ PyDoc_STRVAR(unsigned_int_converter__doc__,
 "\n");
 
 #define UNSIGNED_INT_CONVERTER_METHODDEF    \
-    {"unsigned_int_converter", (PyCFunction)(void(*)(void))unsigned_int_converter, METH_FASTCALL, unsigned_int_converter__doc__},
+    {"unsigned_int_converter", _PyCFunction_CAST(unsigned_int_converter), METH_FASTCALL, unsigned_int_converter__doc__},
 
 static PyObject *
 unsigned_int_converter_impl(PyObject *module, unsigned int a, unsigned int b,
@@ -712,7 +712,7 @@ PyDoc_STRVAR(long_converter__doc__,
 "\n");
 
 #define LONG_CONVERTER_METHODDEF    \
-    {"long_converter", (PyCFunction)(void(*)(void))long_converter, METH_FASTCALL, long_converter__doc__},
+    {"long_converter", _PyCFunction_CAST(long_converter), METH_FASTCALL, long_converter__doc__},
 
 static PyObject *
 long_converter_impl(PyObject *module, long a);
@@ -746,7 +746,7 @@ PyDoc_STRVAR(unsigned_long_converter__doc__,
 "\n");
 
 #define UNSIGNED_LONG_CONVERTER_METHODDEF    \
-    {"unsigned_long_converter", (PyCFunction)(void(*)(void))unsigned_long_converter, METH_FASTCALL, unsigned_long_converter__doc__},
+    {"unsigned_long_converter", _PyCFunction_CAST(unsigned_long_converter), METH_FASTCALL, unsigned_long_converter__doc__},
 
 static PyObject *
 unsigned_long_converter_impl(PyObject *module, unsigned long a,
@@ -796,7 +796,7 @@ PyDoc_STRVAR(long_long_converter__doc__,
 "\n");
 
 #define LONG_LONG_CONVERTER_METHODDEF    \
-    {"long_long_converter", (PyCFunction)(void(*)(void))long_long_converter, METH_FASTCALL, long_long_converter__doc__},
+    {"long_long_converter", _PyCFunction_CAST(long_long_converter), METH_FASTCALL, long_long_converter__doc__},
 
 static PyObject *
 long_long_converter_impl(PyObject *module, long long a);
@@ -830,7 +830,7 @@ PyDoc_STRVAR(unsigned_long_long_converter__doc__,
 "\n");
 
 #define UNSIGNED_LONG_LONG_CONVERTER_METHODDEF    \
-    {"unsigned_long_long_converter", (PyCFunction)(void(*)(void))unsigned_long_long_converter, METH_FASTCALL, unsigned_long_long_converter__doc__},
+    {"unsigned_long_long_converter", _PyCFunction_CAST(unsigned_long_long_converter), METH_FASTCALL, unsigned_long_long_converter__doc__},
 
 static PyObject *
 unsigned_long_long_converter_impl(PyObject *module, unsigned long long a,
@@ -880,7 +880,7 @@ PyDoc_STRVAR(py_ssize_t_converter__doc__,
 "\n");
 
 #define PY_SSIZE_T_CONVERTER_METHODDEF    \
-    {"py_ssize_t_converter", (PyCFunction)(void(*)(void))py_ssize_t_converter, METH_FASTCALL, py_ssize_t_converter__doc__},
+    {"py_ssize_t_converter", _PyCFunction_CAST(py_ssize_t_converter), METH_FASTCALL, py_ssize_t_converter__doc__},
 
 static PyObject *
 py_ssize_t_converter_impl(PyObject *module, Py_ssize_t a, Py_ssize_t b,
@@ -946,7 +946,7 @@ PyDoc_STRVAR(slice_index_converter__doc__,
 "\n");
 
 #define SLICE_INDEX_CONVERTER_METHODDEF    \
-    {"slice_index_converter", (PyCFunction)(void(*)(void))slice_index_converter, METH_FASTCALL, slice_index_converter__doc__},
+    {"slice_index_converter", _PyCFunction_CAST(slice_index_converter), METH_FASTCALL, slice_index_converter__doc__},
 
 static PyObject *
 slice_index_converter_impl(PyObject *module, Py_ssize_t a, Py_ssize_t b,
@@ -994,7 +994,7 @@ PyDoc_STRVAR(size_t_converter__doc__,
 "\n");
 
 #define SIZE_T_CONVERTER_METHODDEF    \
-    {"size_t_converter", (PyCFunction)(void(*)(void))size_t_converter, METH_FASTCALL, size_t_converter__doc__},
+    {"size_t_converter", _PyCFunction_CAST(size_t_converter), METH_FASTCALL, size_t_converter__doc__},
 
 static PyObject *
 size_t_converter_impl(PyObject *module, size_t a);
@@ -1027,7 +1027,7 @@ PyDoc_STRVAR(float_converter__doc__,
 "\n");
 
 #define FLOAT_CONVERTER_METHODDEF    \
-    {"float_converter", (PyCFunction)(void(*)(void))float_converter, METH_FASTCALL, float_converter__doc__},
+    {"float_converter", _PyCFunction_CAST(float_converter), METH_FASTCALL, float_converter__doc__},
 
 static PyObject *
 float_converter_impl(PyObject *module, float a);
@@ -1067,7 +1067,7 @@ PyDoc_STRVAR(double_converter__doc__,
 "\n");
 
 #define DOUBLE_CONVERTER_METHODDEF    \
-    {"double_converter", (PyCFunction)(void(*)(void))double_converter, METH_FASTCALL, double_converter__doc__},
+    {"double_converter", _PyCFunction_CAST(double_converter), METH_FASTCALL, double_converter__doc__},
 
 static PyObject *
 double_converter_impl(PyObject *module, double a);
@@ -1134,11 +1134,11 @@ PyDoc_STRVAR(str_converter__doc__,
 "\n");
 
 #define STR_CONVERTER_METHODDEF    \
-    {"str_converter", (PyCFunction)(void(*)(void))str_converter, METH_FASTCALL, str_converter__doc__},
+    {"str_converter", _PyCFunction_CAST(str_converter), METH_FASTCALL, str_converter__doc__},
 
 static PyObject *
 str_converter_impl(PyObject *module, const char *a, const char *b,
-                   const char *c, Py_ssize_clean_t c_length);
+                   const char *c, Py_ssize_t c_length);
 
 static PyObject *
 str_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
@@ -1147,7 +1147,7 @@ str_converter(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     const char *a = "a";
     const char *b = "b";
     const char *c = "c";
-    Py_ssize_clean_t c_length;
+    Py_ssize_t c_length;
 
     if (!_PyArg_ParseStack(args, nargs, "|sys#:str_converter",
         &a, &b, &c, &c_length)) {
@@ -1165,11 +1165,11 @@ PyDoc_STRVAR(str_converter_encoding__doc__,
 "\n");
 
 #define STR_CONVERTER_ENCODING_METHODDEF    \
-    {"str_converter_encoding", (PyCFunction)(void(*)(void))str_converter_encoding, METH_FASTCALL, str_converter_encoding__doc__},
+    {"str_converter_encoding", _PyCFunction_CAST(str_converter_encoding), METH_FASTCALL, str_converter_encoding__doc__},
 
 static PyObject *
 str_converter_encoding_impl(PyObject *module, char *a, char *b, char *c,
-                            Py_ssize_clean_t c_length);
+                            Py_ssize_t c_length);
 
 static PyObject *
 str_converter_encoding(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
@@ -1178,7 +1178,7 @@ str_converter_encoding(PyObject *module, PyObject *const *args, Py_ssize_t nargs
     char *a = NULL;
     char *b = NULL;
     char *c = NULL;
-    Py_ssize_clean_t c_length;
+    Py_ssize_t c_length;
 
     if (!_PyArg_ParseStack(args, nargs, "esetet#:str_converter_encoding",
         "idna", &a, "idna", &b, "idna", &c, &c_length)) {
@@ -1202,7 +1202,7 @@ PyDoc_STRVAR(py_buffer_converter__doc__,
 "\n");
 
 #define PY_BUFFER_CONVERTER_METHODDEF    \
-    {"py_buffer_converter", (PyCFunction)(void(*)(void))py_buffer_converter, METH_FASTCALL, py_buffer_converter__doc__},
+    {"py_buffer_converter", _PyCFunction_CAST(py_buffer_converter), METH_FASTCALL, py_buffer_converter__doc__},
 
 static PyObject *
 py_buffer_converter_impl(PyObject *module, Py_buffer *a, Py_buffer *b);
@@ -1239,7 +1239,7 @@ PyDoc_STRVAR(keywords__doc__,
 "\n");
 
 #define KEYWORDS_METHODDEF    \
-    {"keywords", (PyCFunction)(void(*)(void))keywords, METH_FASTCALL|METH_KEYWORDS, keywords__doc__},
+    {"keywords", _PyCFunction_CAST(keywords), METH_FASTCALL|METH_KEYWORDS, keywords__doc__},
 
 static PyObject *
 keywords_impl(PyObject *module, PyObject *a, PyObject *b);
@@ -1272,7 +1272,7 @@ PyDoc_STRVAR(keywords_kwonly__doc__,
 "\n");
 
 #define KEYWORDS_KWONLY_METHODDEF    \
-    {"keywords_kwonly", (PyCFunction)(void(*)(void))keywords_kwonly, METH_FASTCALL|METH_KEYWORDS, keywords_kwonly__doc__},
+    {"keywords_kwonly", _PyCFunction_CAST(keywords_kwonly), METH_FASTCALL|METH_KEYWORDS, keywords_kwonly__doc__},
 
 static PyObject *
 keywords_kwonly_impl(PyObject *module, PyObject *a, PyObject *b);
@@ -1305,7 +1305,7 @@ PyDoc_STRVAR(keywords_opt__doc__,
 "\n");
 
 #define KEYWORDS_OPT_METHODDEF    \
-    {"keywords_opt", (PyCFunction)(void(*)(void))keywords_opt, METH_FASTCALL|METH_KEYWORDS, keywords_opt__doc__},
+    {"keywords_opt", _PyCFunction_CAST(keywords_opt), METH_FASTCALL|METH_KEYWORDS, keywords_opt__doc__},
 
 static PyObject *
 keywords_opt_impl(PyObject *module, PyObject *a, PyObject *b, PyObject *c);
@@ -1350,7 +1350,7 @@ PyDoc_STRVAR(keywords_opt_kwonly__doc__,
 "\n");
 
 #define KEYWORDS_OPT_KWONLY_METHODDEF    \
-    {"keywords_opt_kwonly", (PyCFunction)(void(*)(void))keywords_opt_kwonly, METH_FASTCALL|METH_KEYWORDS, keywords_opt_kwonly__doc__},
+    {"keywords_opt_kwonly", _PyCFunction_CAST(keywords_opt_kwonly), METH_FASTCALL|METH_KEYWORDS, keywords_opt_kwonly__doc__},
 
 static PyObject *
 keywords_opt_kwonly_impl(PyObject *module, PyObject *a, PyObject *b,
@@ -1407,7 +1407,7 @@ PyDoc_STRVAR(keywords_kwonly_opt__doc__,
 "\n");
 
 #define KEYWORDS_KWONLY_OPT_METHODDEF    \
-    {"keywords_kwonly_opt", (PyCFunction)(void(*)(void))keywords_kwonly_opt, METH_FASTCALL|METH_KEYWORDS, keywords_kwonly_opt__doc__},
+    {"keywords_kwonly_opt", _PyCFunction_CAST(keywords_kwonly_opt), METH_FASTCALL|METH_KEYWORDS, keywords_kwonly_opt__doc__},
 
 static PyObject *
 keywords_kwonly_opt_impl(PyObject *module, PyObject *a, PyObject *b,
@@ -1453,7 +1453,7 @@ PyDoc_STRVAR(posonly_keywords__doc__,
 "\n");
 
 #define POSONLY_KEYWORDS_METHODDEF    \
-    {"posonly_keywords", (PyCFunction)(void(*)(void))posonly_keywords, METH_FASTCALL|METH_KEYWORDS, posonly_keywords__doc__},
+    {"posonly_keywords", _PyCFunction_CAST(posonly_keywords), METH_FASTCALL|METH_KEYWORDS, posonly_keywords__doc__},
 
 static PyObject *
 posonly_keywords_impl(PyObject *module, PyObject *a, PyObject *b);
@@ -1486,7 +1486,7 @@ PyDoc_STRVAR(posonly_kwonly__doc__,
 "\n");
 
 #define POSONLY_KWONLY_METHODDEF    \
-    {"posonly_kwonly", (PyCFunction)(void(*)(void))posonly_kwonly, METH_FASTCALL|METH_KEYWORDS, posonly_kwonly__doc__},
+    {"posonly_kwonly", _PyCFunction_CAST(posonly_kwonly), METH_FASTCALL|METH_KEYWORDS, posonly_kwonly__doc__},
 
 static PyObject *
 posonly_kwonly_impl(PyObject *module, PyObject *a, PyObject *b);
@@ -1519,7 +1519,7 @@ PyDoc_STRVAR(posonly_keywords_kwonly__doc__,
 "\n");
 
 #define POSONLY_KEYWORDS_KWONLY_METHODDEF    \
-    {"posonly_keywords_kwonly", (PyCFunction)(void(*)(void))posonly_keywords_kwonly, METH_FASTCALL|METH_KEYWORDS, posonly_keywords_kwonly__doc__},
+    {"posonly_keywords_kwonly", _PyCFunction_CAST(posonly_keywords_kwonly), METH_FASTCALL|METH_KEYWORDS, posonly_keywords_kwonly__doc__},
 
 static PyObject *
 posonly_keywords_kwonly_impl(PyObject *module, PyObject *a, PyObject *b,
@@ -1555,7 +1555,7 @@ PyDoc_STRVAR(posonly_keywords_opt__doc__,
 "\n");
 
 #define POSONLY_KEYWORDS_OPT_METHODDEF    \
-    {"posonly_keywords_opt", (PyCFunction)(void(*)(void))posonly_keywords_opt, METH_FASTCALL|METH_KEYWORDS, posonly_keywords_opt__doc__},
+    {"posonly_keywords_opt", _PyCFunction_CAST(posonly_keywords_opt), METH_FASTCALL|METH_KEYWORDS, posonly_keywords_opt__doc__},
 
 static PyObject *
 posonly_keywords_opt_impl(PyObject *module, PyObject *a, PyObject *b,
@@ -1603,7 +1603,7 @@ PyDoc_STRVAR(posonly_opt_keywords_opt__doc__,
 "\n");
 
 #define POSONLY_OPT_KEYWORDS_OPT_METHODDEF    \
-    {"posonly_opt_keywords_opt", (PyCFunction)(void(*)(void))posonly_opt_keywords_opt, METH_FASTCALL|METH_KEYWORDS, posonly_opt_keywords_opt__doc__},
+    {"posonly_opt_keywords_opt", _PyCFunction_CAST(posonly_opt_keywords_opt), METH_FASTCALL|METH_KEYWORDS, posonly_opt_keywords_opt__doc__},
 
 static PyObject *
 posonly_opt_keywords_opt_impl(PyObject *module, PyObject *a, PyObject *b,
@@ -1656,7 +1656,7 @@ PyDoc_STRVAR(posonly_kwonly_opt__doc__,
 "\n");
 
 #define POSONLY_KWONLY_OPT_METHODDEF    \
-    {"posonly_kwonly_opt", (PyCFunction)(void(*)(void))posonly_kwonly_opt, METH_FASTCALL|METH_KEYWORDS, posonly_kwonly_opt__doc__},
+    {"posonly_kwonly_opt", _PyCFunction_CAST(posonly_kwonly_opt), METH_FASTCALL|METH_KEYWORDS, posonly_kwonly_opt__doc__},
 
 static PyObject *
 posonly_kwonly_opt_impl(PyObject *module, PyObject *a, PyObject *b,
@@ -1704,7 +1704,7 @@ PyDoc_STRVAR(posonly_opt_kwonly_opt__doc__,
 "\n");
 
 #define POSONLY_OPT_KWONLY_OPT_METHODDEF    \
-    {"posonly_opt_kwonly_opt", (PyCFunction)(void(*)(void))posonly_opt_kwonly_opt, METH_FASTCALL|METH_KEYWORDS, posonly_opt_kwonly_opt__doc__},
+    {"posonly_opt_kwonly_opt", _PyCFunction_CAST(posonly_opt_kwonly_opt), METH_FASTCALL|METH_KEYWORDS, posonly_opt_kwonly_opt__doc__},
 
 static PyObject *
 posonly_opt_kwonly_opt_impl(PyObject *module, PyObject *a, PyObject *b,
@@ -1757,7 +1757,7 @@ PyDoc_STRVAR(posonly_keywords_kwonly_opt__doc__,
 "\n");
 
 #define POSONLY_KEYWORDS_KWONLY_OPT_METHODDEF    \
-    {"posonly_keywords_kwonly_opt", (PyCFunction)(void(*)(void))posonly_keywords_kwonly_opt, METH_FASTCALL|METH_KEYWORDS, posonly_keywords_kwonly_opt__doc__},
+    {"posonly_keywords_kwonly_opt", _PyCFunction_CAST(posonly_keywords_kwonly_opt), METH_FASTCALL|METH_KEYWORDS, posonly_keywords_kwonly_opt__doc__},
 
 static PyObject *
 posonly_keywords_kwonly_opt_impl(PyObject *module, PyObject *a, PyObject *b,
@@ -1808,7 +1808,7 @@ PyDoc_STRVAR(posonly_keywords_opt_kwonly_opt__doc__,
 "\n");
 
 #define POSONLY_KEYWORDS_OPT_KWONLY_OPT_METHODDEF    \
-    {"posonly_keywords_opt_kwonly_opt", (PyCFunction)(void(*)(void))posonly_keywords_opt_kwonly_opt, METH_FASTCALL|METH_KEYWORDS, posonly_keywords_opt_kwonly_opt__doc__},
+    {"posonly_keywords_opt_kwonly_opt", _PyCFunction_CAST(posonly_keywords_opt_kwonly_opt), METH_FASTCALL|METH_KEYWORDS, posonly_keywords_opt_kwonly_opt__doc__},
 
 static PyObject *
 posonly_keywords_opt_kwonly_opt_impl(PyObject *module, PyObject *a,
@@ -1869,7 +1869,7 @@ PyDoc_STRVAR(posonly_opt_keywords_opt_kwonly_opt__doc__,
 "\n");
 
 #define POSONLY_OPT_KEYWORDS_OPT_KWONLY_OPT_METHODDEF    \
-    {"posonly_opt_keywords_opt_kwonly_opt", (PyCFunction)(void(*)(void))posonly_opt_keywords_opt_kwonly_opt, METH_FASTCALL|METH_KEYWORDS, posonly_opt_keywords_opt_kwonly_opt__doc__},
+    {"posonly_opt_keywords_opt_kwonly_opt", _PyCFunction_CAST(posonly_opt_keywords_opt_kwonly_opt), METH_FASTCALL|METH_KEYWORDS, posonly_opt_keywords_opt_kwonly_opt__doc__},
 
 static PyObject *
 posonly_opt_keywords_opt_kwonly_opt_impl(PyObject *module, PyObject *a,
@@ -1927,7 +1927,7 @@ PyDoc_STRVAR(keyword_only_parameter__doc__,
 "\n");
 
 #define KEYWORD_ONLY_PARAMETER_METHODDEF    \
-    {"keyword_only_parameter", (PyCFunction)(void(*)(void))keyword_only_parameter, METH_FASTCALL|METH_KEYWORDS, keyword_only_parameter__doc__},
+    {"keyword_only_parameter", _PyCFunction_CAST(keyword_only_parameter), METH_FASTCALL|METH_KEYWORDS, keyword_only_parameter__doc__},
 
 static PyObject *
 keyword_only_parameter_impl(PyObject *module, PyObject *a);
@@ -1952,6 +1952,327 @@ exit:
     return return_value;
 }
 
+PyDoc_STRVAR(posonly_vararg__doc__,
+"posonly_vararg($module, a, /, b, *args)\n"
+"--\n"
+"\n");
+
+#define POSONLY_VARARG_METHODDEF    \
+    {"posonly_vararg", _PyCFunction_CAST(posonly_vararg), METH_FASTCALL|METH_KEYWORDS, posonly_vararg__doc__},
+
+static PyObject *
+posonly_vararg_impl(PyObject *module, PyObject *a, PyObject *b,
+                    PyObject *args);
+
+static PyObject *
+posonly_vararg(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"", "b", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "posonly_vararg", 0};
+    PyObject *argsbuf[3];
+    PyObject *a;
+    PyObject *b;
+    PyObject *__clinic_args = NULL;
+
+    args = _PyArg_UnpackKeywordsWithVararg(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, 2, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    a = args[0];
+    b = args[1];
+    __clinic_args = args[2];
+    return_value = posonly_vararg_impl(module, a, b, __clinic_args);
+
+exit:
+    Py_XDECREF(__clinic_args);
+    return return_value;
+}
+
+PyDoc_STRVAR(vararg_and_posonly__doc__,
+"vararg_and_posonly($module, a, /, *args)\n"
+"--\n"
+"\n");
+
+#define VARARG_AND_POSONLY_METHODDEF    \
+    {"vararg_and_posonly", _PyCFunction_CAST(vararg_and_posonly), METH_FASTCALL, vararg_and_posonly__doc__},
+
+static PyObject *
+vararg_and_posonly_impl(PyObject *module, PyObject *a, PyObject *args);
+
+static PyObject *
+vararg_and_posonly(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
+{
+    PyObject *return_value = NULL;
+    PyObject *a;
+    PyObject *__clinic_args = NULL;
+
+    if (!_PyArg_CheckPositional("vararg_and_posonly", nargs, 1, PY_SSIZE_T_MAX)) {
+        goto exit;
+    }
+    a = args[0];
+    __clinic_args = PyTuple_New(nargs - 1);
+    if (!__clinic_args) {
+        goto exit;
+    }
+    for (Py_ssize_t i = 0; i < nargs - 1; ++i) {
+        PyTuple_SET_ITEM(__clinic_args, i, Py_NewRef(args[1 + i]));
+    }
+    return_value = vararg_and_posonly_impl(module, a, __clinic_args);
+
+exit:
+    Py_XDECREF(__clinic_args);
+    return return_value;
+}
+
+PyDoc_STRVAR(vararg__doc__,
+"vararg($module, /, a, *args)\n"
+"--\n"
+"\n");
+
+#define VARARG_METHODDEF    \
+    {"vararg", _PyCFunction_CAST(vararg), METH_FASTCALL|METH_KEYWORDS, vararg__doc__},
+
+static PyObject *
+vararg_impl(PyObject *module, PyObject *a, PyObject *args);
+
+static PyObject *
+vararg(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"a", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "vararg", 0};
+    PyObject *argsbuf[2];
+    PyObject *a;
+    PyObject *__clinic_args = NULL;
+
+    args = _PyArg_UnpackKeywordsWithVararg(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, 1, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    a = args[0];
+    __clinic_args = args[1];
+    return_value = vararg_impl(module, a, __clinic_args);
+
+exit:
+    Py_XDECREF(__clinic_args);
+    return return_value;
+}
+
+PyDoc_STRVAR(vararg_with_default__doc__,
+"vararg_with_default($module, /, a, *args, b=False)\n"
+"--\n"
+"\n");
+
+#define VARARG_WITH_DEFAULT_METHODDEF    \
+    {"vararg_with_default", _PyCFunction_CAST(vararg_with_default), METH_FASTCALL|METH_KEYWORDS, vararg_with_default__doc__},
+
+static PyObject *
+vararg_with_default_impl(PyObject *module, PyObject *a, PyObject *args,
+                         int b);
+
+static PyObject *
+vararg_with_default(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"a", "b", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "vararg_with_default", 0};
+    PyObject *argsbuf[3];
+    Py_ssize_t noptargs = Py_MIN(nargs, 1) + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
+    PyObject *a;
+    PyObject *__clinic_args = NULL;
+    int b = 0;
+
+    args = _PyArg_UnpackKeywordsWithVararg(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, 1, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    a = args[0];
+    __clinic_args = args[1];
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    b = PyObject_IsTrue(args[2]);
+    if (b < 0) {
+        goto exit;
+    }
+skip_optional_kwonly:
+    return_value = vararg_with_default_impl(module, a, __clinic_args, b);
+
+exit:
+    Py_XDECREF(__clinic_args);
+    return return_value;
+}
+
+PyDoc_STRVAR(vararg_with_only_defaults__doc__,
+"vararg_with_only_defaults($module, /, *args, b=None)\n"
+"--\n"
+"\n");
+
+#define VARARG_WITH_ONLY_DEFAULTS_METHODDEF    \
+    {"vararg_with_only_defaults", _PyCFunction_CAST(vararg_with_only_defaults), METH_FASTCALL|METH_KEYWORDS, vararg_with_only_defaults__doc__},
+
+static PyObject *
+vararg_with_only_defaults_impl(PyObject *module, PyObject *args, PyObject *b);
+
+static PyObject *
+vararg_with_only_defaults(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"b", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "vararg_with_only_defaults", 0};
+    PyObject *argsbuf[2];
+    Py_ssize_t noptargs = 0 + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
+    PyObject *__clinic_args = NULL;
+    PyObject *b = Py_None;
+
+    args = _PyArg_UnpackKeywordsWithVararg(args, nargs, NULL, kwnames, &_parser, 0, 0, 0, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    __clinic_args = args[0];
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    b = args[1];
+skip_optional_kwonly:
+    return_value = vararg_with_only_defaults_impl(module, __clinic_args, b);
+
+exit:
+    Py_XDECREF(__clinic_args);
+    return return_value;
+}
+
+PyDoc_STRVAR(gh_32092_oob__doc__,
+"gh_32092_oob($module, /, pos1, pos2, *varargs, kw1=None, kw2=None)\n"
+"--\n"
+"\n"
+"Proof-of-concept of GH-32092 OOB bug.");
+
+#define GH_32092_OOB_METHODDEF    \
+    {"gh_32092_oob", _PyCFunction_CAST(gh_32092_oob), METH_FASTCALL|METH_KEYWORDS, gh_32092_oob__doc__},
+
+static PyObject *
+gh_32092_oob_impl(PyObject *module, PyObject *pos1, PyObject *pos2,
+                  PyObject *varargs, PyObject *kw1, PyObject *kw2);
+
+static PyObject *
+gh_32092_oob(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"pos1", "pos2", "kw1", "kw2", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "gh_32092_oob", 0};
+    PyObject *argsbuf[5];
+    Py_ssize_t noptargs = Py_MIN(nargs, 2) + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 2;
+    PyObject *pos1;
+    PyObject *pos2;
+    PyObject *varargs = NULL;
+    PyObject *kw1 = Py_None;
+    PyObject *kw2 = Py_None;
+
+    args = _PyArg_UnpackKeywordsWithVararg(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, 2, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    pos1 = args[0];
+    pos2 = args[1];
+    varargs = args[2];
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    if (args[3]) {
+        kw1 = args[3];
+        if (!--noptargs) {
+            goto skip_optional_kwonly;
+        }
+    }
+    kw2 = args[4];
+skip_optional_kwonly:
+    return_value = gh_32092_oob_impl(module, pos1, pos2, varargs, kw1, kw2);
+
+exit:
+    Py_XDECREF(varargs);
+    return return_value;
+}
+
+PyDoc_STRVAR(gh_32092_kw_pass__doc__,
+"gh_32092_kw_pass($module, /, pos, *args, kw=None)\n"
+"--\n"
+"\n"
+"Proof-of-concept of GH-32092 keyword args passing bug.");
+
+#define GH_32092_KW_PASS_METHODDEF    \
+    {"gh_32092_kw_pass", _PyCFunction_CAST(gh_32092_kw_pass), METH_FASTCALL|METH_KEYWORDS, gh_32092_kw_pass__doc__},
+
+static PyObject *
+gh_32092_kw_pass_impl(PyObject *module, PyObject *pos, PyObject *args,
+                      PyObject *kw);
+
+static PyObject *
+gh_32092_kw_pass(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"pos", "kw", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "gh_32092_kw_pass", 0};
+    PyObject *argsbuf[3];
+    Py_ssize_t noptargs = Py_MIN(nargs, 1) + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
+    PyObject *pos;
+    PyObject *__clinic_args = NULL;
+    PyObject *kw = Py_None;
+
+    args = _PyArg_UnpackKeywordsWithVararg(args, nargs, NULL, kwnames, &_parser, 1, 1, 0, 1, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    pos = args[0];
+    __clinic_args = args[1];
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    kw = args[2];
+skip_optional_kwonly:
+    return_value = gh_32092_kw_pass_impl(module, pos, __clinic_args, kw);
+
+exit:
+    Py_XDECREF(__clinic_args);
+    return return_value;
+}
+
+PyDoc_STRVAR(gh_99233_refcount__doc__,
+"gh_99233_refcount($module, /, *args)\n"
+"--\n"
+"\n"
+"Proof-of-concept of GH-99233 refcount error bug.");
+
+#define GH_99233_REFCOUNT_METHODDEF    \
+    {"gh_99233_refcount", _PyCFunction_CAST(gh_99233_refcount), METH_FASTCALL, gh_99233_refcount__doc__},
+
+static PyObject *
+gh_99233_refcount_impl(PyObject *module, PyObject *args);
+
+static PyObject *
+gh_99233_refcount(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
+{
+    PyObject *return_value = NULL;
+    PyObject *__clinic_args = NULL;
+
+    if (!_PyArg_CheckPositional("gh_99233_refcount", nargs, 0, PY_SSIZE_T_MAX)) {
+        goto exit;
+    }
+    __clinic_args = PyTuple_New(nargs - 0);
+    if (!__clinic_args) {
+        goto exit;
+    }
+    for (Py_ssize_t i = 0; i < nargs - 0; ++i) {
+        PyTuple_SET_ITEM(__clinic_args, i, Py_NewRef(args[0 + i]));
+    }
+    return_value = gh_99233_refcount_impl(module, __clinic_args);
+
+exit:
+    Py_XDECREF(__clinic_args);
+    return return_value;
+}
+
 PyDoc_STRVAR(gh_99240_double_free__doc__,
 "gh_99240_double_free($module, a, b, /)\n"
 "--\n"
@@ -1959,7 +2280,7 @@ PyDoc_STRVAR(gh_99240_double_free__doc__,
 "Proof-of-concept of GH-99240 double-free bug.");
 
 #define GH_99240_DOUBLE_FREE_METHODDEF    \
-    {"gh_99240_double_free", (PyCFunction)(void(*)(void))gh_99240_double_free, METH_FASTCALL, gh_99240_double_free__doc__},
+    {"gh_99240_double_free", _PyCFunction_CAST(gh_99240_double_free), METH_FASTCALL, gh_99240_double_free__doc__},
 
 static PyObject *
 gh_99240_double_free_impl(PyObject *module, char *a, char *b);
@@ -1984,4 +2305,4 @@ gh_99240_double_free(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=ecc55cbeac4adae6 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=6b719efc1b8bd2c8 input=a9049054013a1b77]*/
