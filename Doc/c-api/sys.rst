@@ -96,9 +96,9 @@ Operating System Utilities
 
    Return true when the interpreter runs out of stack space.  This is a reliable
    check, but is only available when :const:`USE_STACKCHECK` is defined (currently
-   on Windows using the Microsoft Visual C++ compiler).  :const:`USE_STACKCHECK`
-   will be defined automatically; you should never change the definition in your
-   own code.
+   on certain versions of Windows using the Microsoft Visual C++ compiler).
+   :const:`USE_STACKCHECK` will be defined automatically; you should never
+   change the definition in your own code.
 
 
 .. c:function:: PyOS_sighandler_t PyOS_getsig(int i)
@@ -237,10 +237,20 @@ accessible to C code.  They all work with the current interpreter thread's
 
 .. c:function:: void PySys_AddWarnOption(const wchar_t *s)
 
+   This API is kept for backward compatibility: setting
+   :c:member:`PyConfig.warnoptions` should be used instead, see :ref:`Python
+   Initialization Configuration <init-config>`.
+
    Append *s* to :data:`sys.warnoptions`. This function must be called prior
    to :c:func:`Py_Initialize` in order to affect the warnings filter list.
 
+   .. deprecated:: 3.11
+
 .. c:function:: void PySys_AddWarnOptionUnicode(PyObject *unicode)
+
+   This API is kept for backward compatibility: setting
+   :c:member:`PyConfig.warnoptions` should be used instead, see :ref:`Python
+   Initialization Configuration <init-config>`.
 
    Append *unicode* to :data:`sys.warnoptions`.
 
@@ -250,11 +260,20 @@ accessible to C code.  They all work with the current interpreter thread's
    called until enough of the runtime has been initialized to permit the
    creation of Unicode objects.
 
+   .. deprecated:: 3.11
+
 .. c:function:: void PySys_SetPath(const wchar_t *path)
+
+   This API is kept for backward compatibility: setting
+   :c:member:`PyConfig.module_search_paths` and
+   :c:member:`PyConfig.module_search_paths_set` should be used instead, see
+   :ref:`Python Initialization Configuration <init-config>`.
 
    Set :data:`sys.path` to a list object of paths found in *path* which should
    be a list of paths separated with the platform's search path delimiter
    (``:`` on Unix, ``;`` on Windows).
+
+   .. deprecated:: 3.11
 
 .. c:function:: void PySys_WriteStdout(const char *format, ...)
 
@@ -294,11 +313,17 @@ accessible to C code.  They all work with the current interpreter thread's
 
 .. c:function:: void PySys_AddXOption(const wchar_t *s)
 
+   This API is kept for backward compatibility: setting
+   :c:member:`PyConfig.xoptions` should be used instead, see :ref:`Python
+   Initialization Configuration <init-config>`.
+
    Parse *s* as a set of :option:`-X` options and add them to the current
    options mapping as returned by :c:func:`PySys_GetXOptions`. This function
    may be called prior to :c:func:`Py_Initialize`.
 
    .. versionadded:: 3.2
+
+   .. deprecated:: 3.11
 
 .. c:function:: PyObject *PySys_GetXOptions()
 

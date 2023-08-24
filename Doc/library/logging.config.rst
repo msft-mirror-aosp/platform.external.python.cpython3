@@ -87,6 +87,10 @@ in :mod:`logging` itself) and defining handlers which are declared either in
    provides a mechanism to present the choices and load the chosen
    configuration).
 
+   It will raise :exc:`FileNotFoundError` if the file
+   doesn't exist and :exc:`RuntimeError` if the file is invalid or
+   empty.
+
    :param fname: A filename, or a file-like object, or an instance derived
                  from :class:`~configparser.RawConfigParser`. If a
                  ``RawConfigParser``-derived instance is passed, it is used as
@@ -111,7 +115,7 @@ in :mod:`logging` itself) and defining handlers which are declared either in
                                     they or their ancestors are explicitly named
                                     in the logging configuration.
 
-    :param encoding: The encoding used to open file when *fname* is filename.
+   :param encoding: The encoding used to open file when *fname* is filename.
 
    .. versionchanged:: 3.4
       An instance of a subclass of :class:`~configparser.RawConfigParser` is
@@ -125,6 +129,10 @@ in :mod:`logging` itself) and defining handlers which are declared either in
 
     .. versionadded:: 3.10
        The *encoding* parameter is added.
+
+    .. versionchanged:: 3.11.4
+       An exception will be thrown if the provided file
+       doesn't exist or is invalid or empty.
 
 .. function:: listen(port=DEFAULT_LOGGING_CONFIG_PORT, verify=None)
 
@@ -288,6 +296,9 @@ otherwise, the context is used to determine what to instantiate.
   * ``filters`` (optional).  A list of ids of the filters for this
     handler.
 
+    .. versionchanged:: 3.11
+       ``filters`` can take filter instances in addition to ids.
+
   All *other* keys are passed through as keyword arguments to the
   handler's constructor.  For example, given the snippet:
 
@@ -325,6 +336,9 @@ otherwise, the context is used to determine what to instantiate.
 
   * ``filters`` (optional).  A list of ids of the filters for this
     logger.
+
+    .. versionchanged:: 3.11
+       ``filters`` can take filter instances in addition to ids.
 
   * ``handlers`` (optional).  A list of ids of the handlers for this
     logger.
@@ -528,6 +542,10 @@ The key ``'()'`` has been used as the special key because it is not a
 valid keyword parameter name, and so will not clash with the names of
 the keyword arguments used in the call.  The ``'()'`` also serves as a
 mnemonic that the corresponding value is a callable.
+
+    .. versionchanged:: 3.11
+       The ``filters`` member of ``handlers`` and ``loggers`` can take
+       filter instances in addition to ids.
 
 You can also specify a special key ``'.'`` whose value is a dictionary is a
 mapping of attribute names to values. If found, the specified attributes will
@@ -758,7 +776,7 @@ root logger section is given below.
 
 The ``level`` entry can be one of ``DEBUG, INFO, WARNING, ERROR, CRITICAL`` or
 ``NOTSET``. For the root logger only, ``NOTSET`` means that all messages will be
-logged. Level values are :func:`eval`\ uated in the context of the ``logging``
+logged. Level values are :ref:`evaluated <func-eval>` in the context of the ``logging``
 package's namespace.
 
 The ``handlers`` entry is a comma-separated list of handler names, which must
@@ -805,13 +823,13 @@ handler. If blank, a default formatter (``logging._defaultFormatter``) is used.
 If a name is specified, it must appear in the ``[formatters]`` section and have
 a corresponding section in the configuration file.
 
-The ``args`` entry, when :func:`eval`\ uated in the context of the ``logging``
+The ``args`` entry, when :ref:`evaluated <func-eval>` in the context of the ``logging``
 package's namespace, is the list of arguments to the constructor for the handler
 class. Refer to the constructors for the relevant handlers, or to the examples
 below, to see how typical entries are constructed. If not provided, it defaults
 to ``()``.
 
-The optional ``kwargs`` entry, when :func:`eval`\ uated in the context of the
+The optional ``kwargs`` entry, when :ref:`evaluated <func-eval>` in the context of the
 ``logging`` package's namespace, is the keyword argument dict to the constructor
 for the handler class. If not provided, it defaults to ``{}``.
 

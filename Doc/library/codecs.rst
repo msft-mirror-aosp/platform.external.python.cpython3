@@ -205,6 +205,9 @@ wider range of codecs when working with binary files:
    *buffering* has the same meaning as for the built-in :func:`open` function.
    It defaults to -1 which means that the default buffer size will be used.
 
+   .. versionchanged:: 3.11
+      The ``'U'`` mode has been removed.
+
 
 .. function:: EncodedFile(file, data_encoding, file_encoding=None, errors='strict')
 
@@ -1528,7 +1531,7 @@ functions can be used directly if desired.
 
 This module implements the ANSI codepage (CP_ACP).
 
-.. availability:: Windows only.
+.. availability:: Windows.
 
 .. versionchanged:: 3.3
    Support any error handler.

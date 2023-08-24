@@ -25,6 +25,7 @@ modules and functions can be found in the following sections.
 
    :pep:`324` -- PEP proposing the subprocess module
 
+.. include:: ../includes/wasm-notavail.rst
 
 Using the :mod:`subprocess` Module
 ----------------------------------
@@ -110,7 +111,7 @@ underlying :class:`Popen` interface can be used directly.
       Added the *text* parameter, as a more understandable alias of *universal_newlines*.
       Added the *capture_output* parameter.
 
-   .. versionchanged:: 3.10.11
+   .. versionchanged:: 3.11.3
 
       Changed Windows shell search order for ``shell=True``. The current
       directory and ``%PATH%`` are replaced with ``%COMSPEC%`` and
@@ -356,7 +357,8 @@ functions.
                  startupinfo=None, creationflags=0, restore_signals=True, \
                  start_new_session=False, pass_fds=(), *, group=None, \
                  extra_groups=None, user=None, umask=-1, \
-                 encoding=None, errors=None, text=None, pipesize=-1)
+                 encoding=None, errors=None, text=None, pipesize=-1, \
+                 process_group=None)
 
    Execute a child program in a new process.  On POSIX, the class uses
    :meth:`os.execvpe`-like behavior to execute the child program.  On Windows,
@@ -494,7 +496,7 @@ functions.
       *executable* parameter accepts a bytes and :term:`path-like object`
       on Windows.
 
-   .. versionchanged:: 3.10.11
+   .. versionchanged:: 3.11.3
 
       Changed Windows shell search order for ``shell=True``. The current
       directory and ``%PATH%`` are replaced with ``%COMSPEC%`` and
@@ -520,18 +522,16 @@ functions.
 
    .. warning::
 
-      The *preexec_fn* parameter is not safe to use in the presence of threads
+      The *preexec_fn* parameter is NOT SAFE to use in the presence of threads
       in your application.  The child process could deadlock before exec is
       called.
-      If you must use it, keep it trivial!  Minimize the number of libraries
-      you call into.
 
    .. note::
 
       If you need to modify the environment for the child use the *env*
       parameter rather than doing it in a *preexec_fn*.
-      The *start_new_session* parameter can take the place of a previously
-      common use of *preexec_fn* to call os.setsid() in the child.
+      The *start_new_session* and *process_group* parameters should take the place of
+      code using *preexec_fn* to call :func:`os.setsid` or :func:`os.setpgid` in the child.
 
    .. versionchanged:: 3.8
 
@@ -588,11 +588,19 @@ functions.
    .. versionchanged:: 3.2
       *restore_signals* was added.
 
-   If *start_new_session* is true the setsid() system call will be made in the
-   child process prior to the execution of the subprocess.  (POSIX only)
+   If *start_new_session* is true the ``setsid()`` system call will be made in the
+   child process prior to the execution of the subprocess.
 
+   .. availability:: POSIX
    .. versionchanged:: 3.2
       *start_new_session* was added.
+
+   If *process_group* is a non-negative integer, the ``setpgid(0, value)`` system call will
+   be made in the child process prior to the execution of the subprocess.
+
+   .. availability:: POSIX
+   .. versionchanged:: 3.11
+      *process_group* was added.
 
    If *group* is not ``None``, the setregid() system call will be made in the
    child process prior to the execution of the subprocess. If the provided
@@ -643,7 +651,7 @@ functions.
 
    If *encoding* or *errors* are specified, or *text* is true, the file objects
    *stdin*, *stdout* and *stderr* are opened in text mode with the specified
-   encoding and *errors*, as described above in :ref:`frequently-used-arguments`.
+   *encoding* and *errors*, as described above in :ref:`frequently-used-arguments`.
    The *universal_newlines* argument is equivalent  to *text* and is provided
    for backwards compatibility. By default, file objects are opened in binary mode.
 
@@ -841,7 +849,7 @@ Instances of the :class:`Popen` class have the following methods:
 
       On Windows, SIGTERM is an alias for :meth:`terminate`. CTRL_C_EVENT and
       CTRL_BREAK_EVENT can be sent to processes started with a *creationflags*
-      parameter which includes `CREATE_NEW_PROCESS_GROUP`.
+      parameter which includes ``CREATE_NEW_PROCESS_GROUP``.
 
 
 .. method:: Popen.terminate()
@@ -913,9 +921,12 @@ Reassigning them to new values is unsupported:
 
 .. attribute:: Popen.returncode
 
-   The child return code, set by :meth:`poll` and :meth:`wait` (and indirectly
-   by :meth:`communicate`).  A ``None`` value indicates that the process
-   hasn't terminated yet.
+   The child return code. Initially ``None``, :attr:`returncode` is set by
+   a call to the :meth:`poll`, :meth:`wait`, or :meth:`communicate` methods
+   if they detect that the process has terminated.
+
+   A ``None`` value indicates that the process hadn't yet terminated at the
+   time of the last method call.
 
    A negative value ``-N`` indicates that the child was terminated by signal
    ``N`` (POSIX only).
@@ -1168,7 +1179,7 @@ calls these functions.
    .. versionchanged:: 3.3
       *timeout* was added.
 
-   .. versionchanged:: 3.10.11
+   .. versionchanged:: 3.11.3
 
       Changed Windows shell search order for ``shell=True``. The current
       directory and ``%PATH%`` are replaced with ``%COMSPEC%`` and
@@ -1208,7 +1219,7 @@ calls these functions.
    .. versionchanged:: 3.3
       *timeout* was added.
 
-   .. versionchanged:: 3.10.11
+   .. versionchanged:: 3.11.3
 
       Changed Windows shell search order for ``shell=True``. The current
       directory and ``%PATH%`` are replaced with ``%COMSPEC%`` and
@@ -1271,7 +1282,7 @@ calls these functions.
    .. versionadded:: 3.7
       *text* was added as a more readable alias for *universal_newlines*.
 
-   .. versionchanged:: 3.10.11
+   .. versionchanged:: 3.11.3
 
       Changed Windows shell search order for ``shell=True``. The current
       directory and ``%PATH%`` are replaced with ``%COMSPEC%`` and
@@ -1494,12 +1505,13 @@ This module also provides the following legacy functions from the 2.x
 none of the guarantees described above regarding security and exception
 handling consistency are valid for these functions.
 
-.. function:: getstatusoutput(cmd)
+.. function:: getstatusoutput(cmd, *, encoding=None, errors=None)
 
    Return ``(exitcode, output)`` of executing *cmd* in a shell.
 
    Execute the string *cmd* in a shell with :meth:`Popen.check_output` and
-   return a 2-tuple ``(exitcode, output)``. The locale encoding is used;
+   return a 2-tuple ``(exitcode, output)``.
+   *encoding* and *errors* are used to decode output;
    see the notes on :ref:`frequently-used-arguments` for more details.
 
    A trailing newline is stripped from the output.
@@ -1515,7 +1527,7 @@ handling consistency are valid for these functions.
       >>> subprocess.getstatusoutput('/bin/kill $$')
       (-15, '')
 
-   .. availability:: POSIX & Windows.
+   .. availability:: Unix, Windows.
 
    .. versionchanged:: 3.3.4
       Windows support was added.
@@ -1524,8 +1536,10 @@ handling consistency are valid for these functions.
       as it did in Python 3.3.3 and earlier.  exitcode has the same value as
       :attr:`~Popen.returncode`.
 
+   .. versionadded:: 3.11
+      Added *encoding* and *errors* arguments.
 
-.. function:: getoutput(cmd)
+.. function:: getoutput(cmd, *, encoding=None, errors=None)
 
    Return output (stdout and stderr) of executing *cmd* in a shell.
 
@@ -1535,10 +1549,13 @@ handling consistency are valid for these functions.
       >>> subprocess.getoutput('ls /bin/ls')
       '/bin/ls'
 
-   .. availability:: POSIX & Windows.
+   .. availability:: Unix, Windows.
 
    .. versionchanged:: 3.3.4
       Windows support added
+
+   .. versionadded:: 3.11
+      Added *encoding* and *errors* arguments.
 
 
 Notes
@@ -1578,3 +1595,43 @@ runtime):
 
    :mod:`shlex`
       Module which provides function to parse and escape command lines.
+
+
+.. _disable_vfork:
+.. _disable_posix_spawn:
+
+Disabling use of ``vfork()`` or ``posix_spawn()``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On Linux, :mod:`subprocess` defaults to using the ``vfork()`` system call
+internally when it is safe to do so rather than ``fork()``. This greatly
+improves performance.
+
+If you ever encounter a presumed highly unusual situation where you need to
+prevent ``vfork()`` from being used by Python, you can set the
+:attr:`subprocess._USE_VFORK` attribute to a false value.
+
+::
+
+   subprocess._USE_VFORK = False  # See CPython issue gh-NNNNNN.
+
+Setting this has no impact on use of ``posix_spawn()`` which could use
+``vfork()`` internally within its libc implementation.  There is a similar
+:attr:`subprocess._USE_POSIX_SPAWN` attribute if you need to prevent use of
+that.
+
+::
+
+   subprocess._USE_POSIX_SPAWN = False  # See CPython issue gh-NNNNNN.
+
+It is safe to set these to false on any Python version. They will have no
+effect on older versions when unsupported. Do not assume the attributes are
+available to read. Despite their names, a true value does not indicate that the
+corresponding function will be used, only that it may be.
+
+Please file issues any time you have to use these private knobs with a way to
+reproduce the issue you were seeing. Link to that issue from a comment in your
+code.
+
+.. versionadded:: 3.8 ``_USE_POSIX_SPAWN``
+.. versionadded:: 3.11 ``_USE_VFORK``

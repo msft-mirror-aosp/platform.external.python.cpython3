@@ -45,8 +45,8 @@ Number-theoretic and representation functions
    to zero when ``k > n``.
 
    Also called the binomial coefficient because it is equivalent
-   to the coefficient of k-th term in polynomial expansion of the
-   expression ``(1 + x) ** n``.
+   to the coefficient of k-th term in polynomial expansion of
+   ``(1 + x)ⁿ``.
 
    Raises :exc:`TypeError` if either of the arguments are not integers.
    Raises :exc:`ValueError` if either of the arguments are negative.
@@ -66,9 +66,9 @@ Number-theoretic and representation functions
    Return the absolute value of *x*.
 
 
-.. function:: factorial(x)
+.. function:: factorial(n)
 
-   Return *x* factorial as an integer.  Raises :exc:`ValueError` if *x* is not integral or
+   Return *n* factorial as an integer.  Raises :exc:`ValueError` if *n* is not integral or
    is negative.
 
    .. deprecated:: 3.9
@@ -344,11 +344,25 @@ necessarily has no fractional bits.
 Power and logarithmic functions
 -------------------------------
 
+.. function:: cbrt(x)
+
+   Return the cube root of *x*.
+
+   .. versionadded:: 3.11
+
+
 .. function:: exp(x)
 
    Return *e* raised to the power *x*, where *e* = 2.718281... is the base
    of natural logarithms.  This is usually more accurate than ``math.e ** x``
    or ``pow(math.e, x)``.
+
+
+.. function:: exp2(x)
+
+   Return *2* raised to the power *x*.
+
+   .. versionadded:: 3.11
 
 
 .. function:: expm1(x)
@@ -404,7 +418,7 @@ Power and logarithmic functions
 .. function:: pow(x, y)
 
    Return ``x`` raised to the power ``y``.  Exceptional cases follow
-   Annex 'F' of the C99 standard as far as possible.  In particular,
+   the IEEE 754 standard as far as possible.  In particular,
    ``pow(1.0, x)`` and ``pow(x, 0.0)`` always return ``1.0``, even
    when ``x`` is a zero or a NaN.  If both ``x`` and ``y`` are finite,
    ``x`` is negative, and ``y`` is not an integer then ``pow(x, y)``
@@ -413,6 +427,11 @@ Power and logarithmic functions
    Unlike the built-in ``**`` operator, :func:`math.pow` converts both
    its arguments to type :class:`float`.  Use ``**`` or the built-in
    :func:`pow` function for computing exact integer powers.
+
+   .. versionchanged:: 3.11
+      The special cases ``pow(0.0, -inf)`` and ``pow(-0.0, -inf)`` were
+      changed to return ``inf`` instead of raising :exc:`ValueError`,
+      for consistency with IEEE 754.
 
 
 .. function:: sqrt(x)
@@ -646,6 +665,9 @@ Constants
       True
       >>> math.isnan(float('nan'))
       True
+
+   .. versionchanged:: 3.11
+      It is now always available.
 
    .. versionadded:: 3.5
 

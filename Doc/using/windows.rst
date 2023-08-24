@@ -168,9 +168,13 @@ of available options is shown below.
 | CompileAll                | Compile all ``.py`` files to         | 0                        |
 |                           | ``.pyc``.                            |                          |
 +---------------------------+--------------------------------------+--------------------------+
-| PrependPath               | Add install and Scripts directories  | 0                        |
-|                           | to :envvar:`PATH` and ``.PY`` to     |                          |
-|                           | :envvar:`PATHEXT`                    |                          |
+| PrependPath               | Prepend install and Scripts          | 0                        |
+|                           | directories  to :envvar:`PATH` and   |                          |
+|                           | add ``.PY`` to :envvar:`PATHEXT`     |                          |
++---------------------------+--------------------------------------+--------------------------+
+| AppendPath                | Append install and Scripts           | 0                        |
+|                           | directories  to :envvar:`PATH` and   |                          |
+|                           | add ``.PY`` to :envvar:`PATHEXT`     |                          |
 +---------------------------+--------------------------------------+--------------------------+
 | Shortcuts                 | Create shortcuts for the interpreter,| 1                        |
 |                           | documentation and IDLE if installed. |                          |
@@ -453,7 +457,7 @@ user's system, including environment variables, system registry settings, and
 installed packages. The standard library is included as pre-compiled and
 optimized ``.pyc`` files in a ZIP, and ``python3.dll``, ``python37.dll``,
 ``python.exe`` and ``pythonw.exe`` are all provided. Tcl/tk (including all
-dependants, such as Idle), pip and the Python documentation are not included.
+dependents, such as Idle), pip and the Python documentation are not included.
 
 .. note::
 
@@ -524,7 +528,7 @@ Besides the standard CPython distribution, there are modified packages including
 additional functionality.  The following is a list of popular versions and their
 key features:
 
-`ActivePython <https://www.activestate.com/activepython/>`_
+`ActivePython <https://www.activestate.com/products/python/>`_
     Installer with multi-platform compatibility, documentation, PyWin32
 
 `Anaconda <https://www.anaconda.com/download/>`_
@@ -648,7 +652,7 @@ UTF-8 mode
 
 Windows still uses legacy encodings for the system encoding (the ANSI Code
 Page).  Python uses it for the default encoding of text files (e.g.
-:func:`locale.getpreferredencoding`).
+:func:`locale.getencoding`).
 
 This may cause issues because UTF-8 is widely used on the internet
 and most Unix systems, including WSL (Windows Subsystem for Linux).
@@ -726,21 +730,46 @@ command::
 
   py -2
 
-You should find the latest version of Python 3.x starts.
-
 If you see the following error, you do not have the launcher installed::
 
   'py' is not recognized as an internal or external command,
   operable program or batch file.
-
-Per-user installations of Python do not add the launcher to :envvar:`PATH`
-unless the option was selected on installation.
 
 The command::
 
   py --list
 
 displays the currently installed version(s) of Python.
+
+The ``-x.y`` argument is the short form of the ``-V:Company/Tag`` argument,
+which allows selecting a specific Python runtime, including those that may have
+come from somewhere other than python.org. Any runtime registered by following
+:pep:`514` will be discoverable. The ``--list`` command lists all available
+runtimes using the ``-V:`` format.
+
+When using the ``-V:`` argument, specifying the Company will limit selection to
+runtimes from that provider, while specifying only the Tag will select from all
+providers. Note that omitting the slash implies a tag::
+
+  # Select any '3.*' tagged runtime
+  py -V:3
+
+  # Select any 'PythonCore' released runtime
+  py -V:PythonCore/
+
+  # Select PythonCore's latest Python 3 runtime
+  py -V:PythonCore/3
+
+The short form of the argument (``-3``) only ever selects from core Python
+releases, and not other distributions. However, the longer form (``-V:3``) will
+select from any.
+
+The Company is matched on the full string, case-insenitive. The Tag is matched
+oneither the full string, or a prefix, provided the next character is a dot or a
+hyphen. This allows ``-V:3.1`` to match ``3.1-32``, but not ``3.10``. Tags are
+sorted using numerical ordering (``3.10`` is newer than ``3.1``), but are
+compared using text (``-V:3.01`` does not match ``3.1``).
+
 
 Virtual environments
 ^^^^^^^^^^^^^^^^^^^^
@@ -814,7 +843,7 @@ To allow shebang lines in Python scripts to be portable between Unix and
 Windows, this launcher supports a number of 'virtual' commands to specify
 which interpreter to use.  The supported virtual commands are:
 
-* ``/usr/bin/env python``
+* ``/usr/bin/env``
 * ``/usr/bin/python``
 * ``/usr/local/bin/python``
 * ``python``
@@ -843,10 +872,43 @@ minor version. I.e. ``/usr/bin/python3.7-32`` will request usage of the
    by the "-64" suffix. Furthermore it is possible to specify a major and
    architecture without minor (i.e. ``/usr/bin/python3-64``).
 
+.. versionchanged:: 3.11
+
+   The "-64" suffix is deprecated, and now implies "any architecture that is
+   not provably i386/32-bit". To request a specific environment, use the new
+   ``-V:<TAG>`` argument with the complete tag.
+
 The ``/usr/bin/env`` form of shebang line has one further special property.
 Before looking for installed Python interpreters, this form will search the
-executable :envvar:`PATH` for a Python executable. This corresponds to the
-behaviour of the Unix ``env`` program, which performs a :envvar:`PATH` search.
+executable :envvar:`PATH` for a Python executable matching the name provided
+as the first argument. This corresponds to the behaviour of the Unix ``env``
+program, which performs a :envvar:`PATH` search.
+If an executable matching the first argument after the ``env`` command cannot
+be found, but the argument starts with ``python``, it will be handled as
+described for the other virtual commands.
+The environment variable :envvar:`PYLAUNCHER_NO_SEARCH_PATH` may be set
+(to any value) to skip this search of :envvar:`PATH`.
+
+Shebang lines that do not match any of these patterns are looked up in the
+``[commands]`` section of the launcher's :ref:`.INI file <launcher-ini>`.
+This may be used to handle certain commands in a way that makes sense for your
+system. The name of the command must be a single argument (no spaces in the
+shebang executable), and the value substituted is the full path to the
+executable (additional arguments specified in the .INI will be quoted as part
+of the filename).
+
+.. code-block:: ini
+
+   [commands]
+   /bin/xpython=C:\Program Files\XPython\python.exe
+
+Any commands not found in the .INI file are treated as **Windows** executable
+paths that are absolute or relative to the directory containing the script file.
+This is a convenience for Windows-only scripts, such as those generated by an
+installer, since the behavior is not compatible with Unix-style shells.
+These paths may be quoted, and may include multiple arguments, after which the
+path to the script and any additional arguments will be appended.
+
 
 Arguments in shebang lines
 --------------------------
@@ -863,15 +925,16 @@ Then Python will be started with the ``-v`` option
 Customization
 -------------
 
+.. _launcher-ini:
+
 Customization via INI files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Two .ini files will be searched by the launcher - ``py.ini`` in the current
-user's "application data" directory (i.e. the directory returned by calling the
-Windows function ``SHGetFolderPath`` with ``CSIDL_LOCAL_APPDATA``) and ``py.ini`` in the
-same directory as the launcher. The same .ini files are used for both the
-'console' version of the launcher (i.e. py.exe) and for the 'windows' version
-(i.e. pyw.exe).
+user's application data directory (``%LOCALAPPDATA%`` or ``$env:LocalAppData``)
+and ``py.ini`` in the same directory as the launcher. The same .ini files are
+used for both the 'console' version of the launcher (i.e. py.exe) and for the
+'windows' version (i.e. pyw.exe).
 
 Customization specified in the "application directory" will have precedence over
 the one next to the executable, so a user, who may not have write access to the
@@ -963,41 +1026,74 @@ For example:
 Diagnostics
 -----------
 
-If an environment variable ``PYLAUNCH_DEBUG`` is set (to any value), the
+If an environment variable :envvar:`PYLAUNCHER_DEBUG` is set (to any value), the
 launcher will print diagnostic information to stderr (i.e. to the console).
 While this information manages to be simultaneously verbose *and* terse, it
 should allow you to see what versions of Python were located, why a
 particular version was chosen and the exact command-line used to execute the
-target Python.
+target Python. It is primarily intended for testing and debugging.
+
+Dry Run
+-------
+
+If an environment variable :envvar:`PYLAUNCHER_DRYRUN` is set (to any value),
+the launcher will output the command it would have run, but will not actually
+launch Python. This may be useful for tools that want to use the launcher to
+detect and then launch Python directly. Note that the command written to
+standard output is always encoded using UTF-8, and may not render correctly in
+the console.
+
+Install on demand
+-----------------
+
+If an environment variable :envvar:`PYLAUNCHER_ALLOW_INSTALL` is set (to any
+value), and the requested Python version is not installed but is available on
+the Microsoft Store, the launcher will attempt to install it. This may require
+user interaction to complete, and you may need to run the command again.
+
+An additional :envvar:`PYLAUNCHER_ALWAYS_INSTALL` variable causes the launcher
+to always try to install Python, even if it is detected. This is mainly intended
+for testing (and should be used with :envvar:`PYLAUNCHER_DRYRUN`).
+
+Return codes
+------------
+
+The following exit codes may be returned by the Python launcher. Unfortunately,
+there is no way to distinguish these from the exit code of Python itself.
+
+The names of codes are as used in the sources, and are only for reference. There
+is no way to access or resolve them apart from reading this page. Entries are
+listed in alphabetical order of names.
+
++-------------------+-------+-----------------------------------------------+
+| Name              | Value | Description                                   |
++===================+=======+===============================================+
+| RC_BAD_VENV_CFG   | 107   | A :file:`pyvenv.cfg` was found but is corrupt.|
++-------------------+-------+-----------------------------------------------+
+| RC_CREATE_PROCESS | 101   | Failed to launch Python.                      |
++-------------------+-------+-----------------------------------------------+
+| RC_INSTALLING     | 111   | An install was started, but the command will  |
+|                   |       | need to be re-run after it completes.         |
++-------------------+-------+-----------------------------------------------+
+| RC_INTERNAL_ERROR | 109   | Unexpected error. Please report a bug.        |
++-------------------+-------+-----------------------------------------------+
+| RC_NO_COMMANDLINE | 108   | Unable to obtain command line from the        |
+|                   |       | operating system.                             |
++-------------------+-------+-----------------------------------------------+
+| RC_NO_PYTHON      | 103   | Unable to locate the requested version.       |
++-------------------+-------+-----------------------------------------------+
+| RC_NO_VENV_CFG    | 106   | A :file:`pyvenv.cfg` was required but not     |
+|                   |       | found.                                        |
++-------------------+-------+-----------------------------------------------+
 
 
-
-.. _finding_modules:
+.. _windows_finding_modules:
 
 Finding modules
 ===============
 
-Python usually stores its library (and thereby your site-packages folder) in the
-installation directory.  So, if you had installed Python to
-:file:`C:\\Python\\`, the default library would reside in
-:file:`C:\\Python\\Lib\\` and third-party modules should be stored in
-:file:`C:\\Python\\Lib\\site-packages\\`.
-
-To completely override :data:`sys.path`, create a ``._pth`` file with the same
-name as the DLL (``python37._pth``) or the executable (``python._pth``) and
-specify one line for each path to add to :data:`sys.path`. The file based on the
-DLL name overrides the one based on the executable, which allows paths to be
-restricted for any program loading the runtime if desired.
-
-When the file exists, all registry and environment variables are ignored,
-isolated mode is enabled, and :mod:`site` is not imported unless one line in the
-file specifies ``import site``. Blank paths and lines starting with ``#`` are
-ignored. Each path may be absolute or relative to the location of the file.
-Import statements other than to ``site`` are not permitted, and arbitrary code
-cannot be specified.
-
-Note that ``.pth`` files (without leading underscore) will be processed normally
-by the :mod:`site` module when ``import site`` has been specified.
+These notes supplement the description at :ref:`sys-path-init` with
+detailed Windows notes.
 
 When no ``._pth`` file is found, this is how :data:`sys.path` is populated on
 Windows:
