@@ -41,6 +41,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ItemDefinitionGroup>
     <ClCompile>
+      <PreprocessorDefinitions Condition="$(BuildForPlatform) == 'ARM64'">ARM64=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions>_CRT_STDIO_LEGACY_WIDE_SPECIFIERS=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(WixInstallPath)sdk\inc</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -49,8 +50,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;wininet.lib;dutil.lib;balutil.lib;version.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories Condition="'$(PlatformToolset)' == 'v142'">$(WixInstallPath)sdk\vs2017\lib\x86</AdditionalLibraryDirectories>
-      <AdditionalLibraryDirectories Condition="'$(PlatformToolset)' == 'v141'">$(WixInstallPath)sdk\vs2017\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="$(PlatformToolset.StartsWith(`v14`))">$(WixInstallPath)sdk\vs2017\lib\x86</AdditionalLibraryDirectories>
       <AdditionalLibraryDirectories Condition="'$(PlatformToolset)' == 'v140'">$(WixInstallPath)sdk\vs2015\lib\x86</AdditionalLibraryDirectories>
       <AdditionalLibraryDirectories Condition="'$(PlatformToolset)' == 'v120'">$(WixInstallPath)sdk\vs2013\lib\x86</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>pythonba.def</ModuleDefinitionFile>

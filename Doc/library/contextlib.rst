@@ -357,6 +357,23 @@ Functions and classes provided:
    .. versionadded:: 3.5
 
 
+.. function:: chdir(path)
+
+   Non parallel-safe context manager to change the current working directory.
+   As this changes a global state, the working directory, it is not suitable
+   for use in most threaded or async contexts. It is also not suitable for most
+   non-linear code execution, like generators, where the program execution is
+   temporarily relinquished -- unless explicitly desired, you should not yield
+   when this context manager is active.
+
+   This is a simple wrapper around :func:`~os.chdir`, it changes the current
+   working directory upon entering and restores the old one on exit.
+
+   This context manager is :ref:`reentrant <reentrant-cms>`.
+
+   .. versionadded:: 3.11
+
+
 .. class:: ContextDecorator()
 
    A base class that enables a context manager to also be used as a decorator.
@@ -526,6 +543,10 @@ Functions and classes provided:
       These context managers may suppress exceptions just as they normally
       would if used directly as part of a :keyword:`with` statement.
 
+      .. versionchanged:: 3.11
+         Raises :exc:`TypeError` instead of :exc:`AttributeError` if *cm*
+         is not a context manager.
+
    .. method:: push(exit)
 
       Adds a context manager's :meth:`__exit__` method to the callback stack.
@@ -595,6 +616,10 @@ Functions and classes provided:
 
       Similar to :meth:`enter_context` but expects an asynchronous context
       manager.
+
+      .. versionchanged:: 3.11
+         Raises :exc:`TypeError` instead of :exc:`AttributeError` if *cm*
+         is not an asynchronous context manager.
 
    .. method:: push_async_exit(exit)
 
@@ -903,8 +928,8 @@ but may also be used *inside* a :keyword:`!with` statement that is already
 using the same context manager.
 
 :class:`threading.RLock` is an example of a reentrant context manager, as are
-:func:`suppress` and :func:`redirect_stdout`. Here's a very simple example of
-reentrant use::
+:func:`suppress`, :func:`redirect_stdout`, and :func:`chdir`. Here's a very
+simple example of reentrant use::
 
     >>> from contextlib import redirect_stdout
     >>> from io import StringIO

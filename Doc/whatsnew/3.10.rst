@@ -2,8 +2,6 @@
   What's New In Python 3.10
 ****************************
 
-:Release: |release|
-:Date: |today|
 :Editor: Pablo Galindo Salgado
 
 .. Rules for maintenance:
@@ -1020,7 +1018,7 @@ You can specify keyword-only on a per-field basis:
 
 .. code-block:: python
 
-    from dataclasses import dataclass
+    from dataclasses import dataclass, field
 
     @dataclass
     class Birthday:
@@ -1082,6 +1080,17 @@ encodings
 
 :func:`encodings.normalize_encoding` now ignores non-ASCII characters.
 (Contributed by Hai Shi in :issue:`39337`.)
+
+enum
+----
+
+:class:`Enum` :func:`__repr__` now returns ``enum_name.member_name`` and
+:func:`__str__` now returns ``member_name``.  Stdlib enums available as
+module constants have a :func:`repr` of ``module_name.member_name``.
+(Contributed by Ethan Furman in :issue:`40066`.)
+
+Add :class:`enum.StrEnum` for enums where all members are strings.
+(Contributed by Ethan Furman in :issue:`41816`.)
 
 fileinput
 ---------
@@ -1502,13 +1511,6 @@ separator key, with ``&`` as the default.  This change also affects
 functions internally.  For more details, please see their respective
 documentation.
 (Contributed by Adam Goldschmidt, Senthil Kumaran and Ken Jin in :issue:`42967`.)
-
-The presence of newline or tab characters in parts of a URL allows for some
-forms of attacks. Following the WHATWG specification that updates :rfc:`3986`,
-ASCII newline ``\n``, ``\r`` and tab ``\t`` characters are stripped from the
-URL by the parser in :mod:`urllib.parse` preventing such attacks. The removal
-characters are controlled by a new module level variable
-``urllib.parse._UNSAFE_URL_BYTES_TO_REMOVE``. (See :issue:`43882`)
 
 xml
 ---
@@ -2012,8 +2014,8 @@ Build Changes
 
 * The ``configure`` script now uses the ``pkg-config`` utility, if available,
   to detect the location of Tcl/Tk headers and libraries.  As before, those
-  locations can be explicitly specified with the :option:`--with-tcltk-includes`
-  and :option:`--with-tcltk-libs` configuration options.
+  locations can be explicitly specified with the ``--with-tcltk-includes``
+  and ``--with-tcltk-libs`` configuration options.
   (Contributed by Manolis Stamatogiannakis in :issue:`42603`.)
 
 * Add :option:`--with-openssl-rpath` option to ``configure`` script. The option
@@ -2308,27 +2310,3 @@ Removed
 
 * The ``PyThreadState.use_tracing`` member has been removed to optimize Python.
   (Contributed by Mark Shannon in :issue:`43760`.)
-
-
-Notable security feature in 3.10.7
-==================================
-
-Converting between :class:`int` and :class:`str` in bases other than 2
-(binary), 4, 8 (octal), 16 (hexadecimal), or 32 such as base 10 (decimal)
-now raises a :exc:`ValueError` if the number of digits in string form is
-above a limit to avoid potential denial of service attacks due to the
-algorithmic complexity. This is a mitigation for `CVE-2020-10735
-<https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-10735>`_.
-This limit can be configured or disabled by environment variable, command
-line flag, or :mod:`sys` APIs. See the :ref:`integer string conversion
-length limitation <int_max_str_digits>` documentation.  The default limit
-is 4300 digits in string form.
-
-Notable security feature in 3.10.8
-==================================
-
-The deprecated :mod:`mailcap` module now refuses to inject unsafe text
-(filenames, MIME types, parameters) into shell commands. Instead of using such
-text, it will warn and act as if a match was not found (or for test commands,
-as if the test failed).
-(Contributed by Petr Viktorin in :gh:`98966`.)

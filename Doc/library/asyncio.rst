@@ -68,6 +68,8 @@ You can experiment with an ``asyncio`` concurrent context in the REPL:
    >>> await asyncio.sleep(10, result='hello')
    'hello'
 
+.. include:: ../includes/wasm-notavail.rst
+
 .. We use the "rubric" directive here to avoid creating
    the "Reference" subsection in the TOC.
 
@@ -77,6 +79,7 @@ You can experiment with an ``asyncio`` concurrent context in the REPL:
    :caption: High-level APIs
    :maxdepth: 1
 
+   asyncio-runner.rst
    asyncio-task.rst
    asyncio-stream.rst
    asyncio-sync.rst
@@ -93,6 +96,7 @@ You can experiment with an ``asyncio`` concurrent context in the REPL:
    asyncio-protocol.rst
    asyncio-policy.rst
    asyncio-platforms.rst
+   asyncio-extending.rst
 
 .. toctree::
    :caption: Guides and Tutorials

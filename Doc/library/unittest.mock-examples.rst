@@ -660,7 +660,7 @@ Applying the same patch to every test method
 
 If you want several patches in place for multiple test methods the obvious way
 is to apply the patch decorators to every method. This can feel like unnecessary
-repetition. For Python 2.6 or more recent you can use :func:`patch` (in all its
+repetition. Instead, you can use :func:`patch` (in all its
 various forms) as a class decorator. This applies the patches to all test
 methods on the class. A test method is identified by methods whose names start
 with ``test``::
@@ -1074,7 +1074,7 @@ subclass.
 Sometimes this is inconvenient. For example, `one user
 <https://code.google.com/archive/p/mock/issues/105>`_ is subclassing mock to
 created a `Twisted adaptor
-<https://twistedmatrix.com/documents/11.0.0/api/twisted.python.components.html>`_.
+<https://twisted.org/documents/11.0.0/api/twisted.python.components.html>`_.
 Having this applied to attributes too actually causes errors.
 
 ``Mock`` (in all its flavours) uses a method called ``_get_child_mock`` to create
