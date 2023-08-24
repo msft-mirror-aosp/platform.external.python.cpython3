@@ -112,7 +112,7 @@ Text Encoding
 -------------
 
 The default encoding of :class:`TextIOWrapper` and :func:`open` is
-locale-specific (:func:`locale.getpreferredencoding(False) <locale.getpreferredencoding>`).
+locale-specific (:func:`locale.getencoding`).
 
 However, many developers forget to specify the encoding when opening text files
 encoded in UTF-8 (e.g. JSON, TOML, Markdown, etc...) since most Unix
@@ -123,17 +123,19 @@ encoding is not UTF-8 for most Windows users. For example::
    with open("README.md") as f:
        long_description = f.read()
 
-Additionally, while there is no concrete plan as of yet, Python may change
-the default text file encoding to UTF-8 in the future.
-
 Accordingly, it is highly recommended that you specify the encoding
 explicitly when opening text files. If you want to use UTF-8, pass
 ``encoding="utf-8"``. To use the current locale encoding,
-``encoding="locale"`` is supported in Python 3.10.
+``encoding="locale"`` is supported since Python 3.10.
 
-When you need to run existing code on Windows that attempts to open
-UTF-8 files using the default locale encoding, you can enable the UTF-8
-mode. See :ref:`UTF-8 mode on Windows <win-utf8-mode>`.
+.. seealso::
+
+   :ref:`utf8-mode`
+      Python UTF-8 Mode can be used to change the default encoding to
+      UTF-8 from locale-specific encoding.
+
+   :pep:`686`
+      Python 3.15 will make :ref:`utf8-mode` default.
 
 .. _io-encoding-warning:
 
@@ -198,12 +200,13 @@ High-level Module Interface
    This is a helper function for callables that use :func:`open` or
    :class:`TextIOWrapper` and have an ``encoding=None`` parameter.
 
-   This function returns *encoding* if it is not ``None`` and ``"locale"`` if
-   *encoding* is ``None``.
+   This function returns *encoding* if it is not ``None``.
+   Otherwise, it returns ``"locale"`` or ``"utf-8"`` depending on
+   :ref:`UTF-8 Mode <utf8-mode>`.
 
    This function emits an :class:`EncodingWarning` if
    :data:`sys.flags.warn_default_encoding <sys.flags>` is true and *encoding*
-   is None. *stacklevel* specifies where the warning is emitted.
+   is ``None``. *stacklevel* specifies where the warning is emitted.
    For example::
 
       def read_text(path, encoding=None):
@@ -217,6 +220,10 @@ High-level Module Interface
    See :ref:`io-text-encoding` for more information.
 
    .. versionadded:: 3.10
+
+   .. versionchanged:: 3.11
+      :func:`text_encoding` returns "utf-8" when UTF-8 mode is enabled and
+      *encoding* is ``None``.
 
 
 .. exception:: BlockingIOError
@@ -943,8 +950,7 @@ Text I/O
    :class:`TextIOBase`.
 
    *encoding* gives the name of the encoding that the stream will be decoded or
-   encoded with.  It defaults to
-   :func:`locale.getpreferredencoding(False) <locale.getpreferredencoding>`.
+   encoded with.  It defaults to :func:`locale.getencoding()`.
    ``encoding="locale"`` can be used to specify the current locale's encoding
    explicitly. See :ref:`io-text-encoding` for more information.
 
@@ -1034,6 +1040,9 @@ Text I/O
 
       .. versionadded:: 3.7
 
+      .. versionchanged:: 3.11
+         The method supports ``encoding="locale"`` option.
+
 
 .. class:: StringIO(initial_value='', newline='\n')
 
@@ -1045,8 +1054,12 @@ Text I/O
 
    The initial value of the buffer can be set by providing *initial_value*.
    If newline translation is enabled, newlines will be encoded as if by
-   :meth:`~TextIOBase.write`.  The stream is positioned at the start of
-   the buffer.
+   :meth:`~TextIOBase.write`.  The stream is positioned at the start of the
+   buffer which emulates opening an existing file in a ``w+`` mode, making it
+   ready for an immediate write from the beginning or for a write that
+   would overwrite the initial value.  To emulate opening a file in an ``a+``
+   mode ready for appending, use ``f.seek(0, io.SEEK_END)`` to reposition the
+   stream at the end of the buffer.
 
    The *newline* argument works like that of :class:`TextIOWrapper`,
    except that when writing output to the stream, if *newline* is ``None``,

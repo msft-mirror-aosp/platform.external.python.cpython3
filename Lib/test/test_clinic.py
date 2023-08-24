@@ -730,6 +730,15 @@ foo.bar
     x: int
 """)
 
+    def test_parameters_no_more_than_one_vararg(self):
+        s = self.parse_function_should_fail("""
+module foo
+foo.bar
+   *vararg1: object
+   *vararg2: object
+""")
+        self.assertEqual(s, "Error on line 0:\nToo many var args\n")
+
     def test_function_not_at_column_0(self):
         function = self.parse_function("""
   module foo
@@ -763,6 +772,45 @@ Not at column 0!
         block = self.parse('module os\nos.access\n   path: "s"')
         module, function = block.signatures
         self.assertIsInstance((function.parameters['path']).converter, clinic.str_converter)
+
+    def test_legacy_converters_non_string_constant_annotation(self):
+        expected_failure_message = """\
+Error on line 0:
+Annotations must be either a name, a function call, or a string.
+"""
+
+        s = self.parse_function_should_fail('module os\nos.access\n   path: 42')
+        self.assertEqual(s, expected_failure_message)
+
+        s = self.parse_function_should_fail('module os\nos.access\n   path: 42.42')
+        self.assertEqual(s, expected_failure_message)
+
+        s = self.parse_function_should_fail('module os\nos.access\n   path: 42j')
+        self.assertEqual(s, expected_failure_message)
+
+        s = self.parse_function_should_fail('module os\nos.access\n   path: b"42"')
+        self.assertEqual(s, expected_failure_message)
+
+    def test_other_bizarre_things_in_annotations_fail(self):
+        expected_failure_message = """\
+Error on line 0:
+Annotations must be either a name, a function call, or a string.
+"""
+
+        s = self.parse_function_should_fail(
+            'module os\nos.access\n   path: {"some": "dictionary"}'
+        )
+        self.assertEqual(s, expected_failure_message)
+
+        s = self.parse_function_should_fail(
+            'module os\nos.access\n   path: ["list", "of", "strings"]'
+        )
+        self.assertEqual(s, expected_failure_message)
+
+        s = self.parse_function_should_fail(
+            'module os\nos.access\n   path: (x for x in range(42))'
+        )
+        self.assertEqual(s, expected_failure_message)
 
     def parse(self, text):
         c = FakeClinic()
@@ -820,9 +868,12 @@ class ClinicExternalTest(TestCase):
         self.assertEqual(new_mtime_ns, old_mtime_ns)
 
 
-ac_tester = import_helper.import_module('_testclinic')
+try:
+    import _testclinic as ac_tester
+except ImportError:
+    ac_tester = None
 
-
+@unittest.skipIf(ac_tester is None, "_testclinic is missing")
 class ClinicFunctionalTest(unittest.TestCase):
     locals().update((name, getattr(ac_tester, name))
                     for name in dir(ac_tester) if name.startswith('test_'))
@@ -1221,6 +1272,54 @@ class ClinicFunctionalTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             ac_tester.keyword_only_parameter(1)
         self.assertEqual(ac_tester.keyword_only_parameter(a=1), (1,))
+
+    def test_posonly_vararg(self):
+        with self.assertRaises(TypeError):
+            ac_tester.posonly_vararg()
+        self.assertEqual(ac_tester.posonly_vararg(1, 2), (1, 2, ()))
+        self.assertEqual(ac_tester.posonly_vararg(1, b=2), (1, 2, ()))
+        self.assertEqual(ac_tester.posonly_vararg(1, 2, 3, 4), (1, 2, (3, 4)))
+
+    def test_vararg_and_posonly(self):
+        with self.assertRaises(TypeError):
+            ac_tester.vararg_and_posonly()
+        with self.assertRaises(TypeError):
+            ac_tester.vararg_and_posonly(1, b=2)
+        self.assertEqual(ac_tester.vararg_and_posonly(1, 2, 3, 4), (1, (2, 3, 4)))
+
+    def test_vararg(self):
+        with self.assertRaises(TypeError):
+            ac_tester.vararg()
+        with self.assertRaises(TypeError):
+            ac_tester.vararg(1, b=2)
+        self.assertEqual(ac_tester.vararg(1, 2, 3, 4), (1, (2, 3, 4)))
+
+    def test_vararg_with_default(self):
+        with self.assertRaises(TypeError):
+            ac_tester.vararg_with_default()
+        self.assertEqual(ac_tester.vararg_with_default(1, b=False), (1, (), False))
+        self.assertEqual(ac_tester.vararg_with_default(1, 2, 3, 4), (1, (2, 3, 4), False))
+        self.assertEqual(ac_tester.vararg_with_default(1, 2, 3, 4, b=True), (1, (2, 3, 4), True))
+
+    def test_vararg_with_only_defaults(self):
+        self.assertEqual(ac_tester.vararg_with_only_defaults(), ((), None))
+        self.assertEqual(ac_tester.vararg_with_only_defaults(b=2), ((), 2))
+        self.assertEqual(ac_tester.vararg_with_only_defaults(1, b=2), ((1, ), 2))
+        self.assertEqual(ac_tester.vararg_with_only_defaults(1, 2, 3, 4), ((1, 2, 3, 4), None))
+        self.assertEqual(ac_tester.vararg_with_only_defaults(1, 2, 3, 4, b=5), ((1, 2, 3, 4), 5))
+
+    def test_gh_32092_oob(self):
+        ac_tester.gh_32092_oob(1, 2, 3, 4, kw1=5, kw2=6)
+
+    def test_gh_32092_kw_pass(self):
+        ac_tester.gh_32092_kw_pass(1, 2, 3)
+
+    def test_gh_99233_refcount(self):
+        arg = '*A unique string is not referenced by anywhere else.*'
+        arg_refcount_origin = sys.getrefcount(arg)
+        ac_tester.gh_99233_refcount(arg)
+        arg_refcount_after = sys.getrefcount(arg)
+        self.assertEqual(arg_refcount_origin, arg_refcount_after)
 
     def test_gh_99240_double_free(self):
         expected_error = r'gh_99240_double_free\(\) argument 2 must be encoded string without null bytes, not str'

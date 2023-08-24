@@ -157,7 +157,7 @@ Basic Usage
 
    If *check_circular* is false (default: ``True``), then the circular
    reference check for container types will be skipped and a circular reference
-   will result in an :exc:`RecursionError` (or worse).
+   will result in a :exc:`RecursionError` (or worse).
 
    If *allow_nan* is false (default: ``True``), then it will be a
    :exc:`ValueError` to serialize out of range :class:`float` values (``nan``,
@@ -253,7 +253,7 @@ Basic Usage
    be used to use another datatype or parser for JSON integers
    (e.g. :class:`float`).
 
-   .. versionchanged:: 3.10.7
+   .. versionchanged:: 3.11
       The default *parse_int* of :func:`int` now limits the maximum length of
       the integer string via the interpreter's :ref:`integer string
       conversion length limitation <int_max_str_digits>` to help avoid denial
@@ -436,7 +436,7 @@ Encoders and Decoders
 
    If *check_circular* is true (the default), then lists, dicts, and custom
    encoded objects will be checked for circular references during encoding to
-   prevent an infinite recursion (which would cause an :exc:`RecursionError`).
+   prevent an infinite recursion (which would cause a :exc:`RecursionError`).
    Otherwise, no such check takes place.
 
    If *allow_nan* is true (the default), then ``NaN``, ``Infinity``, and

@@ -601,19 +601,25 @@ the module.
 .. attribute:: __file__
 .. attribute:: __cached__
 
-   ``__file__`` is optional. If set, this attribute's value must be a
-   string.  The import system may opt to leave ``__file__`` unset if it
-   has no semantic meaning (e.g. a module loaded from a database).
+   ``__file__`` is optional (if set, value must be a string). It indicates
+   the pathname of the file from which the module was loaded (if
+   loaded from a file), or the pathname of the shared library file
+   for extension modules loaded dynamically from a shared library.
+   It might be missing for certain types of modules, such as C
+   modules that are statically linked into the interpreter, and the
+   import system may opt to leave it unset if it has no semantic
+   meaning (e.g. a module loaded from a database).
 
-   If ``__file__`` is set, it may also be appropriate to set the
-   ``__cached__`` attribute which is the path to any compiled version of
+   If ``__file__`` is set then the ``__cached__`` attribute might also
+   be set,  which is the path to any compiled version of
    the code (e.g. byte-compiled file). The file does not need to exist
    to set this attribute; the path can simply point to where the
    compiled file would exist (see :pep:`3147`).
 
-   It is also appropriate to set ``__cached__`` when ``__file__`` is not
+   Note that ``__cached__`` may be set even if ``__file__`` is not
    set.  However, that scenario is quite atypical.  Ultimately, the
-   loader is what makes use of ``__file__`` and/or ``__cached__``.  So
+   loader is what makes use of the module spec provided by the finder
+   (from which ``__file__`` and ``__cached__`` are derived).  So
    if a loader can load from a cached module but otherwise does not load
    from a file, that atypical scenario may be appropriate.
 
@@ -794,10 +800,8 @@ environment variable and various other installation- and
 implementation-specific defaults.  Entries in :data:`sys.path` can name
 directories on the file system, zip files, and potentially other "locations"
 (see the :mod:`site` module) that should be searched for modules, such as
-URLs, or database queries.  Only strings and bytes should be present on
-:data:`sys.path`; all other data types are ignored.  The encoding of bytes
-entries is determined by the individual :term:`path entry finders <path entry
-finder>`.
+URLs, or database queries.  Only strings should be present on
+:data:`sys.path`; all other data types are ignored.
 
 The :term:`path based finder` is a :term:`meta path finder`, so the import
 machinery begins the :term:`import path` search by calling the path

@@ -9,6 +9,7 @@ import _string
 import codecs
 import itertools
 import operator
+import pickle
 import struct
 import sys
 import textwrap
@@ -18,6 +19,11 @@ import warnings
 from test.support import warnings_helper
 from test import support, string_tests
 from test.support.script_helper import assert_python_failure
+
+try:
+    import _testcapi
+except ImportError:
+    _testcapi = None
 
 # Error handling (bad decoder return)
 def search_function(encoding):
@@ -178,6 +184,36 @@ class UnicodeTest(string_tests.CommonTest,
         self.assertEqual(next(it), "\u2222")
         self.assertEqual(next(it), "\u3333")
         self.assertRaises(StopIteration, next, it)
+
+    def test_iterators_invocation(self):
+        cases = [type(iter('abc')), type(iter('🚀'))]
+        for cls in cases:
+            with self.subTest(cls=cls):
+                self.assertRaises(TypeError, cls)
+
+    def test_iteration(self):
+        cases = ['abc', '🚀🚀🚀', "\u1111\u2222\u3333"]
+        for case in cases:
+            with self.subTest(string=case):
+                self.assertEqual(case, "".join(iter(case)))
+
+    def test_exhausted_iterator(self):
+        cases = ['abc', '🚀🚀🚀', "\u1111\u2222\u3333"]
+        for case in cases:
+            with self.subTest(case=case):
+                iterator = iter(case)
+                tuple(iterator)
+                self.assertRaises(StopIteration, next, iterator)
+
+    def test_pickle_iterator(self):
+        cases = ['abc', '🚀🚀🚀', "\u1111\u2222\u3333"]
+        for case in cases:
+            with self.subTest(case=case):
+                for proto in range(pickle.HIGHEST_PROTOCOL + 1):
+                    it = iter(case)
+                    with self.subTest(proto=proto):
+                        pickled = "".join(pickle.loads(pickle.dumps(it, proto)))
+                        self.assertEqual(case, pickled)
 
     def test_count(self):
         string_tests.CommonTest.test_count(self)
@@ -431,10 +467,10 @@ class UnicodeTest(string_tests.CommonTest,
     def test_rsplit(self):
         string_tests.CommonTest.test_rsplit(self)
         # test mixed kinds
-        for left, right in ('ba', '\u0101\u0100', '\U00010301\U00010300'):
+        for left, right in ('ba', 'юё', '\u0101\u0100', '\U00010301\U00010300'):
             left *= 9
             right *= 9
-            for delim in ('c', '\u0102', '\U00010302'):
+            for delim in ('c', 'ы', '\u0102', '\U00010302'):
                 self.checkequal([left + right],
                                 left + right, 'rsplit', delim)
                 self.checkequal([left, right],
@@ -443,6 +479,10 @@ class UnicodeTest(string_tests.CommonTest,
                                 left + right, 'rsplit', delim * 2)
                 self.checkequal([left, right],
                                 left + delim * 2 + right, 'rsplit', delim *2)
+
+            # Check `None` as well:
+            self.checkequal([left + right],
+                             left + right, 'rsplit', None)
 
     def test_partition(self):
         string_tests.MixinStrUnicodeUserStringTest.test_partition(self)
@@ -775,8 +815,8 @@ class UnicodeTest(string_tests.CommonTest,
 
     @support.cpython_only
     @support.requires_legacy_unicode_capi
+    @unittest.skipIf(_testcapi is None, 'need _testcapi module')
     def test_isidentifier_legacy(self):
-        import _testcapi
         u = '𝖀𝖓𝖎𝖈𝖔𝖉𝖊'
         self.assertTrue(u.isidentifier())
         with warnings_helper.check_warnings():
@@ -1545,25 +1585,30 @@ class UnicodeTest(string_tests.CommonTest,
         # issue18780
         import enum
         class Float(float, enum.Enum):
+            # a mixed-in type will use the name for %s etc.
             PI = 3.1415926
         class Int(enum.IntEnum):
+            # IntEnum uses the value and not the name for %s etc.
             IDES = 15
-        class Str(str, enum.Enum):
+        class Str(enum.StrEnum):
+            # StrEnum uses the value and not the name for %s etc.
             ABC = 'abc'
         # Testing Unicode formatting strings...
         self.assertEqual("%s, %s" % (Str.ABC, Str.ABC),
-                         'Str.ABC, Str.ABC')
+                         'abc, abc')
         self.assertEqual("%s, %s, %d, %i, %u, %f, %5.2f" %
                         (Str.ABC, Str.ABC,
                          Int.IDES, Int.IDES, Int.IDES,
                          Float.PI, Float.PI),
-                         'Str.ABC, Str.ABC, 15, 15, 15, 3.141593,  3.14')
+                         'abc, abc, 15, 15, 15, 3.141593,  3.14')
 
         # formatting jobs delegated from the string implementation:
         self.assertEqual('...%(foo)s...' % {'foo':Str.ABC},
-                         '...Str.ABC...')
+                         '...abc...')
+        self.assertEqual('...%(foo)r...' % {'foo':Int.IDES},
+                         '...<Int.IDES: 15>...')
         self.assertEqual('...%(foo)s...' % {'foo':Int.IDES},
-                         '...Int.IDES...')
+                         '...15...')
         self.assertEqual('...%(foo)i...' % {'foo':Int.IDES},
                          '...15...')
         self.assertEqual('...%(foo)d...' % {'foo':Int.IDES},
@@ -1588,9 +1633,9 @@ class UnicodeTest(string_tests.CommonTest,
                          "Success, self.__rmod__('lhs %% %r') was called")
 
     @support.cpython_only
+    @unittest.skipIf(_testcapi is None, 'need _testcapi module')
     def test_formatting_huge_precision_c_limits(self):
-        from _testcapi import INT_MAX
-        format_string = "%.{}f".format(INT_MAX + 1)
+        format_string = "%.{}f".format(_testcapi.INT_MAX + 1)
         with self.assertRaises(ValueError):
             result = format_string % 2.34
 
@@ -2389,20 +2434,19 @@ class UnicodeTest(string_tests.CommonTest,
         self.assertIs(s.expandtabs(), s)
 
     def test_raiseMemError(self):
-        if struct.calcsize('P') == 8:
-            # 64 bits pointers
-            ascii_struct_size = 48
-            compact_struct_size = 72
-        else:
-            # 32 bits pointers
-            ascii_struct_size = 24
-            compact_struct_size = 36
+        asciifields = "nnbP"
+        compactfields = asciifields + "nPn"
+        ascii_struct_size = support.calcobjsize(asciifields)
+        compact_struct_size = support.calcobjsize(compactfields)
 
         for char in ('a', '\xe9', '\u20ac', '\U0010ffff'):
             code = ord(char)
-            if code < 0x100:
+            if code < 0x80:
                 char_size = 1  # sizeof(Py_UCS1)
                 struct_size = ascii_struct_size
+            elif code < 0x100:
+                char_size = 1  # sizeof(Py_UCS1)
+                struct_size = compact_struct_size
             elif code < 0x10000:
                 char_size = 2  # sizeof(Py_UCS2)
                 struct_size = compact_struct_size
@@ -2414,8 +2458,18 @@ class UnicodeTest(string_tests.CommonTest,
             # be allocatable, given enough memory.
             maxlen = ((sys.maxsize - struct_size) // char_size)
             alloc = lambda: char * maxlen
-            self.assertRaises(MemoryError, alloc)
-            self.assertRaises(MemoryError, alloc)
+            with self.subTest(
+                char=char,
+                struct_size=struct_size,
+                char_size=char_size
+            ):
+                # self-check
+                self.assertEqual(
+                    sys.getsizeof(char * 42),
+                    struct_size + (char_size * (42 + 1))
+                )
+                self.assertRaises(MemoryError, alloc)
+                self.assertRaises(MemoryError, alloc)
 
     def test_format_subclass(self):
         class S(str):
@@ -2446,21 +2500,21 @@ class UnicodeTest(string_tests.CommonTest,
 
     @support.cpython_only
     @support.requires_legacy_unicode_capi
+    @unittest.skipIf(_testcapi is None, 'need _testcapi module')
     def test_resize(self):
-        from _testcapi import getargs_u
         for length in range(1, 100, 7):
             # generate a fresh string (refcount=1)
             text = 'a' * length + 'b'
 
             # fill wstr internal field
             with self.assertWarns(DeprecationWarning):
-                abc = getargs_u(text)
+                abc = _testcapi.getargs_u(text)
             self.assertEqual(abc, text)
 
             # resize text: wstr field must be cleared and then recomputed
             text += 'c'
             with self.assertWarns(DeprecationWarning):
-                abcdef = getargs_u(text)
+                abcdef = _testcapi.getargs_u(text)
             self.assertNotEqual(abc, abcdef)
             self.assertEqual(abcdef, text)
 
@@ -2652,6 +2706,30 @@ class StringModuleTest(unittest.TestCase):
              (False, 'key2'),
             ]])
         self.assertRaises(TypeError, _string.formatter_field_name_split, 1)
+
+    def test_str_subclass_attr(self):
+
+        name = StrSubclass("name")
+        name2 = StrSubclass("name2")
+        class Bag:
+            pass
+
+        o = Bag()
+        with self.assertRaises(AttributeError):
+            delattr(o, name)
+        setattr(o, name, 1)
+        self.assertEqual(o.name, 1)
+        o.name = 2
+        self.assertEqual(list(o.__dict__), [name])
+
+        with self.assertRaises(AttributeError):
+            delattr(o, name2)
+        with self.assertRaises(AttributeError):
+            del o.name2
+        setattr(o, name2, 3)
+        self.assertEqual(o.name2, 3)
+        o.name2 = 4
+        self.assertEqual(list(o.__dict__), [name, name2])
 
 
 if __name__ == "__main__":

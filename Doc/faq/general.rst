@@ -54,8 +54,8 @@ commercial use, to sell copies of Python in source or binary form (modified or
 unmodified), or to sell products that incorporate Python in some form.  We would
 still like to know about all commercial use of Python, of course.
 
-See `the PSF license page <https://www.python.org/psf/license/>`_ to find further
-explanations and a link to the full text of the license.
+See `the license page <https://docs.python.org/3/license.html>`_ to find further
+explanations and the full text of the PSF License.
 
 The Python logo is trademarked, and in certain cases permission is required to
 use it.  Consult `the Trademark Usage Policy
@@ -113,8 +113,8 @@ to many different classes of problems.
 
 The language comes with a large standard library that covers areas such as
 string processing (regular expressions, Unicode, calculating differences between
-files), internet protocols (HTTP, FTP, SMTP, XML-RPC, POP, IMAP, CGI
-programming), software engineering (unit testing, logging, profiling, parsing
+files), internet protocols (HTTP, FTP, SMTP, XML-RPC, POP, IMAP),
+software engineering (unit testing, logging, profiling, parsing
 Python code), and operating system interfaces (system calls, filesystems, TCP/IP
 sockets).  Look at the table of contents for :ref:`library-index` to get an idea
 of what's available.  A wide variety of third-party extensions are also
@@ -215,7 +215,7 @@ every day, and Usenet readers are often more able to cope with this volume.
 Announcements of new software releases and events can be found in
 comp.lang.python.announce, a low-traffic moderated list that receives about five
 postings per day.  It's available as `the python-announce mailing list
-<https://mail.python.org/mailman/listinfo/python-announce-list>`_.
+<https://mail.python.org/mailman3/lists/python-announce-list.python.org/>`_.
 
 More info about other mailing lists and newsgroups
 can be found at https://www.python.org/community/lists/.
@@ -236,14 +236,8 @@ You can also access the development version of Python through Git.  See
 How do I submit bug reports and patches for Python?
 ---------------------------------------------------
 
-To report a bug or submit a patch, please use the Roundup installation at
-https://bugs.python.org/.
-
-You must have a Roundup account to report bugs; this makes it possible for us to
-contact you if we have follow-up questions.  It will also enable Roundup to send
-you updates as we act on your bug. If you had previously used SourceForge to
-report bugs to Python, you can obtain your Roundup password through Roundup's
-`password reset procedure <https://bugs.python.org/user?@template=forgotten>`_.
+To report a bug or submit a patch, use the issue tracker at
+https://github.com/python/cpython/issues.
 
 For more information on how Python is developed, consult `the Python Developer's
 Guide <https://devguide.python.org/>`_.
@@ -316,7 +310,7 @@ The latest stable releases can always be found on the `Python download page
 <https://www.python.org/downloads/>`_.  There are two production-ready versions
 of Python: 2.x and 3.x. The recommended version is 3.x, which is supported by
 most widely used libraries.  Although 2.x is still widely used, `it is not
-maintained anymore <https://www.python.org/dev/peps/pep-0373/>`_.
+maintained anymore <https://peps.python.org/pep-0373/>`_.
 
 How many people are using Python?
 ---------------------------------
@@ -351,14 +345,14 @@ include Google, Yahoo, and Lucasfilm Ltd.
 What new developments are expected for Python in the future?
 ------------------------------------------------------------
 
-See https://www.python.org/dev/peps/ for the Python Enhancement Proposals
+See https://peps.python.org/ for the Python Enhancement Proposals
 (PEPs). PEPs are design documents describing a suggested new feature for Python,
 providing a concise technical specification and a rationale.  Look for a PEP
 titled "Python X.Y Release Schedule", where X.Y is a version that hasn't been
 publicly released yet.
 
 New development is discussed on `the python-dev mailing list
-<https://mail.python.org/mailman/listinfo/python-dev/>`_.
+<https://mail.python.org/mailman3/lists/python-dev.python.org/>`_.
 
 
 Is it reasonable to propose incompatible changes to Python?
