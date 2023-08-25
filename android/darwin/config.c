@@ -79,9 +79,6 @@ extern PyObject* PyInit__sha512(void);
 extern PyObject* PyInit__sha3(void);
 extern PyObject* PyInit__struct(void);
 extern PyObject* PyInit__sqlite3(void);
-extern PyObject* PyInit__elementtree(void);
-extern PyObject* PyInit__bz2(void);
-extern PyObject* PyInit__lzma(void);
 extern PyObject* PyInit_atexit(void);
 extern PyObject* PyInit_faulthandler(void);
 extern PyObject* PyInit_posix(void);
@@ -170,9 +167,6 @@ struct _inittab _PyImport_Inittab[] = {
     {"_sha3", PyInit__sha3},
     {"_struct", PyInit__struct},
     {"_sqlite3", PyInit__sqlite3},
-    {"_elementtree", PyInit__elementtree},
-    {"_bz2", PyInit__bz2},
-    {"_lzma", PyInit__lzma},
     {"atexit", PyInit_atexit},
     {"faulthandler", PyInit_faulthandler},
     {"posix", PyInit_posix},
