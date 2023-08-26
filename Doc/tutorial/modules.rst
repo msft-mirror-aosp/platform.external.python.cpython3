@@ -196,6 +196,8 @@ named :file:`spam.py` in a list of directories given by the variable
 * The installation-dependent default (by convention including a
   ``site-packages`` directory, handled by the :mod:`site` module).
 
+More details are at :ref:`sys-path-init`.
+
 .. note::
    On file systems which support symlinks, the directory containing the input
    script is calculated after the symlink is followed. In other words the
@@ -210,6 +212,8 @@ directory. This is an error unless the replacement is intended.  See section
 
 .. %
     Do we need stuff on zip files etc. ? DUBOIS
+
+.. _tut-pycache:
 
 "Compiled" Python files
 -----------------------
@@ -260,7 +264,7 @@ Some tips for experts:
 Standard Modules
 ================
 
-.. index:: module: sys
+.. index:: pair: module; sys
 
 Python comes with a library of standard modules, described in a separate
 document, the Python Library Reference ("Library Reference" hereafter).  Some
@@ -341,7 +345,7 @@ Without arguments, :func:`dir` lists the names you have defined currently::
 
 Note that it lists all types of names: variables, modules, functions, etc.
 
-.. index:: module: builtins
+.. index:: pair: module; builtins
 
 :func:`dir` does not list the names of built-in functions and variables.  If you
 want a list of those, they are defined in the standard module

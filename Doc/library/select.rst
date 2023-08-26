@@ -22,6 +22,7 @@ it was last read.
    encouraged to use the :mod:`selectors` module instead, unless they want
    precise control over the OS-level primitives used.
 
+.. include:: ../includes/wasm-notavail.rst
 
 The module defines the following:
 
@@ -504,7 +505,7 @@ Kqueue Objects
 Kevent Objects
 --------------
 
-https://www.freebsd.org/cgi/man.cgi?query=kqueue&sektion=2
+https://man.freebsd.org/cgi/man.cgi?query=kqueue&sektion=2
 
 .. attribute:: kevent.ident
 

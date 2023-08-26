@@ -52,7 +52,9 @@ filegroup {
         "logging/**/*.py",
         "multiprocessing/**/*.py",
         "pydoc_data/**/*.py",
+        "re/**/*.py",
         "sqlite3/**/*.py",
+        "tomllib/**/*.py",
         "unittest/**/*.py",
         "urllib/**/*.py",
         "wsgiref/**/*.py",
@@ -67,7 +69,7 @@ filegroup {
 python_library {
     name: "py3-stdlib",
     is_internal: true,
-    pkg_path: "python3.10",
+    pkg_path: "python3.11",
     host_supported: true,
     srcs: [":py3-stdlib-srcs"],
 }

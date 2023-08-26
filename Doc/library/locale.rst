@@ -16,7 +16,7 @@ functionality. The POSIX locale mechanism allows programmers to deal with
 certain cultural issues in an application, without requiring the programmer to
 know all the specifics of each country where the software is executed.
 
-.. index:: module: _locale
+.. index:: pair: module; _locale
 
 The :mod:`locale` module is implemented on top of the :mod:`_locale` module,
 which in turn uses an ANSI C locale implementation if available.
@@ -303,6 +303,8 @@ The :mod:`locale` module defines the following exception and functions:
    *language code* and *encoding* may be ``None`` if their values cannot be
    determined.
 
+   .. deprecated-removed:: 3.11 3.13
+
 
 .. function:: getlocale(category=LC_CTYPE)
 
@@ -327,15 +329,35 @@ The :mod:`locale` module defines the following exception and functions:
    is not necessary or desired, *do_setlocale* should be set to ``False``.
 
    On Android or if the :ref:`Python UTF-8 Mode <utf8-mode>` is enabled, always
-   return ``'UTF-8'``, the :term:`locale encoding` and the *do_setlocale*
+   return ``'utf-8'``, the :term:`locale encoding` and the *do_setlocale*
    argument are ignored.
 
    The :ref:`Python preinitialization <c-preinit>` configures the LC_CTYPE
    locale. See also the :term:`filesystem encoding and error handler`.
 
    .. versionchanged:: 3.7
-      The function now always returns ``UTF-8`` on Android or if the
+      The function now always returns ``"utf-8"`` on Android or if the
       :ref:`Python UTF-8 Mode <utf8-mode>` is enabled.
+
+
+.. function:: getencoding()
+
+   Get the current :term:`locale encoding`:
+
+   * On Android and VxWorks, return ``"utf-8"``.
+   * On Unix, return the encoding of the current :data:`LC_CTYPE` locale.
+     Return ``"utf-8"`` if ``nl_langinfo(CODESET)`` returns an empty string:
+     for example, if the current LC_CTYPE locale is not supported.
+   * On Windows, return the ANSI code page.
+
+   The :ref:`Python preinitialization <c-preinit>` configures the LC_CTYPE
+   locale. See also the :term:`filesystem encoding and error handler`.
+
+   This function is similar to
+   :func:`getpreferredencoding(False) <getpreferredencoding>` except this
+   function ignores the :ref:`Python UTF-8 Mode <utf8-mode>`.
+
+   .. versionadded:: 3.11
 
 
 .. function:: normalize(localename)
@@ -354,6 +376,8 @@ The :mod:`locale` module defines the following exception and functions:
 
    The default setting is determined by calling :func:`getdefaultlocale`.
    *category* defaults to :const:`LC_ALL`.
+
+   .. deprecated-removed:: 3.11 3.13
 
 
 .. function:: strcoll(string1, string2)
@@ -452,7 +476,7 @@ The :mod:`locale` module defines the following exception and functions:
 
 .. data:: LC_CTYPE
 
-   .. index:: module: string
+   .. index:: pair: module; string
 
    Locale category for the character type functions.  Depending on the settings of
    this category, the functions of module :mod:`string` dealing with case change

@@ -21,14 +21,15 @@ authentication, redirections, cookies and more.
     The `Requests package <https://requests.readthedocs.io/en/master/>`_
     is recommended for a higher-level HTTP client interface.
 
+.. include:: ../includes/wasm-notavail.rst
 
 The :mod:`urllib.request` module defines the following functions:
 
 
 .. function:: urlopen(url, data=None[, timeout], *, cafile=None, capath=None, cadefault=False, context=None)
 
-   Open the URL *url*, which can be either a string or a
-   :class:`Request` object.
+   Open *url*, which can be either a string containing a valid, properly
+   encoded URL, or a :class:`Request` object.
 
    *data* must be an object specifying additional data to be sent to the
    server, or ``None`` if no such data is needed.  See :class:`Request`
@@ -191,7 +192,7 @@ The following classes are provided:
 
    This class is an abstraction of a URL request.
 
-   *url* should be a string containing a valid URL.
+   *url* should be a string containing a valid, properly encoded URL.
 
    *data* must be an object specifying additional data to send to the
    server, or ``None`` if no such data is needed.  Currently HTTP
@@ -878,7 +879,17 @@ HTTPRedirectHandler Objects
 .. method:: HTTPRedirectHandler.http_error_307(req, fp, code, msg, hdrs)
 
    The same as :meth:`http_error_301`, but called for the 'temporary redirect'
-   response.
+   response. It does not allow changing the request method from ``POST``
+   to ``GET``.
+
+
+.. method:: HTTPRedirectHandler.http_error_308(req, fp, code, msg, hdrs)
+
+   The same as :meth:`http_error_301`, but called for the 'permanent redirect'
+   response. It does not allow changing the request method from ``POST``
+   to ``GET``.
+
+   .. versionadded:: 3.11
 
 
 .. _http-cookie-processor:
