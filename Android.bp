@@ -364,6 +364,7 @@ cc_defaults {
         "libbase",
         "libexpat",
         "libz",
+        "libbz",
     ],
     target: {
         linux_glibc_x86_64: {
@@ -532,6 +533,7 @@ cc_library_static {
     static_libs: [
         "libexpat",
         "libz",
+        "libbz",
     ],
     target: {
         android: {
