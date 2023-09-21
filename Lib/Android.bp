@@ -52,7 +52,9 @@ filegroup {
         "logging/**/*.py",
         "multiprocessing/**/*.py",
         "pydoc_data/**/*.py",
+        "re/**/*.py",
         "sqlite3/**/*.py",
+        "tomllib/**/*.py",
         "unittest/**/*.py",
         "urllib/**/*.py",
         "wsgiref/**/*.py",
@@ -64,57 +66,12 @@ filegroup {
     ],
 }
 
-soong_config_module_type {
-    name: "cpython3_python_stdlib",
-    module_type: "python_library",
-    config_namespace: "cpython3",
-    bool_variables: ["force_build_host"],
-    properties: ["defaults"],
-}
-
-python_defaults {
-    name: "py3-stdlib-force-build",
-    defaults_visibility: ["//visibility:private"],
-    target: {
-        glibc: {
-            exclude_srcs: [":py3-stdlib-prebuilt-srcs"],
-            srcs: [":py3-stdlib-srcs"],
-        },
-        musl: {
-            exclude_srcs: [":py3-stdlib-prebuilt-srcs"],
-            srcs: [":py3-stdlib-srcs"],
-        },
-        darwin: {
-            exclude_srcs: [":py3-stdlib-prebuilt-srcs"],
-            srcs: [":py3-stdlib-srcs"],
-        },
-    },
-}
-
-cpython3_python_stdlib {
+python_library {
     name: "py3-stdlib",
     is_internal: true,
-    pkg_path: "stdlib",
+    pkg_path: "python3.11",
     host_supported: true,
-    target: {
-        bionic: {
-            srcs: [":py3-stdlib-srcs"],
-        },
-        glibc: {
-            srcs: [":py3-stdlib-prebuilt-srcs"],
-        },
-        musl: {
-            srcs: [":py3-stdlib-prebuilt-srcs"],
-        },
-        darwin: {
-            srcs: [":py3-stdlib-prebuilt-srcs"],
-        },
-    },
-    soong_config_variables: {
-        force_build_host: {
-            defaults: ["py3-stdlib-force-build"],
-        },
-    },
+    srcs: [":py3-stdlib-srcs"],
 }
 
 // Used by prebuilts/build-tools/build-prebuilts.sh to update

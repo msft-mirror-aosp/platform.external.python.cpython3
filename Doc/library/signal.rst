@@ -26,6 +26,9 @@ explicitly reset (Python emulates the BSD style interface regardless of the
 underlying implementation), with the exception of the handler for
 :const:`SIGCHLD`, which follows the underlying implementation.
 
+On WebAssembly platforms ``wasm32-emscripten`` and ``wasm32-wasi``, signals
+are emulated and therefore behave differently. Several functions and signals
+are not available on these platforms.
 
 Execution of Python signal handlers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -73,10 +76,36 @@ Module contents
    signal (SIG*), handler (:const:`SIG_DFL`, :const:`SIG_IGN`) and sigmask
    (:const:`SIG_BLOCK`, :const:`SIG_UNBLOCK`, :const:`SIG_SETMASK`)
    related constants listed below were turned into
-   :class:`enums <enum.IntEnum>`.
+   :class:`enums <enum.IntEnum>` (:class:`Signals`, :class:`Handlers` and :class:`Sigmasks` respectively).
    :func:`getsignal`, :func:`pthread_sigmask`, :func:`sigpending` and
    :func:`sigwait` functions return human-readable
-   :class:`enums <enum.IntEnum>`.
+   :class:`enums <enum.IntEnum>` as :class:`Signals` objects.
+
+
+The signal module defines three enums:
+
+.. class:: Signals
+
+   :class:`enum.IntEnum` collection of SIG* constants and the CTRL_* constants.
+
+   .. versionadded:: 3.5
+
+.. class:: Handlers
+
+   :class:`enum.IntEnum` collection the constants :const:`SIG_DFL` and :const:`SIG_IGN`.
+
+   .. versionadded:: 3.5
+
+.. class:: Sigmasks
+
+   :class:`enum.IntEnum` collection the constants :const:`SIG_BLOCK`, :const:`SIG_UNBLOCK` and :const:`SIG_SETMASK`.
+
+   .. availability:: Unix.
+
+      See the man page :manpage:`sigprocmask(2)` and
+      :manpage:`pthread_sigmask(3)` for further information.
+
+   .. versionadded:: 3.5
 
 
 The variables defined in the :mod:`signal` module are:
@@ -178,6 +207,18 @@ The variables defined in the :mod:`signal` module are:
 
    Segmentation fault: invalid memory reference.
 
+.. data:: SIGSTKFLT
+
+    Stack fault on coprocessor. The Linux kernel does not raise this signal: it
+    can only be raised in user space.
+
+   .. availability:: Linux.
+
+      On architectures where the signal is available. See
+      the man page :manpage:`signal(7)` for further information.
+
+   .. versionadded:: 3.11
+
 .. data:: SIGTERM
 
    Termination signal.
@@ -234,6 +275,7 @@ The variables defined in the :mod:`signal` module are:
 .. data:: NSIG
 
    One more than the number of the highest signal number.
+   Use :func:`valid_signals` to get valid signal numbers.
 
 
 .. data:: ITIMER_REAL
@@ -304,8 +346,9 @@ The :mod:`signal` module defines the following functions:
    delivered. If *time* is zero, no alarm is scheduled, and any scheduled alarm is
    canceled.  If the return value is zero, no alarm is currently scheduled.
 
-   .. availability:: Unix.  See the man page :manpage:`alarm(2)` for further
-      information.
+   .. availability:: Unix.
+
+      See the man page :manpage:`alarm(2)` for further information.
 
 
 .. function:: getsignal(signalnum)
@@ -321,9 +364,9 @@ The :mod:`signal` module defines the following functions:
 
 .. function:: strsignal(signalnum)
 
-   Return the system description of the signal *signalnum*, such as
-   "Interrupt", "Segmentation fault", etc. Returns :const:`None` if the signal
-   is not recognized.
+   Returns the description of signal *signalnum*, such as "Interrupt"
+   for :const:`SIGINT`. Returns :const:`None` if *signalnum* has no
+   description. Raises :exc:`ValueError` if *signalnum* is invalid.
 
    .. versionadded:: 3.8
 
@@ -342,8 +385,9 @@ The :mod:`signal` module defines the following functions:
    Cause the process to sleep until a signal is received; the appropriate handler
    will then be called.  Returns nothing.
 
-   .. availability:: Unix.  See the man page :manpage:`signal(2)` for further
-      information.
+   .. availability:: Unix.
+
+      See the man page :manpage:`signal(2)` for further information.
 
    See also :func:`sigwait`, :func:`sigwaitinfo`, :func:`sigtimedwait` and
    :func:`sigpending`.
@@ -365,7 +409,7 @@ The :mod:`signal` module defines the following functions:
 
    See the :manpage:`pidfd_send_signal(2)` man page for more information.
 
-   .. availability:: Linux 5.1+
+   .. availability:: Linux >= 5.1
    .. versionadded:: 3.9
 
 
@@ -388,8 +432,9 @@ The :mod:`signal` module defines the following functions:
 
    .. audit-event:: signal.pthread_kill thread_id,signalnum signal.pthread_kill
 
-   .. availability:: Unix.  See the man page :manpage:`pthread_kill(3)` for further
-      information.
+   .. availability:: Unix.
+
+      See the man page :manpage:`pthread_kill(3)` for further  information.
 
    See also :func:`os.kill`.
 
@@ -421,7 +466,9 @@ The :mod:`signal` module defines the following functions:
 
    :data:`SIGKILL` and :data:`SIGSTOP` cannot be blocked.
 
-   .. availability:: Unix.  See the man page :manpage:`sigprocmask(2)` and
+   .. availability:: Unix.
+
+      See the man page :manpage:`sigprocmask(2)` and
       :manpage:`pthread_sigmask(3)` for further information.
 
    See also :func:`pause`, :func:`sigpending` and :func:`sigwait`.
@@ -509,8 +556,9 @@ The :mod:`signal` module defines the following functions:
    calls will be restarted when interrupted by signal *signalnum*, otherwise
    system calls will be interrupted.  Returns nothing.
 
-   .. availability:: Unix.  See the man page :manpage:`siginterrupt(3)`
-      for further information.
+   .. availability:: Unix.
+
+      See the man page :manpage:`siginterrupt(3)` for further information.
 
    Note that installing a signal handler with :func:`signal` will reset the
    restart behaviour to interruptible by implicitly calling
@@ -550,8 +598,9 @@ The :mod:`signal` module defines the following functions:
    thread (i.e., the signals which have been raised while blocked).  Return the
    set of the pending signals.
 
-   .. availability:: Unix.  See the man page :manpage:`sigpending(2)` for further
-      information.
+   .. availability:: Unix.
+
+      See the man page :manpage:`sigpending(2)` for further information.
 
    See also :func:`pause`, :func:`pthread_sigmask` and :func:`sigwait`.
 
@@ -564,8 +613,9 @@ The :mod:`signal` module defines the following functions:
    signals specified in the signal set *sigset*.  The function accepts the signal
    (removes it from the pending list of signals), and returns the signal number.
 
-   .. availability:: Unix.  See the man page :manpage:`sigwait(3)` for further
-      information.
+   .. availability:: Unix.
+
+      See the man page :manpage:`sigwait(3)` for further information.
 
    See also :func:`pause`, :func:`pthread_sigmask`, :func:`sigpending`,
    :func:`sigwaitinfo` and :func:`sigtimedwait`.
@@ -589,8 +639,9 @@ The :mod:`signal` module defines the following functions:
    :attr:`si_errno`, :attr:`si_pid`, :attr:`si_uid`, :attr:`si_status`,
    :attr:`si_band`.
 
-   .. availability:: Unix.  See the man page :manpage:`sigwaitinfo(2)` for further
-      information.
+   .. availability:: Unix.
+
+      See the man page :manpage:`sigwaitinfo(2)` for further information.
 
    See also :func:`pause`, :func:`sigwait` and :func:`sigtimedwait`.
 
@@ -608,8 +659,9 @@ The :mod:`signal` module defines the following functions:
    specifying a timeout. If *timeout* is specified as :const:`0`, a poll is
    performed. Returns :const:`None` if a timeout occurs.
 
-   .. availability:: Unix.  See the man page :manpage:`sigtimedwait(2)` for further
-      information.
+   .. availability:: Unix.
+
+      See the man page :manpage:`sigtimedwait(2)` for further information.
 
    See also :func:`pause`, :func:`sigwait` and :func:`sigwaitinfo`.
 
@@ -623,8 +675,8 @@ The :mod:`signal` module defines the following functions:
 
 .. _signal-example:
 
-Example
--------
+Examples
+--------
 
 Here is a minimal example program. It uses the :func:`alarm` function to limit
 the time spent waiting to open a file; this is useful if the file is for a
@@ -636,7 +688,8 @@ be sent, and the handler raises an exception. ::
    import signal, os
 
    def handler(signum, frame):
-       print('Signal handler called with signal', signum)
+       signame = signal.Signals(signum).name
+       print(f'Signal handler called with signal {signame} ({signum})')
        raise OSError("Couldn't open device!")
 
    # Set the signal handler and a 5-second alarm
