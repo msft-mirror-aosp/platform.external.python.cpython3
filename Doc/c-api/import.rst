@@ -41,7 +41,7 @@ Importing Modules
 
 .. c:function:: PyObject* PyImport_ImportModuleEx(const char *name, PyObject *globals, PyObject *locals, PyObject *fromlist)
 
-   .. index:: builtin: __import__
+   .. index:: pair: built-in function; __import__
 
    Import a module.  This is best described by referring to the built-in Python
    function :func:`__import__`.
@@ -120,7 +120,7 @@ Importing Modules
 
 .. c:function:: PyObject* PyImport_ExecCodeModule(const char *name, PyObject *co)
 
-   .. index:: builtin: compile
+   .. index:: pair: built-in function; compile
 
    Given a module name (possibly of the form ``package.module``) and a code object
    read from a Python bytecode file or obtained from the built-in function
@@ -256,8 +256,12 @@ Importing Modules
           const char *name;
           const unsigned char *code;
           int size;
+          bool is_package;
       };
 
+   .. versionchanged:: 3.11
+      The new ``is_package`` field indicates whether the module is a package or not.
+      This replaces setting the ``size`` field to a negative value.
 
 .. c:var:: const struct _frozen* PyImport_FrozenModules
 

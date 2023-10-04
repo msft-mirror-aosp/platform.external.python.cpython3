@@ -59,22 +59,16 @@ int main(int argc, char *argv[]) {
   // include something unusable, too bad.
   // android::base::GetExecutablePath() also handles for Darwin/Windows.
   std::string executable_path = android::base::GetExecutablePath();
-  std::string internal_path = executable_path + "/internal";
-  std::string stdlib_path = internal_path + "/stdlib";
 
   PyStatus status;
-
   PyConfig config;
   PyConfig_InitPythonConfig(&config);
-
-  wchar_t *path_entry;
 
   // Ignore PYTHONPATH and PYTHONHOME from the environment. Unless we're not
   // running from inside the zip file, in which case the user may have
   // specified a PYTHONPATH.
 #ifdef ANDROID_AUTORUN
   config.use_environment = 0;
-  config.module_search_paths_set = 1;
   config.parse_argv = 0;
 #endif
 
@@ -82,6 +76,12 @@ int main(int argc, char *argv[]) {
   config.home = Py_DecodeLocale(executable_path.c_str(), NULL);
   if (config.home == NULL) {
     fprintf(stderr, "Unable to parse executable name\n");
+    return 1;
+  }
+
+  config.platlibdir = Py_DecodeLocale("internal", NULL);
+  if (config.platlibdir == NULL) {
+    fprintf(stderr, "Unable to parse platlibdir\n");
     return 1;
   }
 
@@ -96,28 +96,6 @@ int main(int argc, char *argv[]) {
   }
 
   status = PyConfig_Read(&config);
-  if (PyStatus_Exception(status)) {
-    goto fail;
-  }
-
-  path_entry = Py_DecodeLocale(internal_path.c_str(), NULL);
-  if (path_entry == NULL) {
-    fprintf(stderr, "Unable to parse path\n");
-    return 1;
-  }
-
-  status = PyWideStringList_Append(&config.module_search_paths, path_entry);
-  if (PyStatus_Exception(status)) {
-    goto fail;
-  }
-
-  path_entry = Py_DecodeLocale(stdlib_path.c_str(), NULL);
-  if (path_entry == NULL) {
-    fprintf(stderr, "Unable to parse path\n");
-    return 1;
-  }
-
-  status = PyWideStringList_Append(&config.module_search_paths, path_entry);
   if (PyStatus_Exception(status)) {
     goto fail;
   }

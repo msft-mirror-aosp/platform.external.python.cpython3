@@ -1,8 +1,8 @@
 # These come from looking through setup.py
 
 array arraymodule.c
-cmath cmathmodule.c _math.c
-math mathmodule.c _math.c
+cmath cmathmodule.c
+math mathmodule.c
 _contextvars _contextvarsmodule.c
 time timemodule.c
 _datetime _datetimemodule.c
@@ -19,6 +19,7 @@ _asyncio _asynciomodule.c
 _abc _abc.c
 _queue _queuemodule.c
 _statistics _statisticsmodule.c
+_typing _typingmodule.c
 fcntl fcntlmodule.c
 pwd pwdmodule.c
 grp grpmodule.c
@@ -59,4 +60,6 @@ _sha3 _sha3/sha3module.c
 
 _struct _struct.c
 
-_sqlite3 _sqlite/cache.c _sqlite/connection.c _sqlite/cursor.c _sqlite/microprotocols.c _sqlite/module.c _sqlite/prepare_protocol.c _sqlite/row.c _sqlite/statement.c _sqlite/util.c
+_sqlite3 _sqlite/blob.c _sqlite/connection.c _sqlite/cursor.c _sqlite/microprotocols.c _sqlite/module.c _sqlite/prepare_protocol.c _sqlite/row.c _sqlite/statement.c _sqlite/util.c
+_elementtree _elementtree.c
+_bz2 _bz2module.c
