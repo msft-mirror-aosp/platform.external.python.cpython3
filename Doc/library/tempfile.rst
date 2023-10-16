@@ -90,6 +90,9 @@ The module defines the following user-callable items:
    attribute is the underlying true file object. This file-like object can
    be used in a :keyword:`with` statement, just like a normal file.
 
+   On POSIX (only), a process that is terminated abruptly with SIGKILL
+   cannot automatically delete any NamedTemporaryFiles it created.
+
    .. audit-event:: tempfile.mkstemp fullpath tempfile.NamedTemporaryFile
 
    .. versionchanged:: 3.8
@@ -119,6 +122,11 @@ The module defines the following user-callable items:
 
    .. versionchanged:: 3.8
       Added *errors* parameter.
+
+   .. versionchanged:: 3.11
+      Fully implements the :class:`io.BufferedIOBase` and
+      :class:`io.TextIOBase` abstract base classes (depending on whether binary
+      or text *mode* was specified).
 
 
 .. class:: TemporaryDirectory(suffix=None, prefix=None, dir=None, ignore_cleanup_errors=False)
@@ -218,7 +226,10 @@ The module defines the following user-callable items:
    The *prefix*, *suffix*, and *dir* arguments are the same as for
    :func:`mkstemp`.
 
-   :func:`mkdtemp` returns the absolute pathname of the new directory.
+   :func:`mkdtemp` returns the absolute pathname of the new directory if *dir*
+   is ``None`` or is an absolute path. If *dir* is a relative path,
+   :func:`mkdtemp` returns a relative path on Python 3.11 and lower. However,
+   on 3.12 it will return an absolute path in all situations.
 
    .. audit-event:: tempfile.mkdtemp fullpath tempfile.mkdtemp
 

@@ -52,6 +52,7 @@ and work with streams:
                           limit=None, ssl=None, family=0, proto=0, \
                           flags=0, sock=None, local_addr=None, \
                           server_hostname=None, ssl_handshake_timeout=None, \
+                          ssl_shutdown_timeout=None, \
                           happy_eyeballs_delay=None, interleave=None)
 
    Establish a network connection and return a pair of
@@ -82,6 +83,9 @@ and work with streams:
    .. versionchanged:: 3.10
       Removed the *loop* parameter.
 
+   .. versionchanged:: 3.11
+      Added the *ssl_shutdown_timeout* parameter.
+
 
 .. coroutinefunction:: start_server(client_connected_cb, host=None, \
                           port=None, *, limit=None, \
@@ -89,7 +93,7 @@ and work with streams:
                           flags=socket.AI_PASSIVE, sock=None, \
                           backlog=100, ssl=None, reuse_address=None, \
                           reuse_port=None, ssl_handshake_timeout=None, \
-                          start_serving=True)
+                          ssl_shutdown_timeout=None, start_serving=True)
 
    Start a socket server.
 
@@ -121,12 +125,15 @@ and work with streams:
    .. versionchanged:: 3.10
       Removed the *loop* parameter.
 
+   .. versionchanged:: 3.11
+      Added the *ssl_shutdown_timeout* parameter.
+
 
 .. rubric:: Unix Sockets
 
 .. coroutinefunction:: open_unix_connection(path=None, *, limit=None, \
                         ssl=None, sock=None, server_hostname=None, \
-                        ssl_handshake_timeout=None)
+                        ssl_handshake_timeout=None, ssl_shutdown_timeout=None)
 
    Establish a Unix socket connection and return a pair of
    ``(reader, writer)``.
@@ -150,10 +157,14 @@ and work with streams:
    .. versionchanged:: 3.10
       Removed the *loop* parameter.
 
+  .. versionchanged:: 3.11
+     Added the *ssl_shutdown_timeout* parameter.
+
 
 .. coroutinefunction:: start_unix_server(client_connected_cb, path=None, \
                           *, limit=None, sock=None, backlog=100, ssl=None, \
-                          ssl_handshake_timeout=None, start_serving=True)
+                          ssl_handshake_timeout=None, \
+                          ssl_shutdown_timeout=None, start_serving=True)
 
    Start a Unix socket server.
 
@@ -175,6 +186,9 @@ and work with streams:
 
    .. versionchanged:: 3.10
       Removed the *loop* parameter.
+
+   .. versionchanged:: 3.11
+      Added the *ssl_shutdown_timeout* parameter.
 
 
 StreamReader
@@ -329,6 +343,24 @@ StreamWriter
       be resumed.  When there is nothing to wait for, the :meth:`drain`
       returns immediately.
 
+   .. coroutinemethod:: start_tls(sslcontext, \*, server_hostname=None, \
+                          ssl_handshake_timeout=None)
+
+      Upgrade an existing stream-based connection to TLS.
+
+      Parameters:
+
+      * *sslcontext*: a configured instance of :class:`~ssl.SSLContext`.
+
+      * *server_hostname*: sets or overrides the host name that the target
+        server's certificate will be matched against.
+
+      * *ssl_handshake_timeout* is the time in seconds to wait for the TLS
+        handshake to complete before aborting the connection.  ``60.0`` seconds
+        if ``None`` (default).
+
+      .. versionadded:: 3.11
+
    .. method:: is_closing()
 
       Return ``True`` if the stream is closed or in the process of
@@ -365,6 +397,7 @@ TCP echo client using the :func:`asyncio.open_connection` function::
 
         print(f'Send: {message!r}')
         writer.write(message.encode())
+        await writer.drain()
 
         data = await reader.read(100)
         print(f'Received: {data.decode()!r}')

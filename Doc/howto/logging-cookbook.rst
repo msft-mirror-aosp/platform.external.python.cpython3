@@ -3791,7 +3791,7 @@ instance). Then, you'd get this kind of result:
     WARNING:demo:Bar
     >>>
 
-Of course, these above examples show output according to the format used by
+Of course, the examples above show output according to the format used by
 :func:`~logging.basicConfig`, but you can use a different formatter when you
 configure logging.
 
@@ -3870,7 +3870,6 @@ need to do or deal with, it is worth mentioning some usage patterns which are
 *unhelpful*, and which should therefore be avoided in most cases. The following
 sections are in no particular order.
 
-
 Opening the same log file multiple times
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -3919,7 +3918,6 @@ that in other languages such as Java and C#, loggers are often static class
 attributes. However, this pattern doesn't make sense in Python, where the
 module (and not the class) is the unit of software decomposition.
 
-
 Adding handlers other than :class:`NullHandler` to a logger in a library
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -3927,7 +3925,6 @@ Configuring logging by adding handlers, formatters and filters is the
 responsibility of the application developer, not the library developer. If you
 are maintaining a library, ensure that you don't add handlers to any of your
 loggers other than a :class:`~logging.NullHandler` instance.
-
 
 Creating a lot of loggers
 ^^^^^^^^^^^^^^^^^^^^^^^^^

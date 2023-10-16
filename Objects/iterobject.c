@@ -1,15 +1,14 @@
 /* Iterator objects */
 
 #include "Python.h"
-#include "pycore_object.h"
+#include "pycore_call.h"          // _PyObject_CallNoArgs()
+#include "pycore_object.h"        // _PyObject_GC_TRACK()
 
 typedef struct {
     PyObject_HEAD
     Py_ssize_t it_index;
     PyObject *it_seq; /* Set to NULL when iterator is exhausted */
 } seqiterobject;
-
-_Py_IDENTIFIER(iter);
 
 PyObject *
 PySeqIter_New(PyObject *seq)
@@ -104,9 +103,9 @@ PyDoc_STRVAR(length_hint_doc, "Private method returning an estimate of len(list(
 static PyObject *
 iter_reduce(seqiterobject *it, PyObject *Py_UNUSED(ignored))
 {
-    PyObject *iter = _PyEval_GetBuiltinId(&PyId_iter);
+    PyObject *iter = _PyEval_GetBuiltin(&_Py_ID(iter));
 
-    /* _PyEval_GetBuiltinId can invoke arbitrary code,
+    /* _PyEval_GetBuiltin can invoke arbitrary code,
      * call must be before access of iterator pointers.
      * see issue #101765 */
 
@@ -222,7 +221,7 @@ calliter_iternext(calliterobject *it)
         return NULL;
     }
 
-    result = _PyObject_CallNoArg(it->it_callable);
+    result = _PyObject_CallNoArgs(it->it_callable);
     if (result != NULL && it->it_sentinel != NULL){
         int ok;
 
@@ -248,9 +247,9 @@ calliter_iternext(calliterobject *it)
 static PyObject *
 calliter_reduce(calliterobject *it, PyObject *Py_UNUSED(ignored))
 {
-    PyObject *iter = _PyEval_GetBuiltinId(&PyId_iter);
+    PyObject *iter = _PyEval_GetBuiltin(&_Py_ID(iter));
 
-    /* _PyEval_GetBuiltinId can invoke arbitrary code,
+    /* _PyEval_GetBuiltin can invoke arbitrary code,
      * call must be before access of iterator pointers.
      * see issue #101765 */
 

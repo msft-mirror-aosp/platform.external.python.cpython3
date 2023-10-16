@@ -27,7 +27,7 @@
 #include "Python.h"
 #include "pycore_hashtable.h"
 #include "hashlib.h"
-#include "pystrhex.h"
+#include "pycore_strhex.h"        // _Py_strhex()
 
 /* EVP is the preferred interface to hashing in OpenSSL */
 #include <openssl/evp.h>
@@ -360,7 +360,7 @@ py_digest_by_name(PyObject *module, const char *name, enum Py_hash_type py_ht)
         }
     }
     if (digest == NULL) {
-        _setException(PyExc_ValueError, "unsupported hash type %s", name);
+        _setException(state->unsupported_digestmod_error, "unsupported hash type %s", name);
         return NULL;
     }
     return digest;

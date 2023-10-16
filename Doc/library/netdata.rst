@@ -16,6 +16,5 @@ on the internet.
    mailbox.rst
    mimetypes.rst
    base64.rst
-   binhex.rst
    binascii.rst
    quopri.rst

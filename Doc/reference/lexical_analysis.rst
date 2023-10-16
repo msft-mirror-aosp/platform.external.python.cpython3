@@ -315,7 +315,7 @@ The Unicode category codes mentioned above stand for:
 * *Nd* - decimal numbers
 * *Pc* - connector punctuations
 * *Other_ID_Start* - explicit list of characters in `PropList.txt
-  <https://www.unicode.org/Public/13.0.0/ucd/PropList.txt>`_ to support backwards
+  <https://www.unicode.org/Public/14.0.0/ucd/PropList.txt>`_ to support backwards
   compatibility
 * *Other_ID_Continue* - likewise
 
@@ -323,8 +323,8 @@ All identifiers are converted into the normal form NFKC while parsing; compariso
 of identifiers is based on NFKC.
 
 A non-normative HTML file listing all valid identifier characters for Unicode
-4.1 can be found at
-https://www.unicode.org/Public/13.0.0/ucd/DerivedCoreProperties.txt
+14.0.0 can be found at
+https://www.unicode.org/Public/14.0.0/ucd/DerivedCoreProperties.txt
 
 
 .. _keywords:
@@ -480,11 +480,9 @@ declaration is given in the source file; see section :ref:`encodings`.
 In plain English: Both types of literals can be enclosed in matching single quotes
 (``'``) or double quotes (``"``).  They can also be enclosed in matching groups
 of three single or double quotes (these are generally referred to as
-*triple-quoted strings*). The backslash (``\``) character is used to give special
-meaning to otherwise ordinary characters like ``n``, which means 'newline' when
-escaped (``\n``). It can also be used to escape characters that otherwise have a
-special meaning, such as newline, backslash itself, or the quote character.
-See :ref:`escape sequences <escape-sequences>` below for examples.
+*triple-quoted strings*).  The backslash (``\``) character is used to escape
+characters that otherwise have a special meaning, such as newline, backslash
+itself, or the quote character.
 
 .. index::
    single: b'; bytes literal
@@ -542,8 +540,6 @@ retained), except that three unescaped quotes in a row terminate the literal.  (
    single: \N; escape sequence
    single: \u; escape sequence
    single: \U; escape sequence
-
-.. _escape-sequences:
 
 Unless an ``'r'`` or ``'R'`` prefix is present, escape sequences in string and
 bytes literals are interpreted according to rules similar to those used by
@@ -607,8 +603,14 @@ Notes:
    The same result can be achieved using :ref:`triple-quoted strings <strings>`,
    or parentheses and :ref:`string literal concatenation <string-concatenation>`.
 
+
 (2)
    As in Standard C, up to three octal digits are accepted.
+
+   .. versionchanged:: 3.11
+      Octal escapes with value larger than ``0o377`` produce a :exc:`DeprecationWarning`.
+      In a future Python version they will be a :exc:`SyntaxWarning` and
+      eventually a :exc:`SyntaxError`.
 
 (3)
    Unlike in Standard C, exactly two hex digits are required.

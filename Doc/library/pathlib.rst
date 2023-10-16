@@ -21,6 +21,7 @@ inherit from pure paths but also provide I/O operations.
 
 .. image:: pathlib-inheritance.png
    :align: center
+   :class: invert-in-dark-mode
 
 If you've never used this module before or just aren't sure which class is
 right for your task, :class:`Path` is most likely what you need. It instantiates
@@ -398,7 +399,7 @@ Pure paths provide the following methods and properties:
 
       If you want to walk an arbitrary filesystem path upwards, it is
       recommended to first call :meth:`Path.resolve` so as to resolve
-      symlinks and eliminate `".."` components.
+      symlinks and eliminate ``".."`` components.
 
 
 .. attribute:: PurePath.name
@@ -848,6 +849,9 @@ call fails (for example because the path doesn't exist).
 
    .. audit-event:: pathlib.Path.glob self,pattern pathlib.Path.glob
 
+   .. versionchanged:: 3.11
+      Return only directories if *pattern* ends with a pathname components
+      separator (:data:`~os.sep` or :data:`~os.altsep`).
 
 .. method:: Path.group()
 
@@ -1088,6 +1092,18 @@ call fails (for example because the path doesn't exist).
       Added return value, return the new Path instance.
 
 
+.. method:: Path.absolute()
+
+   Make the path absolute, without normalization or resolving symlinks.
+   Returns a new path object::
+
+      >>> p = Path('tests')
+      >>> p
+      PosixPath('tests')
+      >>> p.absolute()
+      PosixPath('/home/antoine/pathlib/tests')
+
+
 .. method:: Path.resolve(strict=False)
 
    Make the path absolute, resolving any symlinks.  A new path object is
@@ -1128,6 +1144,9 @@ call fails (for example because the path doesn't exist).
 
    .. audit-event:: pathlib.Path.rglob self,pattern pathlib.Path.rglob
 
+   .. versionchanged:: 3.11
+      Return only directories if *pattern* ends with a pathname components
+      separator (:data:`~os.sep` or :data:`~os.altsep`).
 
 .. method:: Path.rmdir()
 
@@ -1275,13 +1294,14 @@ Below is a table mapping various :mod:`os` functions to their corresponding
 
    Not all pairs of functions/methods below are equivalent. Some of them,
    despite having some overlapping use-cases, have different semantics. They
-   include :func:`os.path.abspath` and :meth:`Path.resolve`,
+   include :func:`os.path.abspath` and :meth:`Path.absolute`,
    :func:`os.path.relpath` and :meth:`PurePath.relative_to`.
 
 ====================================   ==============================
 :mod:`os` and :mod:`os.path`           :mod:`pathlib`
 ====================================   ==============================
-:func:`os.path.abspath`                :meth:`Path.resolve` [#]_
+:func:`os.path.abspath`                :meth:`Path.absolute` [#]_
+:func:`os.path.realpath`               :meth:`Path.resolve`
 :func:`os.chmod`                       :meth:`Path.chmod`
 :func:`os.mkdir`                       :meth:`Path.mkdir`
 :func:`os.makedirs`                    :meth:`Path.mkdir`
@@ -1315,5 +1335,5 @@ Below is a table mapping various :mod:`os` functions to their corresponding
 
 .. rubric:: Footnotes
 
-.. [#] :func:`os.path.abspath` does not resolve symbolic links while :meth:`Path.resolve` does.
+.. [#] :func:`os.path.abspath` normalizes the resulting path, which may change its meaning in the presence of symlinks, while :meth:`Path.absolute` does not.
 .. [#] :meth:`PurePath.relative_to` requires ``self`` to be the subpath of the argument, but :func:`os.path.relpath` does not.
