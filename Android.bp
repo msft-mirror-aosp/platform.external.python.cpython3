@@ -385,7 +385,7 @@ cc_defaults {
         },
         host: {
             static_libs: [
-                "libsqlite",
+                "libsqlite_static_noicu",
                 "liblog",
                 "libopenssl_ssl",
                 "libopenssl_crypto",
