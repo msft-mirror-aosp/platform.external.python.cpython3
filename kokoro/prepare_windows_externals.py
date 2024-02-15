@@ -28,6 +28,9 @@ from xml.dom import minidom
 PYTHON_SRC = Path(__file__).parent.parent.resolve()
 TOP = PYTHON_SRC.parent.parent.parent
 
+CMAKE_BIN = TOP / 'prebuilts/cmake/windows-x86/bin/cmake.exe'
+VS_GENERATOR = 'Visual Studio 17 2022'
+
 
 def create_new_dir(path: Path) -> None:
     if path.exists():
@@ -109,9 +112,14 @@ def remove_modules_from_pcbuild_proj():
 
 def build_using_cmake(out: Path, src: Path) -> None:
     create_new_dir(out)
-    cmake = TOP / 'prebuilts/cmake/windows-x86/bin/cmake.exe'
-    run_cmd([cmake, src, '-G', 'Visual Studio 15 2017 Win64'], cwd=out)
-    run_cmd([cmake, '--build', '.', '--config', 'Release'], cwd=out)
+    run_cmd([CMAKE_BIN, src, '-G', VS_GENERATOR, '-A', 'x64'], cwd=out)
+    run_cmd([CMAKE_BIN, '--build', '.', '--config', 'Release'], cwd=out)
+
+
+def build_using_cmake_and_install(install_dir: Path, build_dir: Path, src: Path) -> None:
+    create_new_dir(build_dir)
+    run_cmd([CMAKE_BIN, src, '-G', VS_GENERATOR, '-A', 'x64', f'-DCMAKE_INSTALL_PREFIX={install_dir}'], cwd=build_dir)
+    run_cmd([CMAKE_BIN, '--build', '.', '--config', 'Release', '--target', 'install'], cwd=build_dir)
 
 
 def patch_libffi_props() -> None:
@@ -129,7 +137,7 @@ def patch_libffi_props() -> None:
 def patch_pythoncore_for_zlib() -> None:
     """pythoncore.vcxproj builds zlib into itself by listing individual zlib C files. AOSP uses
     Chromium's zlib fork, which has a different set of C files and defines. Switch to AOSP zlib:
-     - Build a static library using CMake: libz.lib, zconf.h, zlib.h
+     - Build a static library using CMake: zlibstatic.lib, zconf.h, zlib.h
      - Strip ClCompile/ClInclude elements from the project file that point to $(zlibDir).
      - Add a dependency on the static library.
     """
@@ -145,7 +153,7 @@ def patch_pythoncore_for_zlib() -> None:
 
     # Add a dependency on the static zlib archive.
     deps = get_text_element(proj, 'AdditionalDependencies').split(';')
-    libz_path = str(TOP / 'out/zlib/Release/libz.lib')
+    libz_path = str(TOP / 'out/zlib-install/lib/zlibstatic.lib')
     if libz_path not in deps:
         deps.insert(0, libz_path)
         set_text_element(proj, 'AdditionalDependencies', ';'.join(deps))
@@ -164,7 +172,7 @@ def main() -> None:
     set_text_element(root, 'libffiIncludeDir', str(TOP / 'out/libffi/dist/include') + '\\') # headers
     set_text_element(root, 'libffiOutDir', str(TOP / 'out/libffi/Release') + '\\') # dll+lib
     set_text_element(root, 'lzmaDir', str(TOP / 'toolchain/xz') + '\\')
-    set_text_element(root, 'zlibDir', str(TOP / 'out/zlib/dist/include') + '\\')
+    set_text_element(root, 'zlibDir', str(TOP / 'out/zlib-install/include') + '\\')
     write_xml_file(root, xml_path)
 
     # liblzma.vcxproj adds $(lzmaDir)windows to the include path for config.h, but AOSP has a newer
@@ -173,14 +181,17 @@ def main() -> None:
     # updates its xz dependency.)
     #
     # [1] https://git.tukaani.org/?p=xz.git;a=commit;h=82388980187b0e3794d187762054200bbdcc9a53
+    #
+    # Use vs2019 because there is no vs2022 header currently. (The existing vs2013, vs2017, and
+    # vs2019 headers are all the same anyway.)
     xz = TOP / 'toolchain/xz'
-    shutil.copy2(xz / 'windows/vs2017/config.h',
+    shutil.copy2(xz / 'windows/vs2019/config.h',
                  xz / 'windows/config.h')
 
     patch_python_for_licenses()
     remove_modules_from_pcbuild_proj()
     build_using_cmake(TOP / 'out/libffi', TOP / 'external/libffi')
-    build_using_cmake(TOP / 'out/zlib', TOP / 'external/zlib')
+    build_using_cmake_and_install(TOP / 'out/zlib-install', TOP / 'out/zlib-build', TOP / 'external/zlib')
     patch_libffi_props()
     patch_pythoncore_for_zlib()
 

@@ -92,7 +92,7 @@ def build_autoconf_target(host, python_src, build_dir, install_dir,
         # Linker will embed this path to all binaries linking this library.
         # Since configure does not give us a chance to set -install_name, we have
         # to edit the library afterwards.
-        libpython = 'libpython3.10.dylib'
+        libpython = 'libpython3.11.dylib'
         subprocess.check_call(['make',
                                '-j{}'.format(multiprocessing.cpu_count()),
                                libpython],

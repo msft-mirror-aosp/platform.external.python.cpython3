@@ -9,10 +9,15 @@
 //// STRING HANDLING FUNCTIONS ////
 
 static int
-warn_invalid_escape_sequence(Parser *p, unsigned char first_invalid_escape_char, Token *t)
+warn_invalid_escape_sequence(Parser *p, const char *first_invalid_escape, Token *t)
 {
+    unsigned char c = *first_invalid_escape;
+    int octal = ('4' <= c && c <= '7');
     PyObject *msg =
-        PyUnicode_FromFormat("invalid escape sequence '\\%c'", first_invalid_escape_char);
+        octal
+        ? PyUnicode_FromFormat("invalid octal escape sequence '\\%.3s'",
+                               first_invalid_escape)
+        : PyUnicode_FromFormat("invalid escape sequence '\\%c'", c);
     if (msg == NULL) {
         return -1;
     }
@@ -27,7 +32,13 @@ warn_invalid_escape_sequence(Parser *p, unsigned char first_invalid_escape_char,
                since _PyPegen_raise_error uses p->tokens[p->fill - 1] for the
                error location, if p->known_err_token is not set. */
             p->known_err_token = t;
-            RAISE_SYNTAX_ERROR("invalid escape sequence '\\%c'", first_invalid_escape_char);
+            if (octal) {
+                RAISE_SYNTAX_ERROR("invalid octal escape sequence '\\%.3s'",
+                                   first_invalid_escape);
+            }
+            else {
+                RAISE_SYNTAX_ERROR("invalid escape sequence '\\%c'", c);
+            }
         }
         Py_DECREF(msg);
         return -1;
@@ -118,7 +129,7 @@ decode_unicode_with_escapes(Parser *parser, const char *s, size_t len, Token *t)
     v = _PyUnicode_DecodeUnicodeEscapeInternal(s, len, NULL, NULL, &first_invalid_escape);
 
     if (v != NULL && first_invalid_escape != NULL) {
-        if (warn_invalid_escape_sequence(parser, *first_invalid_escape, t) < 0) {
+        if (warn_invalid_escape_sequence(parser, first_invalid_escape, t) < 0) {
             /* We have not decref u before because first_invalid_escape points
                inside u. */
             Py_XDECREF(u);
@@ -140,7 +151,7 @@ decode_bytes_with_escapes(Parser *p, const char *s, Py_ssize_t len, Token *t)
     }
 
     if (first_invalid_escape != NULL) {
-        if (warn_invalid_escape_sequence(p, *first_invalid_escape, t) < 0) {
+        if (warn_invalid_escape_sequence(p, first_invalid_escape, t) < 0) {
             Py_DECREF(result);
             return NULL;
         }
@@ -248,7 +259,8 @@ _PyPegen_parsestr(Parser *p, int *bytesmode, int *rawmode, PyObject **result,
         const char *ch;
         for (ch = s; *ch; ch++) {
             if (Py_CHARMASK(*ch) >= 0x80) {
-                RAISE_SYNTAX_ERROR(
+                RAISE_SYNTAX_ERROR_KNOWN_LOCATION(
+                                   t,
                                    "bytes can only contain ASCII "
                                    "literal characters");
                 return -1;
@@ -315,6 +327,9 @@ fstring_find_expr_location(Token *parent, const char* expr_start, char *expr_str
                 start--;
             }
             *p_cols += (int)(expr_start - start);
+            if (*start == '\n') {
+                *p_cols -= 1;
+            }
         }
         /* adjust the start based on the number of newlines encountered
            before the f-string expression */
@@ -357,7 +372,12 @@ fstring_compile_expr(Parser *p, const char *expr_start, const char *expr_end,
             break;
         }
     }
+
     if (s == expr_end) {
+        if (*expr_end == '!' || *expr_end == ':' || *expr_end == '=') {
+            RAISE_SYNTAX_ERROR("f-string: expression required before '%c'", *expr_end);
+            return NULL;
+        }
         RAISE_SYNTAX_ERROR("f-string: empty expression not allowed");
         return NULL;
     }
@@ -386,7 +406,7 @@ fstring_compile_expr(Parser *p, const char *expr_start, const char *expr_end,
     str[0] = '(';
     str[len+1] = ')';
 
-    struct tok_state* tok = PyTokenizer_FromString(str, 1);
+    struct tok_state* tok = _PyTokenizer_FromString(str, 1);
     if (tok == NULL) {
         PyMem_Free(str);
         return NULL;
@@ -400,7 +420,7 @@ fstring_compile_expr(Parser *p, const char *expr_start, const char *expr_end,
                                      NULL, p->arena);
 
     p2->starting_lineno = t->lineno + lines;
-    p2->starting_col_offset = t->col_offset + cols;
+    p2->starting_col_offset = lines != 0 ? cols : t->col_offset + cols;
 
     expr = _PyPegen_run_parser(p2);
 
@@ -412,7 +432,7 @@ fstring_compile_expr(Parser *p, const char *expr_start, const char *expr_end,
 exit:
     PyMem_Free(str);
     _PyPegen_Parser_Free(p2);
-    PyTokenizer_Free(tok);
+    _PyTokenizer_Free(tok);
     return result;
 }
 
@@ -460,7 +480,7 @@ fstring_find_literal(Parser *p, const char **str, const char *end, int raw,
                    decode_unicode_with_escapes(). */
                 continue;
             }
-            if (ch == '{' && warn_invalid_escape_sequence(p, ch, t) < 0) {
+            if (ch == '{' && warn_invalid_escape_sequence(p, s-1, t) < 0) {
                 return -1;
             }
         }
@@ -740,7 +760,9 @@ fstring_find_expr(Parser *p, const char **str, const char *end, int raw, int rec
         while (Py_ISSPACE(**str)) {
             *str += 1;
         }
-
+        if (*str >= end) {
+            goto unexpected_end_of_string;
+        }
         /* Set *expr_text to the text of the expression. */
         *expr_text = PyUnicode_FromStringAndSize(expr_start, *str-expr_start);
         if (!*expr_text) {
@@ -1142,9 +1164,7 @@ _PyPegen_FstringParser_ConcatFstring(Parser *p, FstringParser *state, const char
 
         /* We know we have an expression. Convert any existing string
            to a Constant node. */
-        if (!state->last_str) {
-            /* Do nothing. No previous literal. */
-        } else {
+        if (state->last_str) {
             /* Convert the existing last_str literal to a Constant node. */
             expr_ty last_str = make_str_node_and_del(p, &state->last_str, first_token, last_token);
             if (!last_str || ExprList_Append(&state->expr_list, last_str) < 0) {

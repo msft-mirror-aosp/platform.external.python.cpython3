@@ -126,16 +126,19 @@ cpython3_cc_defaults {
             local_include_dirs: ["android/bionic/pyconfig"],
         },
         android_arm: {
-            cflags: ["-DSOABI=\"cpython-310android-arm-android-bionic\""],
+            cflags: ["-DSOABI=\"cpython-311android-arm-android-bionic\""],
         },
         android_arm64: {
-            cflags: ["-DSOABI=\"cpython-310android-arm64-android-bionic\""],
+            cflags: ["-DSOABI=\"cpython-311android-arm64-android-bionic\""],
+        },
+        android_riscv64: {
+            cflags: ["-DSOABI=\"cpython-311android-riscv64-android-bionic\""],
         },
         android_x86: {
-            cflags: ["-DSOABI=\"cpython-310android-x86-android-bionic\""],
+            cflags: ["-DSOABI=\"cpython-311android-x86-android-bionic\""],
         },
         android_x86_64: {
-            cflags: ["-DSOABI=\"cpython-310android-x86_64-android-bionic\""],
+            cflags: ["-DSOABI=\"cpython-311android-x86_64-android-bionic\""],
         },
         host: {
             // Host builds are moving to prebuilts, which has a higher risk of
@@ -148,14 +151,14 @@ cpython3_cc_defaults {
             cflags: [
                 "-Wno-deprecated-declarations",
                 "-Wno-pointer-arith",
-                "-DSOABI=\"cpython-310android-x86_64-darwin\"",
+                "-DSOABI=\"cpython-311android-x86_64-darwin\"",
             ],
         },
         linux_bionic: {
             // NB linux_bionic is a 'host' architecture but it uses the bionic libc like 'android'
             // targets so use the android pyconfig.
             local_include_dirs: ["android/bionic/pyconfig"],
-            cflags: ["-DSOABI=\"cpython-310android-x86_64-linux-bionic\""],
+            cflags: ["-DSOABI=\"cpython-311android-x86_64-linux-bionic\""],
         },
         linux_glibc_x86: {
             enabled: false,
@@ -168,15 +171,15 @@ cpython3_cc_defaults {
         },
         linux_glibc_x86_64: {
             local_include_dirs: ["android/linux_x86_64/pyconfig"],
-            cflags: ["-DSOABI=\"cpython-310android-x86_64-linux-gnu\""],
+            cflags: ["-DSOABI=\"cpython-311android-x86_64-linux-gnu\""],
         },
         linux_musl_x86_64: {
             local_include_dirs: ["android/linux_x86_64/pyconfig"],
-            cflags: ["-DSOABI=\"cpython-310android-x86_64-linux-gnu\""],
+            cflags: ["-DSOABI=\"cpython-311android-x86_64-linux-gnu\""],
         },
         linux_musl_arm64: {
             local_include_dirs: ["android/linux_arm64/pyconfig"],
-            cflags: ["-DSOABI=\"cpython-310android-arm64-linux-gnu\""],
+            cflags: ["-DSOABI=\"cpython-311android-arm64-linux-gnu\""],
         },
         windows: {
             enabled: false,
@@ -204,15 +207,21 @@ cc_library_static {
     defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
     cflags: ["-DPy_BUILD_CORE", "-DPLATLIBDIR=\"lib\""],
     srcs: [
+        // Corresponds to PARSER_OBJS, OBJECT_OBJS, and PYTHON_OBJS in Makefile.pre.in
+
+        // Makefile.pre.in POBJS
+        "Parser/token.c",
+
         // Makefile.pre.in PEGEN_OBJS
         "Parser/pegen.c",
+        "Parser/pegen_errors.c",
+        "Parser/action_helpers.c",
         "Parser/parser.c",
         "Parser/string_parser.c",
         "Parser/peg_api.c",
 
         // Makefile.pre.in PARSER_OBJS
         "Parser/myreadline.c",
-        "Parser/token.c",
         "Parser/tokenizer.c",
 
         // Makefile.pre.in OBJECT_OBJS
@@ -264,6 +273,7 @@ cc_library_static {
         // Makefile.pre.in PYTHON_OBJS
         "Python/_warnings.c",
         "Python/Python-ast.c",
+        "Python/Python-tokenize.c",
         "Python/asdl.c",
         "Python/ast.c",
         "Python/ast_opt.c",
@@ -275,7 +285,7 @@ cc_library_static {
         "Python/context.c",
         "Python/dynamic_annotations.c",
         "Python/errors.c",
-        "Python/frozen.c",
+        "Python/frame.c",
         "Python/frozenmain.c",
         "Python/future.c",
         "Python/getargs.c",
@@ -304,6 +314,7 @@ cc_library_static {
         "Python/pythonrun.c",
         "Python/pytime.c",
         "Python/bootstrap_hash.c",
+        "Python/specialize.c",
         "Python/structmember.c",
         "Python/symtable.c",
         "Python/sysmodule.c",
@@ -340,14 +351,12 @@ cc_defaults {
     name: "py3-launcher-defaults",
     defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
     cflags: [
-        "-DVERSION=\"3.10\"",
+        "-DVERSION=\"3.11\"",
         "-DVPATH=\"\"",
         "-DPREFIX=\"\"",
         "-DEXEC_PREFIX=\"\"",
-        "-DPYTHONPATH=\"..:\"",
-        "-DANDROID_SKIP_ZIP_PATH",
-        "-DANDROID_SKIP_EXEC_PREFIX_PATH",
-        "-DANDROID_LIB_PYTHON_PATH=\"internal/stdlib\"",
+        "-DPLATLIBDIR=\"lib\"",
+        "-DPYTHONPATH=\"\"",
         "-DDATE=\"Dec 31 1969\"",
         "-DTIME=\"23:59:59\"",
     ],
@@ -355,6 +364,7 @@ cc_defaults {
         "libbase",
         "libexpat",
         "libz",
+        "libbz",
     ],
     target: {
         linux_glibc_x86_64: {
@@ -375,7 +385,7 @@ cc_defaults {
         },
         host: {
             static_libs: [
-                "libsqlite",
+                "libsqlite_static_noicu",
                 "liblog",
                 "libopenssl_ssl",
                 "libopenssl_crypto",
@@ -401,12 +411,11 @@ cc_defaults {
 }
 
 cc_library_static {
-    name: "py3-launcher-lib",
+    name: "py3-launcher-lib-omit-frozen",
     defaults: ["py3-launcher-defaults"],
     cflags: ["-DPy_BUILD_CORE"],
     srcs: [
         // Makefile.pre.in MODULE_OBJS
-        "Modules/getpath.c",
         "Modules/main.c",
         "Modules/gcmodule.c",
 
@@ -437,6 +446,26 @@ cc_library_static {
             srcs: ["android/darwin/config.c"],
         },
     },
+}
+
+cc_library_static {
+    name: "py3-launcher-lib",
+    defaults: ["py3-launcher-defaults"],
+    cflags: ["-DPy_BUILD_CORE"],
+    srcs: [
+        // Makefile.pre.in DEEPFREEZE_OBJS
+        "android/Python/deepfreeze/deepfreeze.c",
+
+        // Makefile.pre.in LIBRARY_OBJS
+        "Modules/getpath.c",
+        "Python/frozen.c",
+    ],
+    local_include_dirs: [
+        "android/Python",
+    ],
+    whole_static_libs: [
+        "py3-launcher-lib-omit-frozen",
+    ],
 }
 
 cc_binary {
@@ -498,13 +527,13 @@ cc_library_static {
     defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
     cflags: [
         "-DPy_BUILD_CORE_BUILTIN",
-        "-DUSE_PYEXPAT_CAPI",
         "-DSQLITE_OMIT_LOAD_EXTENSION",
     ],
     shared_libs: ["libsqlite"],
     static_libs: [
         "libexpat",
         "libz",
+        "libbz",
     ],
     target: {
         android: {
