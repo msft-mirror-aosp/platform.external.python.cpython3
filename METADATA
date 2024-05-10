@@ -9,11 +9,11 @@ third_party {
     type: GIT
     value: "https://github.com/python/cpython"
   }
-  version: "v3.10.3"
+  version: "v3.11.4"
   license_type: NOTICE
   last_upgrade_date {
-    year: 2022
-    month: 3
+    year: 2023
+    month: 8
     day: 22
   }
 }
