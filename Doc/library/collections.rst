@@ -25,7 +25,7 @@ Python's general purpose built-in containers, :class:`dict`, :class:`list`,
 :func:`namedtuple`      factory function for creating tuple subclasses with named fields
 :class:`deque`          list-like container with fast appends and pops on either end
 :class:`ChainMap`       dict-like class for creating a single view of multiple mappings
-:class:`Counter`        dict subclass for counting hashable objects
+:class:`Counter`        dict subclass for counting :term:`hashable` objects
 :class:`OrderedDict`    dict subclass that remembers the order entries were added
 :class:`defaultdict`    dict subclass that calls a factory function to supply missing values
 :class:`UserDict`       wrapper around dictionary objects for easier dict subclassing
@@ -241,7 +241,7 @@ For example::
 
 .. class:: Counter([iterable-or-mapping])
 
-    A :class:`Counter` is a :class:`dict` subclass for counting hashable objects.
+    A :class:`Counter` is a :class:`dict` subclass for counting :term:`hashable` objects.
     It is a collection where elements are stored as dictionary keys
     and their counts are stored as dictionary values.  Counts are allowed to be
     any integer value including zero or negative counts.  The :class:`Counter`
@@ -664,7 +664,7 @@ added elements by appending to the right and popping to the left::
 
     def moving_average(iterable, n=3):
         # moving_average([40, 30, 50, 46, 39, 44]) --> 40.0 42.0 45.0 43.0
-        # http://en.wikipedia.org/wiki/Moving_average
+        # https://en.wikipedia.org/wiki/Moving_average
         it = iter(iterable)
         d = deque(itertools.islice(it, n-1))
         d.appendleft(0)

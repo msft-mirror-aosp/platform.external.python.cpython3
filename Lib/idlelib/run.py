@@ -52,13 +52,13 @@ def idle_formatwarning(message, category, filename, lineno, line=None):
     """Format warnings the IDLE way."""
 
     s = "\nWarning (from warnings module):\n"
-    s += '  File \"%s\", line %s\n' % (filename, lineno)
+    s += f'  File \"{filename}\", line {lineno}\n'
     if line is None:
         line = linecache.getline(filename, lineno)
     line = line.strip()
     if line:
         s += "    %s\n" % line
-    s += "%s: %s\n" % (category.__name__, message)
+    s += f"{category.__name__}: {message}\n"
     return s
 
 def idle_showwarning_subproc(
@@ -145,7 +145,7 @@ def main(del_exitfunc=False):
                                   args=((LOCALHOST, port),))
     sockthread.daemon = True
     sockthread.start()
-    while 1:
+    while True:
         try:
             if exit_now:
                 try:

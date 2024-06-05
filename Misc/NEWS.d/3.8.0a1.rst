@@ -361,7 +361,7 @@ the "n" formatter.
 .. nonce: gjm1LO
 .. section: Core and Builtins
 
-Fix a possible segfault involving a newly-created coroutine.  Patch by
+Fix a possible segfault involving a newly created coroutine.  Patch by
 Zackery Spytz.
 
 ..
@@ -4617,7 +4617,7 @@ Based on patch by c-fos.
 .. section: Library
 
 Remove HMAC default to md5 marked for removal in 3.8 (removal originally
-planned in 3.6, bump to 3.8 in gh-7062).
+planned in 3.6, bump to 3.8 in PR 7062).
 
 ..
 
@@ -5951,7 +5951,7 @@ Wirtel
 
 Add TLSVersion constants and SSLContext.maximum_version / minimum_version
 attributes. The new API wraps OpenSSL 1.1
-https://www.openssl.org/docs/man1.1.0/ssl/SSL_CTX_set_min_proto_version.html
+https://web.archive.org/web/20180309043602/https://www.openssl.org/docs/man1.1.0/ssl/SSL_CTX_set_min_proto_version.html
 feature.
 
 ..
