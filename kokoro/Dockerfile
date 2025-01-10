@@ -1,4 +1,4 @@
-FROM centos:7
+FROM rockylinux:8
 
 # TODO: ncurses-devel results in a dependency on a libncursesw.so.5 (from
 # _curses.cpython-39-x86_64-linux-gnu.so).
