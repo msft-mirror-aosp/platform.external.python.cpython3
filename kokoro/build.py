@@ -65,6 +65,9 @@ def build_autoconf_target(host, python_src, build_dir, install_dir,
         # Disable functions to support old macOS. See https://bugs.python.org/issue31359
         # Fails the build if any new API is used.
         cflags.append('-Werror=unguarded-availability')
+        # Python guards against unavailable sqlite function calls by checking the runtime
+        # library version rather than using __builtin_available()
+        cflags.append('-Wno-unguarded-availability-new')
         # We're building with a macOS 11+ SDK, so this should be set, but
         # configure doesn't find it because of the unguarded-availability error
         # combined with and older -mmacosx-version-min
@@ -92,7 +95,7 @@ def build_autoconf_target(host, python_src, build_dir, install_dir,
         # Linker will embed this path to all binaries linking this library.
         # Since configure does not give us a chance to set -install_name, we have
         # to edit the library afterwards.
-        libpython = 'libpython3.11.dylib'
+        libpython = 'libpython3.13.dylib'
         subprocess.check_call(['make',
                                '-j{}'.format(multiprocessing.cpu_count()),
                                libpython],
