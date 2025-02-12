@@ -103,6 +103,8 @@ cpython3_cc_defaults {
         "-Wall",
         "-DPy_BUILD_CORE",
         "-Werror",
+        "-Wno-atomic-alignment",
+        "-Wno-gnu-pointer-arith",
         "-Wno-invalid-source-encoding",
         "-Wno-int-conversion",
         "-Wno-missing-field-initializers",
@@ -119,6 +121,7 @@ cpython3_cc_defaults {
     local_include_dirs: [
         "Include",
         "Include/internal",
+        "Include/internal/mimalloc",
     ],
     static_libs: ["libffi"],
     target: {
@@ -204,8 +207,14 @@ cpython3_cc_defaults {
 
 cc_library_static {
     name: "py3-interp",
-    defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
-    cflags: ["-DPy_BUILD_CORE", "-DPLATLIBDIR=\"lib\""],
+    defaults: [
+        "py3-interp-defaults",
+        "cpython3-interp-host-prebuilts",
+    ],
+    cflags: [
+        "-DPy_BUILD_CORE",
+        "-DPLATLIBDIR=\"lib\"",
+    ],
     srcs: [
         // Corresponds to PARSER_OBJS, OBJECT_OBJS, and PYTHON_OBJS in Makefile.pre.in
 
@@ -220,13 +229,21 @@ cc_library_static {
         "Parser/string_parser.c",
         "Parser/peg_api.c",
 
+        // Makefile.pre.in TOKENIZER_OBJS
+        "Parser/lexer/buffer.c",
+        "Parser/lexer/lexer.c",
+        "Parser/lexer/state.c",
+        "Parser/tokenizer/file_tokenizer.c",
+        "Parser/tokenizer/readline_tokenizer.c",
+        "Parser/tokenizer/string_tokenizer.c",
+        "Parser/tokenizer/utf8_tokenizer.c",
+        "Parser/tokenizer/helpers.c",
+
         // Makefile.pre.in PARSER_OBJS
         "Parser/myreadline.c",
-        "Parser/tokenizer.c",
 
         // Makefile.pre.in OBJECT_OBJS
         "Objects/abstract.c",
-        "Objects/accu.c",
         "Objects/boolobject.c",
         "Objects/bytes_methods.c",
         "Objects/bytearrayobject.c",
@@ -246,7 +263,6 @@ cc_library_static {
         "Objects/floatobject.c",
         "Objects/frameobject.c",
         "Objects/funcobject.c",
-        "Objects/interpreteridobject.c",
         "Objects/iterobject.c",
         "Objects/listobject.c",
         "Objects/longobject.c",
@@ -265,6 +281,7 @@ cc_library_static {
         "Objects/structseq.c",
         "Objects/tupleobject.c",
         "Objects/typeobject.c",
+        "Objects/typevarobject.c",
         "Objects/unicodeobject.c",
         "Objects/unicodectype.c",
         "Objects/unionobject.c",
@@ -275,33 +292,54 @@ cc_library_static {
         "Python/Python-ast.c",
         "Python/Python-tokenize.c",
         "Python/asdl.c",
+        "Python/assemble.c",
         "Python/ast.c",
         "Python/ast_opt.c",
         "Python/ast_unparse.c",
         "Python/bltinmodule.c",
+        "Python/brc.c",
         "Python/ceval.c",
         "Python/codecs.c",
         "Python/compile.c",
         "Python/context.c",
+        "Python/critical_section.c",
+        "Python/crossinterp.c",
         "Python/dynamic_annotations.c",
         "Python/errors.c",
+        "Python/flowgraph.c",
         "Python/frame.c",
         "Python/frozenmain.c",
         "Python/future.c",
+        "Python/gc.c",
+        "Python/gc_free_threading.c",
+        "Python/gc_gil.c",
         "Python/getargs.c",
         "Python/getcompiler.c",
         "Python/getcopyright.c",
         "Python/getplatform.c",
         "Python/getversion.c",
+        "Python/ceval_gil.c",
         "Python/hamt.c",
         "Python/hashtable.c",
         "Python/import.c",
         "Python/importdl.c",
         "Python/initconfig.c",
+        "Python/interpconfig.c",
+        "Python/instrumentation.c",
+        "Python/instruction_sequence.c",
+        "Python/intrinsics.c",
+        "Python/jit.c",
+        "Python/legacy_tracing.c",
+        "Python/lock.c",
         "Python/marshal.c",
         "Python/modsupport.c",
         "Python/mysnprintf.c",
         "Python/mystrtoul.c",
+        "Python/object_stack.c",
+        "Python/optimizer.c",
+        "Python/optimizer_analysis.c",
+        "Python/optimizer_symbols.c",
+        "Python/parking_lot.c",
         "Python/pathconfig.c",
         "Python/preconfig.c",
         "Python/pyarena.c",
@@ -313,6 +351,7 @@ cc_library_static {
         "Python/pystate.c",
         "Python/pythonrun.c",
         "Python/pytime.c",
+        "Python/qsbr.c",
         "Python/bootstrap_hash.c",
         "Python/specialize.c",
         "Python/structmember.c",
@@ -320,6 +359,7 @@ cc_library_static {
         "Python/sysmodule.c",
         "Python/thread.c",
         "Python/traceback.c",
+        "Python/tracemalloc.c",
         "Python/getopt.c",
         "Python/pystrcmp.c",
         "Python/pystrtod.c",
@@ -328,6 +368,8 @@ cc_library_static {
         "Python/formatter_unicode.c",
         "Python/fileutils.c",
         "Python/suggestions.c",
+        "Python/perf_trampoline.c",
+        "Python/perf_jit_trampoline.c",
         "Python/dynload_shlib.c",
     ],
 
@@ -336,6 +378,18 @@ cc_library_static {
             cflags: [
                 "-DPLATFORM=\"linux\"",
                 "-DABIFLAGS=\"\"",
+            ],
+        },
+        linux_arm64: {
+            srcs: [
+                // PERF_TRAMPOLINE_OBJ
+                "Python/asm_trampoline.S",
+            ],
+        },
+        linux_x86_64: {
+            srcs: [
+                // PERF_TRAMPOLINE_OBJ
+                "Python/asm_trampoline.S",
             ],
         },
         darwin: {
@@ -349,9 +403,12 @@ cc_library_static {
 
 cc_defaults {
     name: "py3-launcher-defaults",
-    defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
+    defaults: [
+        "py3-interp-defaults",
+        "cpython3-interp-host-prebuilts",
+    ],
     cflags: [
-        "-DVERSION=\"3.11\"",
+        "-DVERSION=\"3.13\"",
         "-DVPATH=\"\"",
         "-DPREFIX=\"\"",
         "-DEXEC_PREFIX=\"\"",
@@ -453,14 +510,12 @@ cc_library_static {
     defaults: ["py3-launcher-defaults"],
     cflags: ["-DPy_BUILD_CORE"],
     srcs: [
-        // Makefile.pre.in DEEPFREEZE_OBJS
-        "android/Python/deepfreeze/deepfreeze.c",
-
         // Makefile.pre.in LIBRARY_OBJS
         "Modules/getpath.c",
         "Python/frozen.c",
     ],
     local_include_dirs: [
+        "android",
         "android/Python",
     ],
     whole_static_libs: [
@@ -524,16 +579,26 @@ python_binary_host {
 
 cc_library_static {
     name: "py3-c-modules",
-    defaults: ["py3-interp-defaults", "cpython3-interp-host-prebuilts"],
+    defaults: [
+        "py3-interp-defaults",
+        "cpython3-interp-host-prebuilts",
+    ],
     cflags: [
         "-DPy_BUILD_CORE_BUILTIN",
         "-DSQLITE_OMIT_LOAD_EXTENSION",
+    ],
+    local_include_dirs: [
+        "Modules/_hacl/include",
     ],
     shared_libs: ["libsqlite"],
     static_libs: [
         "libexpat",
         "libz",
         "libbz",
+    ],
+    whole_static_libs: ["libmpdec"],
+    srcs: [
+        "Modules/_hacl/Hacl_Hash_SHA2.c",
     ],
     target: {
         android: {
@@ -564,7 +629,10 @@ cc_library_static {
             ],
         },
         darwin: {
-            cflags: ["-D__APPLE_USE_RFC_3542"],
+            cflags: [
+                "-D__APPLE_USE_RFC_3542",
+                "-DUSING_MALLOC_CLOSURE_DOT_C=1",
+            ],
             srcs: [":py3-c-modules-darwin"],
             static_libs: [
                 "libopenssl_ssl",
