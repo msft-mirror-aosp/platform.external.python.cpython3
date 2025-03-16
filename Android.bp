@@ -523,6 +523,35 @@ cc_library_static {
     ],
 }
 
+cc_library_headers {
+    name: "py3-headers",
+    defaults: [
+        "py3-interp-defaults",
+        "cpython3-interp-host-prebuilts",
+    ],
+    host_supported: true,
+    device_supported: false,
+    export_include_dirs: ["Include"],
+    target: {
+        darwin: {
+            export_include_dirs: ["android/darwin/pyconfig"],
+        },
+        linux_bionic: {
+            export_include_dirs: ["android/bionic/pyconfig"],
+        },
+        linux_glibc_x86_64: {
+            export_include_dirs: ["android/linux_x86_64/pyconfig"],
+        },
+        linux_musl_x86_64: {
+            export_include_dirs: ["android/linux_x86_64/pyconfig"],
+        },
+        linux_musl_arm64: {
+            export_include_dirs: ["android/linux_arm64/pyconfig"],
+        },
+    },
+    visibility: ["//visibility:public"],
+}
+
 cc_binary {
     name: "py3-launcher",
     defaults: ["py3-launcher-defaults"],
