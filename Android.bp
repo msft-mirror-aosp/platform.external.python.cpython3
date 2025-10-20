@@ -598,11 +598,9 @@ cc_binary_host {
 python_binary_host {
     name: "py3-cmd",
     autorun: false,
-    version: {
-        py3: {
-            embedded_launcher: true,
-        },
-    },
+    // embedded_launcher: true is the default, but the whole point of this binary
+    // is that it's the python interpreter, so writing it here for clarity.
+    embedded_launcher: true,
 }
 
 // Enabled extension py3-c-modules.

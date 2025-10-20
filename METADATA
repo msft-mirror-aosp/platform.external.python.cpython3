@@ -16,5 +16,8 @@ third_party {
     month: 1
     day: 15
   }
+  security: {
+    tag: "NVD-CPE2.3:cpe:/a:python:python:3.13.1"
+  }
 }
 
