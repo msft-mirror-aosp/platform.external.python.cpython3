@@ -23,6 +23,8 @@ extern "C" {
 #endif
 
 
+extern PyObject* PyInit__ssl(void);
+extern PyObject* PyInit__hashlib(void);
 extern PyObject* PyInit_array(void);
 extern PyObject* PyInit__asyncio(void);
 extern PyObject* PyInit__bisect(void);
@@ -113,6 +115,8 @@ extern PyObject* PyInit__string(void);
 
 struct _inittab _PyImport_Inittab[] = {
 
+    {"_ssl", PyInit__ssl},
+    {"_hashlib", PyInit__hashlib},
     {"array", PyInit_array},
     {"_asyncio", PyInit__asyncio},
     {"_bisect", PyInit__bisect},
