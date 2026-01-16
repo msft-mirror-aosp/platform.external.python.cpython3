@@ -171,6 +171,7 @@ def main() -> None:
     set_text_element(root, 'libffiDir', str(TOP / 'external/libffi') + '\\') # Provides LICENSE
     set_text_element(root, 'libffiIncludeDir', str(TOP / 'out/libffi/dist/include') + '\\') # headers
     set_text_element(root, 'libffiOutDir', str(TOP / 'out/libffi/Release') + '\\') # dll+lib
+    set_text_element(root, 'mpdecimalDir', str(TOP / 'external/mpdecimal') + '\\')
     set_text_element(root, 'lzmaDir', str(TOP / 'toolchain/xz') + '\\')
     set_text_element(root, 'zlibDir', str(TOP / 'out/zlib-install/include') + '\\')
     write_xml_file(root, xml_path)
