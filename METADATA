@@ -9,15 +9,15 @@ third_party {
     type: GIT
     value: "https://github.com/python/cpython"
   }
-  version: "v3.13.1"
+  version: "v3.13.11"
   license_type: NOTICE
   last_upgrade_date {
-    year: 2024
+    year: 2025
     month: 1
-    day: 15
+    day: 21
   }
   security: {
-    tag: "NVD-CPE2.3:cpe:/a:python:python:3.13.1"
+    tag: "NVD-CPE2.3:cpe:/a:python:python:3.13.11"
   }
 }
 
