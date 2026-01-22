@@ -1,28 +1,18 @@
 #!/usr/bin/env python3
 
-import enum
 import glob
 import multiprocessing
 import os
+from pathlib import Path
 import subprocess
 import sys
 import tarfile
 
-@enum.unique
-class Host(enum.Enum):
-    """Enumeration of supported hosts."""
-    Darwin = 'darwin'
-    Linux = 'linux'
+PYTHON_SRC = Path(__file__).parent.parent
+TOP = PYTHON_SRC.parent.parent.parent
 
-
-def get_default_host():
-    """Returns the Host matching the current machine."""
-    if sys.platform.startswith('linux'):
-        return Host.Linux
-    elif sys.platform.startswith('darwin'):
-        return Host.Darwin
-    else:
-        raise RuntimeError('Unsupported host: {}'.format(sys.platform))
+sys.path.append(str(TOP / 'toolchain/ndk-kokoro'))
+from build_utils import Host, get_default_host, run_cmd, zip_dir_to_zip
 
 
 def build_autoconf_target(host, python_src, build_dir, install_dir,
