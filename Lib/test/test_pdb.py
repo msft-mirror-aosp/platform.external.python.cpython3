@@ -2736,6 +2736,37 @@ def test_pdb_issue_gh_127321():
     """
 
 
+def test_pdb_issue_gh_136057():
+    """See GH-136057
+    "step" and "next" commands should be able to get over list comprehensions
+    >>> def test_function():
+    ...     import pdb; pdb.Pdb(nosigint=True, readrc=False).set_trace()
+    ...     lst = [i for i in range(10)]
+    ...     for i in lst: pass
+
+    >>> with PdbTestInput([  # doctest: +NORMALIZE_WHITESPACE
+    ...     'next',
+    ...     'next',
+    ...     'step',
+    ...     'continue',
+    ... ]):
+    ...     test_function()
+    > <doctest test.test_pdb.test_pdb_issue_gh_136057[0]>(2)test_function()
+    -> import pdb; pdb.Pdb(nosigint=True, readrc=False).set_trace()
+    (Pdb) next
+    > <doctest test.test_pdb.test_pdb_issue_gh_136057[0]>(3)test_function()
+    -> lst = [i for i in range(10)]
+    (Pdb) next
+    > <doctest test.test_pdb.test_pdb_issue_gh_136057[0]>(4)test_function()
+    -> for i in lst: pass
+    (Pdb) step
+    --Return--
+    > <doctest test.test_pdb.test_pdb_issue_gh_136057[0]>(4)test_function()->None
+    -> for i in lst: pass
+    (Pdb) continue
+    """
+
+
 def test_pdb_issue_gh_80731():
     """See GH-80731
 
@@ -2808,6 +2839,57 @@ def test_pdb_f_trace_lines():
     > <doctest test.test_pdb.test_pdb_f_trace_lines[1]>(5)test_function()
     -> import pdb; pdb.Pdb(nosigint=True, readrc=False).set_trace()
     (Pdb) continue
+    """
+
+def test_pdb_frame_refleak():
+    """
+    pdb should not leak reference to frames
+
+    >>> def frame_leaker(container):
+    ...     import sys
+    ...     container.append(sys._getframe())
+    ...     import pdb; pdb.Pdb(nosigint=True, readrc=False).set_trace()
+    ...     pass
+
+    >>> def test_function():
+    ...     import gc
+    ...     container = []
+    ...     frame_leaker(container)  # c
+    ...     print(len(gc.get_referrers(container[0])))
+    ...     container = []
+    ...     frame_leaker(container)  # n c
+    ...     print(len(gc.get_referrers(container[0])))
+    ...     container = []
+    ...     frame_leaker(container)  # r c
+    ...     print(len(gc.get_referrers(container[0])))
+
+    >>> with PdbTestInput([  # doctest: +NORMALIZE_WHITESPACE
+    ...     'continue',
+    ...     'next',
+    ...     'continue',
+    ...     'return',
+    ...     'continue',
+    ... ]):
+    ...    test_function()
+    > <doctest test.test_pdb.test_pdb_frame_refleak[0]>(4)frame_leaker()
+    -> import pdb; pdb.Pdb(nosigint=True, readrc=False).set_trace()
+    (Pdb) continue
+    1
+    > <doctest test.test_pdb.test_pdb_frame_refleak[0]>(4)frame_leaker()
+    -> import pdb; pdb.Pdb(nosigint=True, readrc=False).set_trace()
+    (Pdb) next
+    > <doctest test.test_pdb.test_pdb_frame_refleak[0]>(5)frame_leaker()
+    -> pass
+    (Pdb) continue
+    1
+    > <doctest test.test_pdb.test_pdb_frame_refleak[0]>(4)frame_leaker()
+    -> import pdb; pdb.Pdb(nosigint=True, readrc=False).set_trace()
+    (Pdb) return
+    --Return--
+    > <doctest test.test_pdb.test_pdb_frame_refleak[0]>(5)frame_leaker()->None
+    -> pass
+    (Pdb) continue
+    1
     """
 
 def test_pdb_function_break():
@@ -3931,6 +4013,22 @@ def bœr():
             self.assertIn('42', stdout)
             self.assertIn('return x + 1', stdout)
 
+    def test_issue_59000(self):
+        script = """
+            def foo():
+                pass
+
+            class C:
+                def foo(self):
+                    pass
+        """
+        commands = """
+            break C.foo
+            quit
+        """
+        stdout, stderr = self.run_pdb_script(script, commands)
+        self.assertIn("The specified object 'C.foo' is not a function", stdout)
+
 
 class ChecklineTests(unittest.TestCase):
     def setUp(self):
@@ -3971,7 +4069,9 @@ class ChecklineTests(unittest.TestCase):
 
 @support.requires_subprocess()
 class PdbTestReadline(unittest.TestCase):
-    def setUpClass():
+
+    @classmethod
+    def setUpClass(cls):
         # Ensure that the readline module is loaded
         # If this fails, the test is skipped because SkipTest will be raised
         readline = import_module('readline')

@@ -13,6 +13,7 @@
 #include "pycore_ceval.h"         // _PyEval_GetBuiltin()
 #include "pycore_modsupport.h"    // _PyArg_NoKeywords()
 #include "pycore_moduleobject.h"  // _PyModule_GetState()
+#include "pycore_weakref.h"       // FT_CLEAR_WEAKREFS()
 
 #include <stddef.h>               // offsetof()
 #include <stdbool.h>
@@ -708,8 +709,7 @@ array_dealloc(arrayobject *op)
     PyTypeObject *tp = Py_TYPE(op);
     PyObject_GC_UnTrack(op);
 
-    if (op->weakreflist != NULL)
-        PyObject_ClearWeakRefs((PyObject *) op);
+    FT_CLEAR_WEAKREFS((PyObject *) op, op->weakreflist);
     if (op->ob_item != NULL)
         PyMem_Free(op->ob_item);
     tp->tp_free(op);
@@ -2806,6 +2806,9 @@ array_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
                         Py_SET_SIZE(self, n);
                         self->allocated = n;
                     }
+                    else {
+                        PyMem_Free(ustr);
+                    }
                 }
                 else { // c == 'w'
                     Py_ssize_t n = PyUnicode_GET_LENGTH(initial);
@@ -2840,7 +2843,7 @@ array_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         }
     }
     PyErr_SetString(PyExc_ValueError,
-        "bad typecode (must be b, B, u, h, H, i, I, l, L, q, Q, f or d)");
+        "bad typecode (must be b, B, u, w, h, H, i, I, l, L, q, Q, f or d)");
     return NULL;
 }
 
@@ -3074,11 +3077,16 @@ array_arrayiterator___setstate__(arrayiterobject *self, PyObject *state)
     Py_ssize_t index = PyLong_AsSsize_t(state);
     if (index == -1 && PyErr_Occurred())
         return NULL;
-    if (index < 0)
-        index = 0;
-    else if (index > Py_SIZE(self->ao))
-        index = Py_SIZE(self->ao); /* iterator exhausted */
-    self->index = index;
+    arrayobject *ao = self->ao;
+    if (ao != NULL) {
+        if (index < 0) {
+            index = 0;
+        }
+        else if (index > Py_SIZE(ao)) {
+            index = Py_SIZE(ao); /* iterator exhausted */
+        }
+        self->index = index;
+    }
     Py_RETURN_NONE;
 }
 
