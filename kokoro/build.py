@@ -4,19 +4,58 @@ import glob
 import multiprocessing
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tarfile
+from typing import Dict, List
 
 PYTHON_SRC = Path(__file__).parent.parent
 TOP = PYTHON_SRC.parent.parent.parent
 
 sys.path.append(str(TOP / 'toolchain/ndk-kokoro'))
-from build_utils import Host, get_default_host, run_cmd, zip_dir_to_zip
+from build_utils import Host, get_default_host, run_cmd, zip_dir_to_zip, create_new_dir
+
+
+def build_libffi(host: Host, out_dir: Path) -> (List[str], List[str]):
+    """ Build libffi.a for use with the _ctypes module. """
+    libffi_src = TOP / 'external/libffi'
+    libffi_out = out_dir / 'libffi'
+    create_new_dir(libffi_out)
+
+    libffi_out_src = libffi_out / 'src'
+    shutil.copytree(libffi_src, libffi_out_src, ignore=shutil.ignore_patterns('.git'))
+    run_cmd(['./autogen.sh'], cwd=libffi_out_src)
+
+    build_dir = libffi_out / 'build'
+    create_new_dir(build_dir)
+    install_dir = libffi_out / 'install'
+
+    configure_path = libffi_out_src / 'configure'
+    run_cmd([
+        configure_path,
+        '--enable-static',
+        '--disable-shared',
+        '--with-pic',
+        '--disable-docs',
+        f'--prefix={install_dir}',
+        '--disable-multi-os-directory',
+    ], cwd=build_dir)
+
+    run_cmd(['make', f'-j{os.cpu_count()}', 'install'], cwd=build_dir)
+
+    # Use -Wl,--exclude-libs to hide libffi.a symbols in _ctypes.*.so.
+    configure_args = [
+        f'LIBFFI_CFLAGS=-I{install_dir}/include',
+        f'LIBFFI_LIBS=-L{install_dir}/lib -lffi -Wl,--exclude-libs=libffi.a',
+    ]
+    notices = [f'{libffi_src}/LICENSE']
+
+    return configure_args, notices
 
 
 def build_autoconf_target(host, python_src, build_dir, install_dir,
-                          extra_ldflags):
+                          extra_configure_args):
     print('## Building Python ##')
     print('## Build Dir   : {}'.format(build_dir))
     print('## Install Dir : {}'.format(install_dir))
@@ -76,7 +115,9 @@ def build_autoconf_target(host, python_src, build_dir, install_dir,
         ldflags.append('-Wl,--as-needed')
 
     config_cmd.append('CFLAGS={}'.format(' '.join(cflags)))
-    config_cmd.append('LDFLAGS={}'.format(' '.join(cflags + ldflags + [extra_ldflags])))
+    config_cmd.append('LDFLAGS={}'.format(' '.join(cflags + ldflags)))
+
+    config_cmd += extra_configure_args
 
     subprocess.check_call(config_cmd, cwd=build_dir, env=env)
 
@@ -157,16 +198,21 @@ def main(argv):
     out_dir = argv[2]
     dest_dir = argv[3]
     build_id = argv[4]
-    extra_ldflags = argv[5]
-    extra_notices = argv[6].split()
     host = get_default_host()
 
     build_dir = os.path.join(out_dir, 'build')
     install_dir = os.path.join(out_dir, 'install')
 
     try:
-        build_autoconf_target(host, python_src, build_dir, install_dir,
-                              extra_ldflags)
+        configure_args = []
+        extra_notices = []
+        if host == Host.Linux:
+            libffi_configure_args, libffi_notices = build_libffi(host, Path(out_dir))
+            configure_args += libffi_configure_args
+            extra_notices += libffi_notices
+
+        build_autoconf_target(host, python_src, build_dir, install_dir, configure_args)
+
         install_licenses(host, install_dir, extra_notices)
         package_target(host, install_dir, dest_dir, build_id)
     except:
