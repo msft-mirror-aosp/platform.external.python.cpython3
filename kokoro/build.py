@@ -64,7 +64,7 @@ def build_libffi(host: Host, out_dir: Path) -> (List[str], List[str]):
 
 
 def modify_line_in_file(file: Path, prefix: str, replace: str = None, append: str = None):
-    for line in fileinput.input(file, inplace=True):
+    for line in fileinput.input(str(file), inplace=True):
         line = line.rstrip('\r\n')
         if line.startswith(prefix):
             if replace:
