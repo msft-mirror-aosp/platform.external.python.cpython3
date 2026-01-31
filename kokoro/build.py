@@ -1,32 +1,149 @@
 #!/usr/bin/env python3
 
-import enum
+import fileinput
 import glob
 import multiprocessing
 import os
+from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tarfile
+from typing import Dict, List
 
-@enum.unique
-class Host(enum.Enum):
-    """Enumeration of supported hosts."""
-    Darwin = 'darwin'
-    Linux = 'linux'
+PYTHON_SRC = Path(__file__).parent.parent
+TOP = PYTHON_SRC.parent.parent.parent
+
+sys.path.append(str(TOP / 'toolchain/ndk-kokoro'))
+from build_utils import Host, get_default_host, run_cmd, zip_dir_to_zip, create_new_dir, LinuxArm64Musl
 
 
-def get_default_host():
-    """Returns the Host matching the current machine."""
-    if sys.platform.startswith('linux'):
-        return Host.Linux
-    elif sys.platform.startswith('darwin'):
-        return Host.Darwin
-    else:
-        raise RuntimeError('Unsupported host: {}'.format(sys.platform))
+def build_libffi(host: Host, out_dir: Path) -> (List[str], List[str]):
+    """ Build libffi.a for use with the _ctypes module. """
+    libffi_src = TOP / 'external/libffi'
+    libffi_out = out_dir / 'libffi'
+    create_new_dir(libffi_out)
+
+    libffi_out_src = libffi_out / 'src'
+    shutil.copytree(libffi_src, libffi_out_src, ignore=shutil.ignore_patterns('.git'))
+    run_cmd(['./autogen.sh'], cwd=libffi_out_src)
+
+    build_dir = libffi_out / 'build'
+    create_new_dir(build_dir)
+    install_dir = libffi_out / 'install'
+
+    env = os.environ.copy()
+    if host == Host.LinuxArm64:
+        env['CC'] = LinuxArm64Musl.CC
+        env['CXX'] = LinuxArm64Musl.CXX
+        env['CFLAGS'] = LinuxArm64Musl.CFLAGS
+        env['LDFLAGS'] = LinuxArm64Musl.LDFLAGS
+        env['LD_LIBRARY_PATH'] = LinuxArm64Musl.LD_LIBRARY_PATH
+
+    configure_path = libffi_out_src / 'configure'
+    run_cmd([
+        configure_path,
+        '--enable-static',
+        '--disable-shared',
+        '--with-pic',
+        '--disable-docs',
+        f'--prefix={install_dir}',
+        '--disable-multi-os-directory',
+    ], cwd=build_dir, env=env)
+
+    run_cmd(['make', f'-j{os.cpu_count()}', 'install'], cwd=build_dir)
+
+    # Use -Wl,--exclude-libs to hide libffi.a symbols in _ctypes.*.so.
+    configure_args = [
+        f'LIBFFI_CFLAGS=-I{install_dir}/include',
+        f'LIBFFI_LIBS=-L{install_dir}/lib -lffi -Wl,--exclude-libs=libffi.a',
+    ]
+    notices = [f'{libffi_src}/LICENSE']
+
+    return configure_args, notices
+
+
+def modify_line_in_file(file: Path, prefix: str, replace: str = None, append: str = None):
+    for line in fileinput.input(file, inplace=True):
+        line = line.rstrip('\r\n')
+        if line.startswith(prefix):
+            if replace:
+                line = replace + '\n'
+            if append:
+                line += append
+        print(line)
+
+
+def build_bzip2(host: Host, out_dir: Path) -> (List[str], List[str]):
+    """ Build libbz2.a for use with the _bz2 module. """
+    bzip2_src = TOP / 'external/bzip2'
+    bzip2_out = out_dir / 'bzip2'
+    create_new_dir(bzip2_out)
+
+    bzip2_out_src = bzip2_out / 'src'
+    shutil.copytree(bzip2_src, bzip2_out_src, ignore=shutil.ignore_patterns('.git'))
+
+    # bzip2 has no configure script, the compiler and flags are hardcoded at the
+    # top of Makefile.
+    makefile = bzip2_out_src / 'Makefile'
+    modify_line_in_file(makefile, 'CC=', replace=f'CC={LinuxArm64Musl.CC}')
+    modify_line_in_file(makefile, 'AR=', replace=f'AR={LinuxArm64Musl.AR}')
+    modify_line_in_file(makefile, 'RANLIB=', replace=f'RANLIB={LinuxArm64Musl.RANLIB}')
+    modify_line_in_file(makefile, 'LDFLAGS=', append=f' {LinuxArm64Musl.LDFLAGS}')
+    modify_line_in_file(makefile, 'CFLAGS=', append=f' {LinuxArm64Musl.CFLAGS}')
+
+    install_dir = bzip2_out / 'install'
+    run_cmd(['make', f'-j{os.cpu_count()}', 'install', f'PREFIX={install_dir}'], cwd=bzip2_out_src)
+
+    configure_args = [
+        f'BZIP2_CFLAGS=-I{install_dir}/include',
+        f'BZIP2_LIBS=-L{install_dir}/lib -lbz2 -Wl,--exclude-libs=libbz2.a',
+    ]
+    notices = [f'{bzip2_src}/LICENSE']
+
+    return configure_args, notices
+
+
+def build_ncurses(host: Host, out_dir: Path) -> (List[str], List[str]):
+    """ Build libncursesw.a for use with the _curses module. """
+    ncurses_src = TOP / 'external/ncurses'
+    ncurses_out = out_dir / 'ncurses'
+    create_new_dir(ncurses_out)
+
+    ncurses_out_src = ncurses_out / 'src'
+    shutil.copytree(ncurses_src, ncurses_out_src, ignore=shutil.ignore_patterns('.git'))
+
+    install_dir = ncurses_out / 'install'
+
+    env = os.environ.copy()
+    if host == Host.LinuxArm64:
+        env['CC'] = LinuxArm64Musl.CC
+        env['CXX'] = LinuxArm64Musl.CXX
+        env['CFLAGS'] = LinuxArm64Musl.CFLAGS + ' -fPIC'
+        env['LDFLAGS'] = LinuxArm64Musl.LDFLAGS
+        env['LD_LIBRARY_PATH'] = LinuxArm64Musl.LD_LIBRARY_PATH
+
+    run_cmd([
+        f'{ncurses_src}/configure',
+        f'--prefix={install_dir}',
+        '--enable-widec',
+        '--without-cxx-binding',
+    ], cwd=ncurses_out_src, env=env)
+
+    run_cmd(['make', f'-j{os.cpu_count()}'], cwd=ncurses_out_src, env=env)
+    run_cmd(['make', 'install.libs', 'install.includes'], cwd=ncurses_out_src, env=env)
+
+    configure_args = [
+        f'CURSES_CFLAGS=-I{install_dir}/include -I{install_dir}/include/ncursesw',
+        f'CURSES_LIBS=-L{install_dir}/lib -lncursesw -Wl,--exclude-libs=libncursesw.a',
+    ]
+    notices = [f'{ncurses_src}/LICENSE']
+
+    return configure_args, notices
 
 
 def build_autoconf_target(host, python_src, build_dir, install_dir,
-                          extra_ldflags):
+                          extra_configure_args):
     print('## Building Python ##')
     print('## Build Dir   : {}'.format(build_dir))
     print('## Install Dir : {}'.format(install_dir))
@@ -84,9 +201,23 @@ def build_autoconf_target(host, python_src, build_dir, install_dir,
         # Omit DT_NEEDED entries for unused dynamic libraries. This is implicit
         # with Debian's gcc driver but not with CentOS's gcc driver.
         ldflags.append('-Wl,--as-needed')
+    elif host == Host.LinuxArm64:
+        ldflags.append("-Wl,-rpath,\\$$ORIGIN/../lib")
+        ldflags.append('-Wl,--as-needed')
+        cflags.append(LinuxArm64Musl.CFLAGS)
+        ldflags.append(LinuxArm64Musl.LDFLAGS)
+
+        config_cmd.append(f'CC={LinuxArm64Musl.CC}')
+        config_cmd.append(f'CXX={LinuxArm64Musl.CXX}')
+        # Everything must come from the sysroot or be compiled locally against
+        # musl, so disable PKG_CONFIG
+        config_cmd.append(f'PKG_CONFIG=/bin/false')
+        env['LD_LIBRARY_PATH'] = f'{LinuxArm64Musl.SYSROOT}/lib'
 
     config_cmd.append('CFLAGS={}'.format(' '.join(cflags)))
-    config_cmd.append('LDFLAGS={}'.format(' '.join(cflags + ldflags + [extra_ldflags])))
+    config_cmd.append('LDFLAGS={}'.format(' '.join(cflags + ldflags)))
+
+    config_cmd += extra_configure_args
 
     subprocess.check_call(config_cmd, cwd=build_dir, env=env)
 
@@ -101,12 +232,12 @@ def build_autoconf_target(host, python_src, build_dir, install_dir,
                                libpython],
                               cwd=build_dir)
         subprocess.check_call(['install_name_tool', '-id', '@rpath/' + libpython,
-                               libpython], cwd=build_dir)
+                               libpython], cwd=build_dir, env=env)
 
     subprocess.check_call(['make',
                            '-j{}'.format(multiprocessing.cpu_count()),
                            'install'],
-                          cwd=build_dir)
+                          cwd=build_dir, env=env)
     return (build_dir, install_dir)
 
 
@@ -162,21 +293,49 @@ def package_logs(out_dir, dest_dir):
         tar.add(os.path.join(out_dir, 'config.log'), arcname='config.log')
 
 
+
+def copy_extra_libs(host, install_dir) -> List[Path]:
+    if host == Host.LinuxArm64:
+        os.makedirs(install_dir + '/lib', exist_ok=True)
+        shutil.copy(LinuxArm64Musl.LIBC_MUSL, install_dir + '/lib/libc_musl.so')
+        return LinuxArm64Musl.LIBC_MUSL_NOTICES
+    return []
+
+
 def main(argv):
     python_src = argv[1]
     out_dir = argv[2]
     dest_dir = argv[3]
     build_id = argv[4]
-    extra_ldflags = argv[5]
-    extra_notices = argv[6].split()
     host = get_default_host()
 
     build_dir = os.path.join(out_dir, 'build')
     install_dir = os.path.join(out_dir, 'install')
 
     try:
-        build_autoconf_target(host, python_src, build_dir, install_dir,
-                              extra_ldflags)
+        configure_args = []
+        extra_notices = []
+        if host == Host.Linux or host == Host.LinuxArm64:
+            libffi_configure_args, libffi_notices = build_libffi(host, Path(out_dir))
+            configure_args += libffi_configure_args
+            extra_notices += libffi_notices
+
+        if host == Host.LinuxArm64:
+            # Building for Linux arm64 uses a musl sysroot that is incompatible
+            # with any libraries installed on the host, compile bzip2 and ncurses
+            # dependencies first.
+            bzip2_configure_args, bzip2_notices = build_bzip2(host, Path(out_dir))
+            configure_args += bzip2_configure_args
+            extra_notices += bzip2_notices
+
+            ncurses_configure_args, ncurses_notices = build_ncurses(host, Path(out_dir))
+            configure_args += ncurses_configure_args
+            extra_notices += ncurses_notices
+
+        build_autoconf_target(host, python_src, build_dir, install_dir, configure_args)
+
+        extra_notices += copy_extra_libs(host, install_dir)
+
         install_licenses(host, install_dir, extra_notices)
         package_target(host, install_dir, dest_dir, build_id)
     except:
