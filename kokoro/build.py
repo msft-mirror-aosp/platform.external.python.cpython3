@@ -142,8 +142,8 @@ def build_ncurses(host: Host, out_dir: Path) -> (List[str], List[str]):
     return configure_args, notices
 
 
-def build_autoconf_target(host, python_src, build_dir, install_dir,
-                          extra_configure_args):
+def build_autoconf_target(host: Host, python_src: Path, build_dir: Path, install_dir: Path,
+                          extra_configure_args: List[str]):
     print('## Building Python ##')
     print('## Build Dir   : {}'.format(build_dir))
     print('## Install Dir : {}'.format(install_dir))
@@ -220,6 +220,11 @@ def build_autoconf_target(host, python_src, build_dir, install_dir,
     config_cmd += extra_configure_args
 
     subprocess.check_call(config_cmd, cwd=build_dir, env=env)
+
+    # The python build rules may call python to regenerate some of the source
+    # files, make sure it uses an up-to-date python.
+    python_prebuilt = TOP / 'prebuilts/python' / host.value / 'bin/python3'
+    env['PYTHON_FOR_REGEN'] = str(python_prebuilt)
 
     if host == Host.Darwin:
         # By default, LC_ID_DYLIB for libpython will be set to an absolute path.
@@ -303,14 +308,15 @@ def copy_extra_libs(host, install_dir) -> List[Path]:
 
 
 def main(argv):
-    python_src = argv[1]
-    out_dir = argv[2]
-    dest_dir = argv[3]
+    python_src = Path(argv[1])
+    out_dir = Path(argv[2])
+    dest_dir = Path(argv[3])
     build_id = argv[4]
     host = get_default_host()
 
-    build_dir = os.path.join(out_dir, 'build')
-    install_dir = os.path.join(out_dir, 'install')
+    build_dir = out_dir / 'build'
+    install_dir = out_dir / 'install'
+    src_out_dir = out_dir / 'src'
 
     try:
         configure_args = []
@@ -332,7 +338,13 @@ def main(argv):
             configure_args += ncurses_configure_args
             extra_notices += ncurses_notices
 
-        build_autoconf_target(host, python_src, build_dir, install_dir, configure_args)
+        # The python build sometimes writes to the source tree, make a copy of
+        # the sources to use during the build.
+        if src_out_dir.exists():
+            shutil.rmtree(src_out_dir)
+        shutil.copytree(python_src, src_out_dir, ignore=shutil.ignore_patterns('.git'))
+
+        build_autoconf_target(host, src_out_dir, build_dir, install_dir, configure_args)
 
         extra_notices += copy_extra_libs(host, install_dir)
 
