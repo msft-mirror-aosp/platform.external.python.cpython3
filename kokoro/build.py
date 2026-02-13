@@ -301,8 +301,8 @@ def package_logs(out_dir, dest_dir):
 
 def copy_extra_libs(host, install_dir) -> List[Path]:
     if host == Host.LinuxArm64:
-        os.makedirs(install_dir + '/lib', exist_ok=True)
-        shutil.copy(LinuxArm64Musl.LIBC_MUSL, install_dir + '/lib/libc_musl.so')
+        os.makedirs(install_dir / 'lib', exist_ok=True)
+        shutil.copy(LinuxArm64Musl.LIBC_MUSL, install_dir / 'lib/libc_musl.so')
         return LinuxArm64Musl.LIBC_MUSL_NOTICES
     return []
 
