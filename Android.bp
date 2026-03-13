@@ -97,6 +97,8 @@ cc_defaults {
 cpython3_cc_defaults {
     name: "py3-interp-defaults",
     defaults_visibility: ["//visibility:private"],
+    // Dependency libffi has bti turned off, which requires turning it off here.
+    defaults: ["no_bti"],
     cflags: [
         "-fwrapv",
         "-O3",
