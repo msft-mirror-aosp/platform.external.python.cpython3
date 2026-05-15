@@ -96,6 +96,11 @@ cc_defaults {
 
 cpython3_cc_defaults {
     name: "py3-interp-defaults",
+
+    // asm_trampoline.S has no bti until https://github.com/python/cpython/pull/130864,
+    // so disable it for now...
+    defaults: ["no_bti"],
+
     defaults_visibility: ["//visibility:private"],
     cflags: [
         "-fwrapv",
