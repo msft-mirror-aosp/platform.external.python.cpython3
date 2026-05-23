@@ -441,6 +441,7 @@ cc_defaults {
             ldflags: ["-Wl,--export-dynamic"],
         },
         darwin: {
+            ldflags: ["-Wl,-export_dynamic"],
             host_ldlibs: [
                 "-framework SystemConfiguration",
                 "-framework CoreFoundation",
@@ -562,15 +563,41 @@ cc_binary {
     name: "py3-launcher",
     defaults: ["py3-launcher-defaults"],
     srcs: ["android/launcher_main.cpp"],
-    static_libs: ["py3-launcher-lib"],
+    target: {
+        linux: {
+            static_libs: ["py3-launcher-lib"],
+        },
+        darwin: {
+            whole_static_libs: ["py3-launcher-lib"],
+            strip: {
+                none: true,
+            },
+        },
+        windows: {
+            static_libs: ["py3-launcher-lib"],
+        },
+    },
 }
 
 cc_binary {
     name: "py3-launcher-autorun",
     defaults: ["py3-launcher-defaults"],
     srcs: ["android/launcher_main.cpp"],
-    static_libs: ["py3-launcher-lib"],
     cflags: ["-DANDROID_AUTORUN"],
+    target: {
+        linux: {
+            static_libs: ["py3-launcher-lib"],
+        },
+        darwin: {
+            whole_static_libs: ["py3-launcher-lib"],
+            strip: {
+                none: true,
+            },
+        },
+        windows: {
+            static_libs: ["py3-launcher-lib"],
+        },
+    },
 }
 
 cc_binary_host {
