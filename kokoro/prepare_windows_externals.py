@@ -137,7 +137,7 @@ def patch_libffi_props() -> None:
 def patch_pythoncore_for_zlib() -> None:
     """pythoncore.vcxproj builds zlib into itself by listing individual zlib C files. AOSP uses
     Chromium's zlib fork, which has a different set of C files and defines. Switch to AOSP zlib:
-     - Build a static library using CMake: zlibstatic.lib, zconf.h, zlib.h
+     - Build a static library using CMake: zs.lib, zconf.h, zlib.h
      - Strip ClCompile/ClInclude elements from the project file that point to $(zlibDir).
      - Add a dependency on the static library.
     """
@@ -153,7 +153,7 @@ def patch_pythoncore_for_zlib() -> None:
 
     # Add a dependency on the static zlib archive.
     deps = get_text_element(proj, 'AdditionalDependencies').split(';')
-    libz_path = str(TOP / 'out/zlib-install/lib/zlibstatic.lib')
+    libz_path = str(TOP / 'out/zlib-install/lib/zs.lib')
     if libz_path not in deps:
         deps.insert(0, libz_path)
         set_text_element(proj, 'AdditionalDependencies', ';'.join(deps))
