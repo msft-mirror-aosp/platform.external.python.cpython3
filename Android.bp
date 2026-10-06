@@ -650,7 +650,6 @@ cc_library_static {
     local_include_dirs: [
         "Modules/_hacl/include",
     ],
-    shared_libs: ["libsqlite"],
     static_libs: [
         "libexpat",
         "libz",
@@ -663,6 +662,10 @@ cc_library_static {
     target: {
         android: {
             srcs: [":py3-c-modules-bionic"],
+            shared_libs: ["libsqlite"],
+        },
+        host: {
+            static_libs: ["libsqlite_static_noicu"],
         },
         linux_bionic: {
             srcs: [":py3-c-modules-bionic"],
