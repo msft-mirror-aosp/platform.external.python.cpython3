@@ -187,6 +187,10 @@ cpython3_cc_defaults {
             local_include_dirs: ["android/linux_x86_64/pyconfig"],
             cflags: ["-DSOABI=\"cpython-311android-x86_64-linux-gnu\""],
         },
+        linux_glibc_arm64: {
+            local_include_dirs: ["android/linux_arm64/pyconfig"],
+            cflags: ["-DSOABI=\"cpython-311android-arm64-linux-gnu\""],
+        },
         linux_musl_x86_64: {
             local_include_dirs: ["android/linux_x86_64/pyconfig"],
             cflags: ["-DSOABI=\"cpython-311android-x86_64-linux-gnu\""],
@@ -435,7 +439,7 @@ cc_defaults {
         "libbz",
     ],
     target: {
-        linux_glibc_x86_64: {
+        linux_glibc: {
             host_ldlibs: ["-lutil"],
         },
         linux: {
@@ -505,6 +509,9 @@ cc_library_static {
         glibc_x86_64: {
             srcs: ["android/linux_x86_64/config.c"],
         },
+        glibc_arm64: {
+            srcs: ["android/linux_arm64/config.c"],
+        },
         musl_x86_64: {
             srcs: ["android/linux_x86_64/config.c"],
         },
@@ -553,6 +560,9 @@ cc_library_headers {
         },
         linux_glibc_x86_64: {
             export_include_dirs: ["android/linux_x86_64/pyconfig"],
+        },
+        linux_glibc_arm64: {
+            export_include_dirs: ["android/linux_arm64/pyconfig"],
         },
         linux_musl_x86_64: {
             export_include_dirs: ["android/linux_x86_64/pyconfig"],
@@ -677,6 +687,13 @@ cc_library_static {
         },
         glibc_x86_64: {
             srcs: [":py3-c-modules-linux_x86_64"],
+            static_libs: [
+                "libopenssl_ssl",
+                "libopenssl_crypto",
+            ],
+        },
+        glibc_arm64: {
+            srcs: [":py3-c-modules-linux_arm64"],
             static_libs: [
                 "libopenssl_ssl",
                 "libopenssl_crypto",
