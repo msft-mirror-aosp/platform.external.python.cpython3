@@ -129,6 +129,11 @@ cpython3_cc_defaults {
         "Include/internal",
         "Include/internal/mimalloc",
     ],
+    extra_include_dir_deps: [
+        "Objects/**/*.c",
+        "Python/**/*.c",
+        "Modules/**/*.c",
+    ],
     static_libs: ["libffi"],
     target: {
         android: {
