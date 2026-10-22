@@ -109,6 +109,7 @@ cpython3_cc_defaults {
         "-DPy_BUILD_CORE",
         "-Werror",
         "-Wno-atomic-alignment",
+        "-Wno-constant-conversion",
         "-Wno-format",
         "-Wno-gnu-pointer-arith",
         "-Wno-invalid-source-encoding",
